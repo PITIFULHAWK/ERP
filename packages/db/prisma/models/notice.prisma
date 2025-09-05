@@ -1,0 +1,12 @@
+model Notice {
+    id           String     @id @default(uuid())
+    title        String
+    content      String
+    publishedAt  DateTime   @default(now())
+    university   University @relation(fields: [universityId], references: [id])
+    universityId String
+    createdAt    DateTime   @default(now())
+    updatedAt    DateTime   @updatedAt
+
+    @@map("notices")
+}

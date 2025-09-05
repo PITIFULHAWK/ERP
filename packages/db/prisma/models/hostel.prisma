@@ -1,0 +1,20 @@
+model Hostel {
+    id                   String     @id @default(uuid())
+    name                 String
+    fees                 Float
+    totalCapacity        Int
+    currentTotalStudents Int        @default(0)
+    type                 HostelType
+    university           University @relation(fields: [universityId], references: [id])
+    universityId         String
+    users                User[]     @relation("UserHostel")
+    createdAt            DateTime   @default(now())
+    updatedAt            DateTime   @updatedAt
+
+    @@map("hostels")
+}
+
+enum HostelType {
+    AC
+    NON_AC
+}
