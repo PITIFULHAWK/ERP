@@ -26,11 +26,11 @@ model Application {
     jeeMainsRank      Int?
     jeeMainsYear      Int?
     preferredCourse   Course            @relation(fields: [preferredCourseId], references: [id])
-    preferredCourseId String
+    preferredCourseId String            @unique
     documents         Document[]
     status            ApplicationStatus @default(PENDING)
     verifiedBy        User?             @relation("VerifiedApplications", fields: [verifiedById], references: [id])
-    verifiedById      String?
+    verifiedById      String?           @unique
     verifiedAt        DateTime?
     verificationNotes String?
     rejectionReason   String?
@@ -39,9 +39,9 @@ model Application {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+    User      User[]   @relation("userApplication")
 
     @@map("applications")
-    User User[] @relation("userApplication")
 }
 
 enum Gender {

@@ -1,0 +1,10 @@
+model Semester {
+    id       String @id @default(uuid())
+    number   Int
+    course   Course @relation("SemesterCourse", fields: [courseId], references: [id])
+    courseId String @unique
+
+    subjects Subject[] @relation("SemesterSubjects")
+
+    exams Exam[]
+}

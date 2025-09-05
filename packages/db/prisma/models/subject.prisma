@@ -1,0 +1,13 @@
+model Subject {
+    id         String   @id @default(uuid())
+    name       String
+    code       String   @unique // e.g., "CS101"
+    credits    Int
+    semester   Semester @relation("SemesterSubjects", fields: [semesterId], references: [id])
+    semesterId String   @unique
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    Grade Grade[]
+}

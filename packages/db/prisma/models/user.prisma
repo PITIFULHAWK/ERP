@@ -11,7 +11,7 @@ model User {
     hostelPayStatus HostelPaymentStatus @default(NOT_VERIFIED)
     userStatus      UserStatus          @default(NOT_VERIFIED)
     university      University          @relation(fields: [universityId], references: [id])
-    universityId    String
+    universityId    String              @unique
     application     Application?        @relation("userApplication", fields: [applicationId], references: [id])
     applicationId   String?
 
@@ -21,6 +21,7 @@ model User {
     createdAt   DateTime     @default(now())
     updatedAt   DateTime     @updatedAt
     Application Application?
+    ExamResult  ExamResult[]
 
     @@map("users")
 }

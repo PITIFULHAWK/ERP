@@ -1,0 +1,68 @@
+enum ExamType {
+    MID_TERM
+    FINAL_EXAM
+    QUIZ
+    PRACTICAL
+}
+
+enum ResultStatus {
+    PASS
+    FAIL
+    PENDING
+    WITHHELD
+}
+
+model Exam {
+    id       String   @id @default(uuid())
+    name     String
+    type     ExamType
+    examDate DateTime
+    maxMarks Float    @default(100)
+
+    semester   Semester @relation(fields: [semesterId], references: [id])
+    semesterId String   @unique
+
+    results ExamResult[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("exams")
+}
+
+model ExamResult {
+    id                 String       @id @default(uuid())
+    totalMarksObtained Float?
+    percentage         Float?
+    status             ResultStatus
+    remarks            String?
+
+    student   User   @relation(fields: [studentId], references: [id])
+    studentId String @unique
+
+    exam   Exam   @relation(fields: [examId], references: [id])
+    examId String @unique
+
+    grades Grade[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("exam_results")
+}
+
+model Grade {
+    id            String @id @default(uuid())
+    marksObtained Float
+
+    examResult   ExamResult @relation(fields: [examResultId], references: [id])
+    examResultId String     @unique
+
+    subject   Subject @relation(fields: [subjectId], references: [id])
+    subjectId String  @unique
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("grades")
+}
