@@ -26,11 +26,11 @@ model Application {
     jeeMainsRank      Int?
     jeeMainsYear      Int?
     preferredCourse   Course            @relation(fields: [preferredCourseId], references: [id])
-    preferredCourseId String            @unique
+    preferredCourseId String            
     documents         Document[]
     status            ApplicationStatus @default(PENDING)
     verifiedBy        User?             @relation("VerifiedApplications", fields: [verifiedById], references: [id])
-    verifiedById      String?           @unique
+    verifiedById      String?           
     verifiedAt        DateTime?
     verificationNotes String?
     rejectionReason   String?

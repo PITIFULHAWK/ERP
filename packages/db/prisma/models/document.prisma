@@ -6,10 +6,10 @@ model Document {
     fileSize      Int // File size in bytes
     mimeType      String
     application   Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-    applicationId String       @unique
+    applicationId String       
     isVerified    Boolean      @default(false)
     verifiedBy    User?        @relation("VerifiedDocuments", fields: [verifiedById], references: [id])
-    verifiedById  String?      @unique
+    verifiedById  String?      
     verifiedAt    DateTime?
 
     uploadedAt DateTime @default(now())

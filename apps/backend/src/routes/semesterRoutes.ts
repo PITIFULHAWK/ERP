@@ -6,7 +6,7 @@ import {
     getSemestersByCourse,
     updateSemester,
 } from "../controllers/semesterController";
-import { requireAdmin } from "../middleware/index";
+import { requireAdmin } from "../middleware/authMiddleware";
 import { validateRequest } from "../middleware/requestValidatorMiddlwware";
 
 const router: Router = Router();

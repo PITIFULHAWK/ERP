@@ -6,7 +6,7 @@ model Course {
     totalFees       Float
     currentStudents Int           @default(0)
     university      University    @relation(fields: [universityId], references: [id])
-    universityId    String        @unique
+    universityId    String        
     users           User[]        @relation("UserCourses")
     applications    Application[]
     semester        Semester[]    @relation("SemesterCourse")

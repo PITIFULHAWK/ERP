@@ -6,7 +6,7 @@ import {
     updateCourse,
     deleteCourse,
 } from "../controllers/courseController";
-import { requireAdmin } from "../middleware";
+import { requireAdmin } from "../middleware/authMiddleware";
 
 const router: Router = Router();
 

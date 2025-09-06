@@ -1,10 +1,11 @@
 model University {
-  id       String    @id @default(uuid())
-  name     String
-  uid      Int       @unique
-  users    User[]
-  courses  Course[]
-  hostels  Hostel[]
-  notices  Notice[]
+  id      String   @id @default(uuid())
+  name    String
+  uid     Int      @unique @default(autoincrement())
+  users   User[]
+  courses Course[]
+  hostels Hostel[]
+  notices Notice[]
+
   @@map("universities")
 }
