@@ -36,6 +36,7 @@ model ExamResult {
     percentage         Float?
     status             ResultStatus
     remarks            String?
+    grade              Float?
 
     student   User   @relation(fields: [studentId], references: [id])
     studentId String @unique

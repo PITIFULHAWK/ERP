@@ -13,6 +13,10 @@ router.use("/courses", courseRoutes);
 router.use("/hostels", hostelRoutes);
 router.use("/users", userRoutes);
 router.use("/applications", applicationRoutes);
+//sem
+//notice
+//exam
+//subjects
 
 // Health check
 router.get("/health", (req, res) => {

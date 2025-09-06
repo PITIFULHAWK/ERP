@@ -1,0 +1,10 @@
+# Ignore artifacts:
+dist
+build
+node_modules
+
+# Ignore turbo cache:
+.turbo
+
+# Ignore husky directory:
+.husky

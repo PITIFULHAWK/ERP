@@ -1,0 +1,13 @@
+{
+    "name": "@repo/eslint-config-custom",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "main": "index.js",
+    "dependencies": {
+        "eslint": "^9.34.0",
+        "eslint-config-prettier": "^10.1.1",
+        "eslint-config-turbo": "^2.5.0",
+        "eslint-plugin-react": "^7.37.5"
+    }
+}
