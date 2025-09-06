@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { prisma } from "@repo/db";
+import  prisma  from "@repo/db";
 import { CreateUserRequest, ApiResponse } from "../types";
 import { asyncHandler } from "../middleware";
 

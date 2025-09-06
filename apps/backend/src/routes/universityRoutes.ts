@@ -1,14 +1,14 @@
 import { Router } from "express";
 import {
-  getUniversities,
-  getUniversityById,
-  createUniversity,
-  updateUniversity,
-  deleteUniversity,
+    getUniversities,
+    getUniversityById,
+    createUniversity,
+    updateUniversity,
+    deleteUniversity,
 } from "../controllers/universityController";
 import { requireAdmin } from "../middleware";
 
-const router : Router = Router();
+const router: Router = Router();
 
 // Public routes
 router.get("/", getUniversities);

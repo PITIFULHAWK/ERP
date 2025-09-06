@@ -9,6 +9,6 @@ app.use("/api/v1", routes);
 app.use(notFound);
 app.use(errorHandler);
 app.listen(PORT, () => {
-  console.log(`🚀 ERP Server is running on port ${PORT}`);
-  console.log(`📊 API Docs: http://localhost:${PORT}/api/v1/health`);
+    console.log(`🚀 ERP Server is running on port ${PORT}`);
+    console.log(`📊 API Docs: http://localhost:${PORT}/api/v1/health`);
 });

@@ -1,14 +1,14 @@
 import { Router } from "express";
 import {
-  getHostels,
-  getHostelById,
-  createHostel,
-  updateHostel,
-  deleteHostel,
+    getHostels,
+    getHostelById,
+    createHostel,
+    updateHostel,
+    deleteHostel,
 } from "../controllers/hostelController";
 // import { requireAdmin } from "../middleware";
 
-const router : Router= Router();
+const router: Router = Router();
 
 // Public routes
 router.get("/", getHostels);

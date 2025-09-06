@@ -1,14 +1,14 @@
 import { Router } from "express";
 import {
-  getCourses,
-  getCourseById,
-  createCourse,
-  updateCourse,
-  deleteCourse,
+    getCourses,
+    getCourseById,
+    createCourse,
+    updateCourse,
+    deleteCourse,
 } from "../controllers/courseController";
 import { requireAdmin } from "../middleware";
 
-const router : Router = Router();
+const router: Router = Router();
 
 // Public routes
 router.get("/", getCourses);

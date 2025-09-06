@@ -1,16 +1,16 @@
 import { Router } from "express";
 import {
-  getApplications,
-  getApplicationById,
-  createApplication,
-  updateApplication,
-  verifyApplication,
-  addDocument,
-  verifyDocument,
-  deleteApplication,
+    getApplications,
+    getApplicationById,
+    createApplication,
+    updateApplication,
+    verifyApplication,
+    addDocument,
+    verifyDocument,
+    deleteApplication,
 } from "../controllers/applicationController";
 
-const router : Router = Router();
+const router: Router = Router();
 
 // Application routes
 router.get("/", getApplications);

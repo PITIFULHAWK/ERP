@@ -5,7 +5,7 @@ import hostelRoutes from "./hostelRoutes";
 import userRoutes from "./userRoutes";
 import applicationRoutes from "./applicationRoutes";
 
-const router : Router = Router();
+const router: Router = Router();
 
 // API routes
 router.use("/universities", universityRoutes);
@@ -20,11 +20,11 @@ router.use("/applications", applicationRoutes);
 
 // Health check
 router.get("/health", (req, res) => {
-  res.json({
-    success: true,
-    message: "ERP API is running",
-    timestamp: new Date().toISOString(),
-  });
+    res.json({
+        success: true,
+        message: "ERP API is running",
+        timestamp: new Date().toISOString(),
+    });
 });
 
 export default router;
