@@ -118,6 +118,46 @@ export const updateHostel = asyncHandler(
     }
 );
 
+export const addStudentToHostel = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { hostelId, userId } = req.params;
+
+        // 1. Find the hostel and check if it has capacity
+        const hostel = await prisma.hostel.findUnique({
+            where: { id: hostelId },
+        });
+
+        if (!hostel) {
+            return res.status(404).json({ message: "Hostel not found" });
+        }
+
+        if (hostel.currentTotalStudents >= hostel.totalCapacity) {
+            return res.status(400).json({ message: "Hostel is already full" });
+        }
+
+        // 2. Add the student and increment the student count in one transaction
+        const updatedHostel = await prisma.hostel.update({
+            where: { id: hostelId },
+            data: {
+                // Connect the user to this hostel
+                users: {
+                    connect: { id: userId },
+                },
+                // Increment the student count
+                currentTotalStudents: {
+                    increment: 1,
+                },
+            },
+        });
+
+        res.json({
+            success: true,
+            message: "Student successfully added to hostel",
+            data: updatedHostel,
+        });
+    }
+);
+
 // Delete hostel (Admin only)
 export const deleteHostel = asyncHandler(
     async (req: Request, res: Response) => {

@@ -59,3 +59,18 @@ export const requireAdmin = asyncHandler(
         next();
     }
 );
+
+export const requireStaff = asyncHandler(
+    async (req: AuthRequest, res: Response, next: NextFunction) => {
+        const allowedRoles = ["ADMIN", "PROFESSOR", "VERIFIER"];
+
+        if (!req.user || !allowedRoles.includes(req.user.role)) {
+            return res.status(403).json({
+                success: false,
+                message: "Forbidden: Staff access required.",
+                error: "Forbidden",
+            });
+        }
+        next();
+    }
+);

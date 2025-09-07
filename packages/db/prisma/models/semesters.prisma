@@ -1,6 +1,7 @@
 model Semester {
     id       String @id @default(uuid())
     number   Int
+    code     String @unique
     course   Course @relation("SemesterCourse", fields: [courseId], references: [id])
     courseId String
 

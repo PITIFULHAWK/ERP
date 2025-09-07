@@ -79,12 +79,10 @@ export const onboardUniversity = asyncHandler(
             where: { email: adminEmail },
         });
         if (existingAdmin) {
-            return res
-                .status(409)
-                .json({
-                    success: false,
-                    message: "An admin with this email already exists.",
-                });
+            return res.status(409).json({
+                success: false,
+                message: "An admin with this email already exists.",
+            });
         }
 
         const result = await prisma.$transaction(async (tx) => {
@@ -178,6 +176,7 @@ export const updateUniversity = asyncHandler(
 );
 
 // Delete university (Admin only)
+// TODO: not working need fixes (forien key constrant)
 export const deleteUniversity = asyncHandler(
     async (req: Request, res: Response) => {
         const { id } = req.params;

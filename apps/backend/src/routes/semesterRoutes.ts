@@ -3,21 +3,30 @@ import { body, param } from "express-validator";
 import {
     createSemester,
     deleteSemester,
+    getSemesters,
     getSemestersByCourse,
     updateSemester,
 } from "../controllers/semesterController";
-import { requireAdmin } from "../middleware/authMiddleware";
+import {
+    requireAdmin,
+    requireAuth,
+    requireStaff,
+} from "../middleware/authMiddleware";
 import { validateRequest } from "../middleware/requestValidatorMiddlwware";
 
 const router: Router = Router();
 
+// TODO: create a get route to get all the semester details (if necessary)
+router.get("/", getSemesters);
+
 router.post(
     "/",
-    requireAdmin,
+    requireAuth,
+    requireStaff,
     [
         body("courseId").isUUID().withMessage("Valid Course ID is required"),
-        body("number")
-            .isInt({ gt: 0 })
+        body("code")
+            .isString()
             .withMessage("Semester number must be a positive integer"),
     ],
     validateRequest,
@@ -26,6 +35,7 @@ router.post(
 
 router.get(
     "/:courseId",
+    requireAuth,
     [param("courseId").isUUID().withMessage("Valid Course ID is required")],
     validateRequest,
     getSemestersByCourse
@@ -33,7 +43,8 @@ router.get(
 
 router.patch(
     "/:semesterId",
-    requireAdmin,
+    requireAuth,
+    requireStaff,
     [
         param("semesterId")
             .isUUID()
@@ -49,7 +60,8 @@ router.patch(
 // DELETE route to delete a semester
 router.delete(
     "/:semesterId",
-    requireAdmin,
+    requireAuth,
+    requireStaff,
     [param("semesterId").isUUID().withMessage("Valid Semester ID is required")],
     validateRequest,
     deleteSemester

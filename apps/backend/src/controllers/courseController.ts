@@ -157,3 +157,58 @@ export const deleteCourse = asyncHandler(
         res.json(response);
     }
 );
+
+// TODO: check for the application status before enrolling student
+export const enrollStudentInCourse = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { courseId, userId } = req.params;
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!user) {
+            return res
+                .status(404)
+                .json({ success: false, message: "User not found" });
+        }
+
+        // Ensure only users with the 'USER' role can be promoted to 'STUDENT'
+        if (user.role !== "USER") {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "This user cannot be enrolled as they are not a basic user.",
+            });
+        }
+
+        // Use a transaction to ensure all database operations succeed or fail together
+        const [updatedUser, updatedCourse] = await prisma.$transaction([
+            prisma.user.update({
+                where: { id: userId },
+                data: {
+                    role: "STUDENT", // Promote user to STUDENT
+                    coursesOpted: {
+                        connect: { id: courseId }, // Enroll in the course
+                    },
+                },
+            }),
+            prisma.course.update({
+                where: { id: courseId },
+                data: {
+                    currentStudents: {
+                        increment: 1, // Increment the student count on the course
+                    },
+                },
+            }),
+        ]);
+
+        const response: ApiResponse = {
+            success: true,
+            message: `User ${updatedUser.name} successfully enrolled and promoted to STUDENT.`,
+            data: { user: updatedUser, course: updatedCourse },
+        };
+
+        res.json(response);
+    }
+);

@@ -1,65 +1,78 @@
 import { Router } from "express";
 import { body, param } from "express-validator";
 import {
-    deleteUniversity,
-    getUniversityById,
-    getUniversities,
-    onboardUniversity,
-    updateUniversity,
-} from "../controllers/universityController";
-import { requireAdmin } from "../middleware/authMiddleware";
+    getHostels,
+    getHostelById,
+    createHostel,
+    updateHostel,
+    deleteHostel,
+} from "../controllers/hostelController";
+import { requireAuth, requireStaff } from "../middleware/authMiddleware";
 import { validateRequest } from "../middleware/requestValidatorMiddlwware";
 
 const router: Router = Router();
 
-// GET all universities
-router.get("/", getUniversities);
+// Public route - anyone can see the list of hostels
+router.get("/", getHostels);
 
-// GET university by ID
+// Staff-only routes below, all with input validation
 router.get(
     "/:id",
-    [param("id").isUUID().withMessage("Valid University ID is required")],
+    requireAuth,
+    requireStaff,
+    [param("id").isUUID().withMessage("Valid hostel ID is required")],
     validateRequest,
-    getUniversityById
+    getHostelById
 );
 
-// POST onboard a new university and its first admin
-// This route is now public and does not require admin authentication.
 router.post(
-    "/onboard",
+    "/",
+    requireAuth,
+    requireStaff,
     [
-        body("universityName")
+        body("name")
             .isString()
             .notEmpty()
-            .withMessage("University name is required"),
-        body("adminName")
-            .isString()
-            .notEmpty()
-            .withMessage("Admin name is required"),
-        body("adminEmail")
-            .isEmail()
-            .withMessage("A valid admin email is required"),
+            .withMessage("Hostel name is required"),
+        body("type")
+            .isIn(["AC", "NON_AC"])
+            .withMessage("Type must be AC or NON_AC"),
+        body("capacity")
+            .isInt({ min: 1 })
+            .withMessage("Capacity must be a positive integer"),
+        body("fees")
+            .isFloat({ gt: 0 })
+            .withMessage("Fees must be a positive number"),
+        body("universityId")
+            .isUUID()
+            .withMessage("A valid university ID is required"),
     ],
     validateRequest,
-    onboardUniversity
+    createHostel
 );
 
-// PATCH update university (Admin only)
 router.patch(
     "/:id",
-    requireAdmin,
-    [param("id").isUUID().withMessage("Valid University ID is required")],
+    requireAuth,
+    requireStaff,
+    [
+        param("id").isUUID().withMessage("Valid hostel ID is required"),
+        body("name").optional().isString().notEmpty(),
+        body("type").optional().isIn(["AC", "NON_AC"]),
+        body("capacity").optional().isInt({ min: 1 }),
+        body("fees").optional().isFloat({ gt: 0 }),
+    ],
     validateRequest,
-    updateUniversity
+    updateHostel
 );
 
-// DELETE university (Admin only)
 router.delete(
     "/:id",
-    requireAdmin,
-    [param("id").isUUID().withMessage("Valid University ID is required")],
+    requireAuth,
+    requireStaff,
+    [param("id").isUUID().withMessage("Valid hostel ID is required")],
     validateRequest,
-    deleteUniversity
+    deleteHostel
 );
 
 export default router;

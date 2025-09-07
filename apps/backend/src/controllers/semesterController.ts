@@ -3,44 +3,94 @@ import { asyncHandler } from "../middleware/index";
 import prisma from "@repo/db";
 import { ApiResponse } from "../types";
 
+export const getSemesters = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { courseId, universityId } = req.query;
+
+        const semesters = await prisma.semester.findMany({
+            where: {
+                ...(courseId && { courseId: courseId as string }),
+                ...(universityId && {
+                    course: { universityId: universityId as string },
+                }),
+            },
+            include: {
+                course: {
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true,
+                    },
+                },
+                subjects: true,
+            },
+            orderBy: {
+                number: "asc",
+            },
+        });
+
+        const response: ApiResponse = {
+            success: true,
+            message: "Semesters retrieved successfully",
+            data: semesters,
+        };
+
+        res.json(response);
+    }
+);
+
+// Create a new semester with automatic numbering
 export const createSemester = asyncHandler(
     async (req: Request, res: Response) => {
-        const { courseId, number } = req.body;
+        const { courseId, code } = req.body;
 
-        // 1. Check if the course exists
+        // 1. Check if a semester with the same code already exists
+        const existingSemester = await prisma.semester.findUnique({
+            where: { code },
+        });
+
+        if (existingSemester) {
+            return res.status(409).json({
+                success: false,
+                message: `A semester with code '${code}' already exists.`,
+            });
+        }
+
+        // 2. Get the parent course and a count of its existing semesters
         const course = await prisma.course.findUnique({
             where: { id: courseId },
             include: {
-                semester: true, // Include existing semesters for validation
+                _count: {
+                    select: { semester: true },
+                },
             },
         });
 
         if (!course) {
-            const response: ApiResponse = {
+            return res.status(404).json({
                 success: false,
-                message: "Course not found",
-                error: `Course with ID ${courseId} does not exist.`,
-            };
-            return res.status(404).json(response);
+                message: `Course with ID ${courseId} not found.`,
+            });
         }
 
-        // 2. Check if the semester number exceeds the total semesters for the course
-        if (number > course.totalSemester) {
-            const response: ApiResponse = {
+        // 3. Automatically determine the new semester number
+        const newSemesterNumber = course._count.semester + 1;
+
+        // 4. Validate that we are not exceeding the total semesters for the course
+        if (newSemesterNumber > course.totalSemester) {
+            return res.status(400).json({
                 success: false,
-                message: "Invalid semester number",
-                error: `Semester number ${number} exceeds the total of ${course.totalSemester} semesters for this course.`,
-            };
-            return res.status(400).json(response);
+                message: `Cannot add new semester. The course's limit of ${course.totalSemester} semesters has been reached.`,
+            });
         }
 
+        // 5. Create the new semester with the calculated number
         const newSemester = await prisma.semester.create({
             data: {
-                number,
+                code,
+                number: newSemesterNumber,
                 course: {
-                    connect: {
-                        id: courseId,
-                    },
+                    connect: { id: courseId },
                 },
             },
         });
