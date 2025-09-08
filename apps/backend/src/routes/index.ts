@@ -5,6 +5,7 @@ import hostelRoutes from "./hostelRoutes";
 import userRoutes from "./userRoutes";
 import applicationRoutes from "./applicationRoutes";
 import semesterRouters from "./semesterRoutes";
+import noticeRoutes from "./noticeRoutes"
 
 const router: Router = Router();
 
@@ -15,6 +16,7 @@ router.use("/hostels", hostelRoutes);
 router.use("/users", userRoutes);
 router.use("/applications", applicationRoutes);
 router.use("/semesters", semesterRouters);
+router.use("/notice",noticeRoutes)
 
 //TODO: create below routes and its specific function
 //notice

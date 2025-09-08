@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "@repo/db";
 import bcrypt from "bcrypt";
-import { CreateUniversityRequest, ApiResponse } from "../types";
+import { ApiResponse } from "../types";
 import { asyncHandler } from "../middleware";
 
 // Get all universities
@@ -124,24 +124,10 @@ export const onboardUniversity = asyncHandler(
 // Create university (Admin only)
 export const createUniversity = asyncHandler(
     async (req: Request, res: Response) => {
-        const { name, uid }: CreateUniversityRequest = req.body;
-
-        // Check if university with same UID exists
-        const existingUniversity = await prisma.university.findUnique({
-            where: { uid },
-        });
-
-        if (existingUniversity) {
-            const response: ApiResponse = {
-                success: false,
-                message: "University with this UID already exists",
-                error: "Conflict",
-            };
-            return res.status(409).json(response);
-        }
+        const { name }: { name: string } = req.body;
 
         const university = await prisma.university.create({
-            data: { name, uid },
+            data: { name },
         });
 
         const response: ApiResponse = {
