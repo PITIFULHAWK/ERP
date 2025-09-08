@@ -202,7 +202,7 @@ export const verifyApplication = asyncHandler(
         if (status === "VERIFIED") {
             await prisma.user.update({
                 where: { id: application.userId },
-                data: { enumStatus: "VERIFIED" },
+                data: { userStatus: "VERIFIED" },
             });
         }
 

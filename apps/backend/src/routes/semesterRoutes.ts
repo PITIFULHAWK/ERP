@@ -16,7 +16,6 @@ import { validateRequest } from "../middleware/requestValidatorMiddlwware";
 
 const router: Router = Router();
 
-// TODO: create a get route to get all the semester details (if necessary)
 router.get("/", getSemesters);
 
 router.post(
