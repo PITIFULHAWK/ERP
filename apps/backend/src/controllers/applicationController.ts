@@ -7,6 +7,7 @@ import {
     ApiResponse,
 } from "../types";
 import { asyncHandler } from "../middleware";
+import emailQueueService from "../services/emailQueueService";
 
 // Get all applications
 export const getApplications = asyncHandler(
@@ -120,6 +121,21 @@ export const createApplication = asyncHandler(
             },
         });
 
+        // Send application submitted email
+        try {
+            await emailQueueService.queueApplicationSubmittedEmail(
+                application.user.email,
+                application.user.name,
+                application.id
+            );
+        } catch (emailError) {
+            console.error(
+                "Failed to queue application submitted email:",
+                emailError
+            );
+            // Don't fail the request if email fails
+        }
+
         const response: ApiResponse = {
             success: true,
             message: "Application submitted successfully",
@@ -206,6 +222,23 @@ export const verifyApplication = asyncHandler(
             });
         }
 
+        // Send application status update email
+        try {
+            await emailQueueService.queueApplicationVerifiedEmail(
+                application.user.email,
+                application.user.name,
+                application.id,
+                status,
+                verificationNotes
+            );
+        } catch (emailError) {
+            console.error(
+                "Failed to queue application verification email:",
+                emailError
+            );
+            // Don't fail the request if email fails
+        }
+
         const response: ApiResponse = {
             success: true,
             message: `Application ${status.toLowerCase()} successfully`,
@@ -257,9 +290,29 @@ export const verifyDocument = asyncHandler(
             },
             include: {
                 verifiedBy: true,
-                application: true,
+                application: {
+                    include: {
+                        user: true,
+                    },
+                },
             },
         });
+
+        // Send document verified email
+        try {
+            await emailQueueService.queueDocumentVerifiedEmail(
+                document.application.user.email,
+                document.application.user.name,
+                document.type,
+                document.applicationId
+            );
+        } catch (emailError) {
+            console.error(
+                "Failed to queue document verification email:",
+                emailError
+            );
+            // Don't fail the request if email fails
+        }
 
         const response: ApiResponse = {
             success: true,
