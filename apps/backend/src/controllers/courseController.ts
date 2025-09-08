@@ -158,13 +158,15 @@ export const deleteCourse = asyncHandler(
     }
 );
 
-// TODO: check for the application status before enrolling student
 export const enrollStudentInCourse = asyncHandler(
     async (req: Request, res: Response) => {
         const { courseId, userId } = req.params;
 
         const user = await prisma.user.findUnique({
             where: { id: userId },
+            include: {
+                Application: true, // Include application data
+            },
         });
 
         if (!user) {
@@ -182,6 +184,47 @@ export const enrollStudentInCourse = asyncHandler(
             });
         }
 
+        // Check if user has an application
+        if (!user.Application) {
+            return res.status(400).json({
+                success: false,
+                message: "User must have an application before enrollment.",
+            });
+        }
+
+        // Check if application is for the correct course
+        if (user.Application.preferredCourseId !== courseId) {
+            return res.status(400).json({
+                success: false,
+                message: "User's application is not for this course.",
+            });
+        }
+
+        // Check if application status is VERIFIED
+        if (user.Application.status !== "VERIFIED") {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot enroll student. Application status is ${user.Application.status}. Only students with VERIFIED applications can be enrolled.`,
+                data: {
+                    currentStatus: user.Application.status,
+                    requiredStatus: "VERIFIED",
+                    applicationId: user.Application.id,
+                },
+            });
+        }
+
+        // Check if course exists
+        const course = await prisma.course.findUnique({
+            where: { id: courseId },
+        });
+
+        if (!course) {
+            return res.status(404).json({
+                success: false,
+                message: "Course not found",
+            });
+        }
+
         // Use a transaction to ensure all database operations succeed or fail together
         const [updatedUser, updatedCourse] = await prisma.$transaction([
             prisma.user.update({
@@ -191,6 +234,10 @@ export const enrollStudentInCourse = asyncHandler(
                     coursesOpted: {
                         connect: { id: courseId }, // Enroll in the course
                     },
+                },
+                include: {
+                    Application: true,
+                    coursesOpted: true,
                 },
             }),
             prisma.course.update({
@@ -205,8 +252,13 @@ export const enrollStudentInCourse = asyncHandler(
 
         const response: ApiResponse = {
             success: true,
-            message: `User ${updatedUser.name} successfully enrolled and promoted to STUDENT.`,
-            data: { user: updatedUser, course: updatedCourse },
+            message: `User ${updatedUser.name} successfully enrolled and promoted to STUDENT based on verified application.`,
+            data: {
+                user: updatedUser,
+                course: updatedCourse,
+                applicationId: updatedUser.Application?.id,
+                enrollmentDate: new Date().toISOString(),
+            },
         };
 
         res.json(response);

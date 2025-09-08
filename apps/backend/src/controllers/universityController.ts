@@ -162,7 +162,7 @@ export const updateUniversity = asyncHandler(
 );
 
 // Delete university (Admin only)
-// TODO: not working need fixes (forien key constrant)
+// university deletion can't happen due to foreign key constraint as many records depend on tht table , we need to remove all those records then delete the university
 export const deleteUniversity = asyncHandler(
     async (req: Request, res: Response) => {
         const { id } = req.params;
