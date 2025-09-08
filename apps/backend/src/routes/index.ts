@@ -5,7 +5,9 @@ import hostelRoutes from "./hostelRoutes";
 import userRoutes from "./userRoutes";
 import applicationRoutes from "./applicationRoutes";
 import semesterRouters from "./semesterRoutes";
-import noticeRoutes from "./noticeRoutes"
+import noticeRoutes from "./noticeRoutes";
+import examRoutes from "./examRoutes";
+import subjectRoutes from "./subjectRoutes";
 
 const router: Router = Router();
 
@@ -16,12 +18,11 @@ router.use("/hostels", hostelRoutes);
 router.use("/users", userRoutes);
 router.use("/applications", applicationRoutes);
 router.use("/semesters", semesterRouters);
-router.use("/notice",noticeRoutes)
+router.use("/notice", noticeRoutes);
+router.use("/exams", examRoutes);
+router.use("/subjects", subjectRoutes);
 
-//TODO: create below routes and its specific function
-//notice
-//exam
-//subjects
+router.use("/subjects", subjectRoutes);
 
 // Health check
 router.get("/health", (req, res) => {
