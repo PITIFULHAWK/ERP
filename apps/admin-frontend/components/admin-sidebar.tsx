@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   BarChart3,
+  CreditCard,
 } from "lucide-react"
 
 const navigation = [
@@ -31,6 +32,11 @@ const navigation = [
     name: "Applications",
     href: "/admin/applications",
     icon: FileText,
+  },
+  {
+    name: "Payments",
+    href: "/admin/payments",
+    icon: CreditCard,
   },
   {
     name: "Users",

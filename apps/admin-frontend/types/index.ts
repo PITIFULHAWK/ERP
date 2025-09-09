@@ -88,8 +88,114 @@ export interface ApiResponse<T> {
     message?: string;
 }
 
+
+
 export interface ApiError {
     success: false;
     message: string;
     error?: string;
+}
+
+// Payment types
+export interface Payment {
+    id: string;
+    userId: string;
+    type: "COURSE" | "HOSTEL";
+    courseId?: string;
+    hostelId?: string;
+    amount: number;
+    currency: string;
+    method: "MANUAL" | "RAZORPAY" | "CARD" | "UPI";
+    status: "PENDING" | "SUCCESS" | "FAILED";
+    reference?: string;
+    gatewayOrderId?: string;
+    gatewayPaymentId?: string;
+    gatewaySignature?: string;
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
+    receipts: Receipt[];
+    user: {
+        id: string;
+        name: string;
+        email: string;
+    };
+    course?: {
+        id: string;
+        name: string;
+        code: string;
+    };
+    hostel?: {
+        id: string;
+        name: string;
+        type: string;
+    };
+}
+
+export interface Receipt {
+    id: string;
+    paymentId: string;
+    mediaUrl: string;
+    mediaType: string;
+    uploadedById: string;
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
+    uploadedBy: {
+        id: string;
+        name: string;
+        email: string;
+    };
+}
+
+export interface CreatePaymentRequest {
+    userId: string;
+    type: "COURSE" | "HOSTEL";
+    courseId?: string;
+    hostelId?: string;
+    amount: number;
+    currency?: string;
+    method?: "MANUAL" | "RAZORPAY" | "CARD" | "UPI";
+    reference?: string;
+    notes?: string;
+}
+
+export interface CreateReceiptRequest {
+    paymentId: string;
+    uploadedById: string;
+    mediaUrl: string;
+    mediaType: string;
+    notes?: string;
+}
+
+export interface VerifyPaymentRequest {
+    verifiedById: string;
+    verificationNotes?: string;
+}
+
+export interface PaymentSummary {
+    course: {
+        total: number;
+        paid: number;
+        due: number;
+    };
+    hostel: {
+        total: number;
+        paid: number;
+        due: number;
+    };
+}
+
+export interface PaymentFilters {
+    userId?: string;
+    type?: "COURSE" | "HOSTEL";
+    status?: "PENDING" | "SUCCESS" | "FAILED";
+    method?: "MANUAL" | "RAZORPAY" | "CARD" | "UPI";
+    courseId?: string;
+    hostelId?: string;
+    search?: string;
+    createdAfter?: string;
+    createdBefore?: string;
+    sortBy?: "createdAt" | "amount" | "status";
+    sortOrder?: "asc" | "desc";
 }

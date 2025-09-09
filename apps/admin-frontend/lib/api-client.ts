@@ -60,6 +60,15 @@ import {
     CreateNoticeRequest,
     UpdateNoticeRequest,
     NoticeFilters,
+    
+    // Payment types
+    Payment,
+    CreatePaymentRequest,
+    PaymentSummary,
+    CreateReceiptRequest,
+    VerifyPaymentRequest,
+    PaymentFilters,
+    Receipt,
 } from "../types";
 
 const API_BASE_URL =
@@ -509,6 +518,43 @@ class ApiClient {
     async deleteNotice(id: string) {
         return this.request(`/notice/${id}`, {
             method: "DELETE",
+        });
+    }
+
+    // ====== PAYMENT MANAGEMENT ======
+    async getPayments(filters?: PaymentFilters) {
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/payments${params}`);
+    }
+
+    async getPayment(id: string) {
+        return this.request(`/payments/${id}`);
+    }
+
+    async createPayment(paymentData: CreatePaymentRequest) {
+        return this.request("/payments", {
+            method: "POST",
+            body: JSON.stringify(paymentData),
+        });
+    }
+
+    async verifyPayment(id: string, verificationData: VerifyPaymentRequest) {
+        return this.request(`/payments/${id}/verify`, {
+            method: "POST",
+            body: JSON.stringify(verificationData),
+        });
+    }
+
+    async getPaymentSummary(userId: string) {
+        return this.request(`/payments/summary/${userId}`);
+    }
+
+    async uploadReceipt(receiptData: CreateReceiptRequest) {
+        return this.request(`/payments/${receiptData.paymentId}/receipts`, {
+            method: "POST",
+            body: JSON.stringify(receiptData),
         });
     }
 

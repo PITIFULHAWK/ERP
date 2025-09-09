@@ -2,7 +2,7 @@ export interface Course {
     id: string;
     name: string;
     code: string;
-    duration: number;
+    credits: number;
     totalSemester: number;
     totalFees: number;
     currentStudents: number;
@@ -37,6 +37,7 @@ export interface Semester {
     id: string;
     code: string;
     number: number;
+    fees: number;
     course: {
         id: string;
         name: string;
@@ -138,7 +139,7 @@ export interface CourseFilters {
 export interface CreateCourseRequest {
     name: string;
     code: string;
-    duration: number;
+    credits: number;
     totalSemester: number;
     totalFees: number;
     maxStudents?: number;
