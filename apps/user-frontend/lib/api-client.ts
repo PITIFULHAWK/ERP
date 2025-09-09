@@ -27,6 +27,11 @@ import {
     DashboardData,
     SearchResult,
     SearchFilters,
+    Payment,
+    CreatePaymentRequest,
+    PaymentSummary,
+    CreateReceiptRequest,
+    Receipt,
 } from "../types";
 
 interface RequestConfig extends RequestInit {
@@ -410,6 +415,34 @@ export class ApiClient {
             if (value !== undefined) params.append(key, String(value));
         });
         return this.get<SearchResult>(`/search?${params.toString()}`);
+    }
+
+    // PAYMENT METHODS
+    async createPayment(data: CreatePaymentRequest): Promise<ApiResponse<Payment>> {
+        return this.post<Payment>("/payments", data);
+    }
+
+    async getPaymentSummary(userId: string): Promise<ApiResponse<PaymentSummary>> {
+        return this.get<PaymentSummary>(`/payments/summary/${userId}`);
+    }
+
+    async getPayments(params?: {
+        userId?: string;
+        type?: "COURSE" | "HOSTEL";
+        status?: "PENDING" | "SUCCESS" | "FAILED";
+        limit?: number;
+    }): Promise<ApiResponse<Payment[]>> {
+        const queryParams = new URLSearchParams();
+        if (params) {
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== undefined) queryParams.append(key, String(value));
+            });
+        }
+        return this.get<Payment[]>(`/payments?${queryParams.toString()}`);
+    }
+
+    async uploadReceipt(data: CreateReceiptRequest): Promise<ApiResponse<Receipt>> {
+        return this.post<Receipt>(`/payments/${data.paymentId}/receipts`, data);
     }
 
     // Health check

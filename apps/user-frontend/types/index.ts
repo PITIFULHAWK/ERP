@@ -48,3 +48,68 @@ export interface SearchFilters {
     type?: "universities" | "courses" | "notices" | "all";
     universityId?: string;
 }
+
+// Payment types
+export interface Payment {
+    id: string;
+    userId: string;
+    type: "COURSE" | "HOSTEL";
+    courseId?: string;
+    hostelId?: string;
+    amount: number;
+    currency: string;
+    method: "MANUAL" | "RAZORPAY" | "CARD" | "UPI";
+    status: "PENDING" | "SUCCESS" | "FAILED";
+    reference?: string;
+    gatewayOrderId?: string;
+    gatewayPaymentId?: string;
+    gatewaySignature?: string;
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
+    receipts: Receipt[];
+}
+
+export interface Receipt {
+    id: string;
+    paymentId: string;
+    mediaUrl: string;
+    mediaType: string;
+    uploadedById: string;
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CreatePaymentRequest {
+    userId: string;
+    type: "COURSE" | "HOSTEL";
+    courseId?: string;
+    hostelId?: string;
+    amount: number;
+    currency?: string;
+    method?: "MANUAL" | "RAZORPAY" | "CARD" | "UPI";
+    reference?: string;
+    notes?: string;
+}
+
+export interface CreateReceiptRequest {
+    paymentId: string;
+    uploadedById: string;
+    mediaUrl: string;
+    mediaType: string;
+    notes?: string;
+}
+
+export interface PaymentSummary {
+    course: {
+        total: number;
+        paid: number;
+        due: number;
+    };
+    hostel: {
+        total: number;
+        paid: number;
+        due: number;
+    };
+}

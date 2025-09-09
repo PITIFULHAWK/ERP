@@ -1,31 +1,33 @@
 // Application types for user-frontend
 export interface Application {
     id: string;
-    status:
-        | "PENDING"
-        | "UNDER_REVIEW"
-        | "APPROVED"
-        | "REJECTED"
-        | "VERIFIED"
-        | "CANCELLED";
-    appliedAt: string;
-    reviewedAt?: string;
-    approvedAt?: string;
-    rejectedAt?: string;
-    verifiedAt?: string;
-    cancelledAt?: string;
-    remarks?: string;
-    applicant: {
-        id: string;
-        name: string;
-        email: string;
-    };
-    applicantId: string;
-    course: {
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string;
+    gender: "MALE" | "FEMALE" | "OTHER";
+    nationality: string;
+    phoneNumber: string;
+    alternatePhoneNumber?: string;
+    address: string;
+    city: string;
+    state: string;
+    pincode: string;
+    class10Percentage: number;
+    class10Board: string;
+    class10YearOfPassing: number;
+    class12Percentage: number;
+    class12Board: string;
+    class12YearOfPassing: number;
+    class12Stream: string;
+    hasJeeMainsScore: boolean;
+    jeeMainsScore?: number;
+    jeeMainsRank?: number;
+    jeeMainsYear?: number;
+    preferredCourse: {
         id: string;
         name: string;
         code: string;
-        duration: number;
+        credits: number;
         totalSemester: number;
         totalFees: number;
         university: {
@@ -35,14 +37,23 @@ export interface Application {
             type: "PUBLIC" | "PRIVATE";
         };
     };
-    courseId: string;
-    university: {
+    preferredCourseId: string;
+    status: "PENDING" | "UNDER_REVIEW" | "VERIFIED" | "REJECTED" | "INCOMPLETE";
+    verifiedBy?: {
         id: string;
         name: string;
-        location: string;
-        type: "PUBLIC" | "PRIVATE";
+        email: string;
     };
-    universityId: string;
+    verifiedById?: string;
+    verifiedAt?: string;
+    verificationNotes?: string;
+    rejectionReason?: string;
+    user: {
+        id: string;
+        name: string;
+        email: string;
+    };
+    userId: string;
     documents: ApplicationDocument[];
     createdAt: string;
     updatedAt: string;
@@ -66,17 +77,30 @@ export interface ApplicationDocument {
 
 // For creating new applications
 export interface CreateApplicationRequest {
-    courseId: string;
-    documents?: {
-        name: string;
-        type:
-            | "IDENTITY_PROOF"
-            | "ADDRESS_PROOF"
-            | "ACADEMIC_TRANSCRIPTS"
-            | "PASSPORT_SIZE_PHOTO"
-            | "OTHER";
-        url: string;
-    }[];
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string;
+    gender: "MALE" | "FEMALE" | "OTHER";
+    nationality: string;
+    phoneNumber: string;
+    alternatePhoneNumber?: string;
+    address: string;
+    city: string;
+    state: string;
+    pincode: string;
+    class10Percentage: number;
+    class10Board: string;
+    class10YearOfPassing: number;
+    class12Percentage: number;
+    class12Board: string;
+    class12YearOfPassing: number;
+    class12Stream: string;
+    hasJeeMainsScore?: boolean;
+    jeeMainsScore?: number;
+    jeeMainsRank?: number;
+    jeeMainsYear?: number;
+    preferredCourseId: string;
+    userId: string;
 }
 
 // For updating application status (user can only cancel)

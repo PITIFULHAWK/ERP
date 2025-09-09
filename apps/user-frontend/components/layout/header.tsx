@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Menu, GraduationCap, User, LogIn, LogOut, Settings, FileText, FolderOpen } from "lucide-react"
+import { Menu, GraduationCap, User, LogIn, LogOut, Settings, FileText, FolderOpen, CreditCard } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuth } from "@/contexts/auth-context"
 
@@ -97,6 +97,12 @@ export function Header() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
+                    <Link href="/payments">
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Payments
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link href="/profile">
                       <Settings className="mr-2 h-4 w-4" />
                       Profile Settings
@@ -172,6 +178,12 @@ export function Header() {
                           <Link href="/documents" onClick={() => setIsOpen(false)}>
                             <FolderOpen className="h-4 w-4 mr-2" />
                             Documents
+                          </Link>
+                        </Button>
+                        <Button variant="ghost" className="w-full justify-start" asChild>
+                          <Link href="/payments" onClick={() => setIsOpen(false)}>
+                            <CreditCard className="h-4 w-4 mr-2" />
+                            Payments
                           </Link>
                         </Button>
                         <Button

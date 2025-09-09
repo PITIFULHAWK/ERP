@@ -124,8 +124,8 @@ export function CoursePreferenceForm() {
               <CardContent>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="font-medium">Duration:</span>
-                    <p className="text-muted-foreground">{selectedCourse.duration} months</p>
+                    <span className="font-medium">Credits:</span>
+                    <p className="text-muted-foreground">{selectedCourse.credits}</p>
                   </div>
                   <div>
                     <span className="font-medium">Total Fees:</span>
@@ -191,8 +191,8 @@ export function CoursePreferenceForm() {
               <CardContent>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="font-medium">Duration:</span>
-                    <p className="text-muted-foreground">{alternativeCourse.duration} months</p>
+                    <span className="font-medium">Credits:</span>
+                    <p className="text-muted-foreground">{alternativeCourse.credits}</p>
                   </div>
                   <div>
                     <span className="font-medium">Total Fees:</span>

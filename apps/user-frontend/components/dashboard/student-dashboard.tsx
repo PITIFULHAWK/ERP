@@ -19,11 +19,13 @@ import {
   Plus,
   Eye,
   Download,
+  CreditCard,
 } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { useApplication } from "@/contexts/application-context"
 import { REQUIRED_DOCUMENTS } from "@/lib/application"
+import { PaymentSummaryComponent } from "@/components/payment/payment-summary"
 
 export function StudentDashboard() {
   const { user } = useAuth()
@@ -340,6 +342,19 @@ export function StudentDashboard() {
                 </CardContent>
               </Card>
 
+              {/* Payment Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" />
+                    Payment Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <PaymentSummaryComponent />
+                </CardContent>
+              </Card>
+
               {/* Important Links */}
               <Card>
                 <CardHeader>
@@ -355,6 +370,9 @@ export function StudentDashboard() {
                     </Button>
                     <Button variant="ghost" size="sm" className="w-full justify-start" asChild>
                       <Link href="/notices">Latest Notices</Link>
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start" asChild>
+                      <Link href="/payments">Payment History</Link>
                     </Button>
                     <Button variant="ghost" size="sm" className="w-full justify-start" asChild>
                       <Link href="/help">Help & Support</Link>
