@@ -11,6 +11,7 @@ model Course {
     users           User[]        @relation("UserCourses")
     applications    Application[]
     semester        Semester[]    @relation("SemesterCourse")
+    payments        Payment[]
     createdAt       DateTime      @default(now())
     updatedAt       DateTime      @updatedAt
 

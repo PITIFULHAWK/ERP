@@ -23,6 +23,8 @@ model User {
     updatedAt   DateTime     @updatedAt
     Application Application?
     ExamResult  ExamResult[]
+    payments    Payment[]
+    receipts    Receipt[]
 
     @@map("users")
 }

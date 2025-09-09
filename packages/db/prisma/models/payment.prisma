@@ -1,0 +1,56 @@
+model Payment {
+    id                String         @id @default(uuid())
+    user              User           @relation(fields: [userId], references: [id])
+    userId            String
+    type              PaymentType
+    course            Course?        @relation(fields: [courseId], references: [id])
+    courseId          String?
+    hostel            Hostel?        @relation(fields: [hostelId], references: [id])
+    hostelId          String?
+    amount            Float
+    currency          String         @default("INR")
+    method            PaymentMethod  @default(MANUAL)
+    status            PaymentStatus  @default(PENDING)
+    reference         String?        // internal reference or receipt number
+    gatewayOrderId    String?
+    gatewayPaymentId  String?
+    gatewaySignature  String?
+    notes             String?
+    receipts          Receipt[]
+    createdAt         DateTime       @default(now())
+    updatedAt         DateTime       @updatedAt
+    @@map("payments")
+}
+enum PaymentType {
+    COURSE
+    HOSTEL
+}
+enum PaymentStatus {
+    PENDING
+    SUCCESS
+    FAILED
+}
+enum PaymentMethod {
+    MANUAL
+    RAZORPAY
+    CARD
+    UPI
+}
+
+
+model Receipt {
+    id           String    @id @default(uuid())
+    payment      Payment   @relation(fields: [paymentId], references: [id])
+    paymentId    String
+    mediaUrl     String
+    mediaType    String    // image/jpeg, image/png, pdf, etc.
+    uploadedBy   User      @relation(fields: [uploadedById], references: [id])
+    uploadedById String
+    notes        String?
+    createdAt    DateTime  @default(now())
+    updatedAt    DateTime  @updatedAt
+
+    @@map("receipts")
+}
+
+

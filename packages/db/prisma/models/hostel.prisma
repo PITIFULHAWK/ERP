@@ -8,6 +8,7 @@ model Hostel {
     university           University @relation(fields: [universityId], references: [id])
     universityId         String
     users                User[]     @relation("UserHostel")
+    payments             Payment[]
     createdAt            DateTime   @default(now())
     updatedAt            DateTime   @updatedAt
 

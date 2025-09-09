@@ -85,6 +85,31 @@ export interface ApiResponse<T = any> {
     error?: string;
 }
 
+export interface CreatePaymentRequest {
+    userId: string;
+    type: "COURSE" | "HOSTEL";
+    courseId?: string;
+    hostelId?: string;
+    amount: number;
+    currency?: string;
+    method?: "MANUAL" | "RAZORPAY" | "CARD" | "UPI";
+    reference?: string;
+    notes?: string;
+}
+
+export interface CreateReceiptRequest {
+    paymentId: string;
+    uploadedById: string;
+    mediaUrl: string;
+    mediaType: string;
+    notes?: string;
+}
+
+export interface VerifyPaymentRequest {
+    verified: boolean;
+    adminId: string;
+}
+
 export interface CreateExamRequest {
     name: string;
     type: "MID_TERM" | "FINAL_EXAM" | "QUIZ" | "PRACTICAL";

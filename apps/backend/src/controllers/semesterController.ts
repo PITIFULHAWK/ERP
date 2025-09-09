@@ -32,7 +32,14 @@ export const getSemesters = asyncHandler(
         const response: ApiResponse = {
             success: true,
             message: "Semesters retrieved successfully",
-            data: semesters,
+            data: semesters.map((s) => ({
+                ...s,
+                // computed per-semester fees
+                fees:
+                    (s.course as any)?.totalFees && s.course
+                        ? (s.course as any).totalFees / (s.course as any).totalSemester
+                        : null,
+            })),
         };
 
         res.json(response);
@@ -139,7 +146,14 @@ export const getSemestersByCourse = asyncHandler(
         const response: ApiResponse = {
             success: true,
             message: `Semesters for course ${courseId} fetched successfully`,
-            data: semesters,
+            data: semesters.map((s) => ({
+                ...s,
+                fees:
+                    (s as any).course
+                        ? ((s as any).course.totalFees /
+                              (s as any).course.totalSemester)
+                        : null,
+            })),
         };
 
         res.status(200).json(response);
