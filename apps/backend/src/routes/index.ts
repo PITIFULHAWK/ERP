@@ -22,8 +22,6 @@ router.use("/notice", noticeRoutes);
 router.use("/exams", examRoutes);
 router.use("/subjects", subjectRoutes);
 
-router.use("/subjects", subjectRoutes);
-
 // Health check
 router.get("/health", (req, res) => {
     res.json({
