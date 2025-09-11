@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ApplicationFiltersComponent } from "@/components/applications/application-filters"
 import { ApplicationsTable } from "@/components/applications/applications-table"
 import { Download, RefreshCw } from "lucide-react"
+import { apiClient } from "@/lib/api-client"
+import { toast } from "@/hooks/use-toast"
 import type { Application, ApplicationFilters } from "@/types/application"
 
 export default function ApplicationsPage() {
@@ -14,157 +16,23 @@ export default function ApplicationsPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [filters, setFilters] = useState<ApplicationFilters>({})
 
-  // Mock data for demonstration
-  const mockApplications: Application[] = [
-    {
-      id: "1",
-      firstName: "Sarah",
-      lastName: "Johnson",
-      dateOfBirth: "2000-05-15",
-      gender: "FEMALE",
-      nationality: "Indian",
-      phoneNumber: "+91-9876543210",
-      address: "123 Main Street",
-      city: "Mumbai",
-      state: "Maharashtra",
-      pincode: "400001",
-      class10Percentage: 85.5,
-      class10Board: "CBSE",
-      class10YearOfPassing: 2018,
-      class12Percentage: 88.2,
-      class12Board: "CBSE",
-      class12YearOfPassing: 2020,
-      class12Stream: "Science",
-      hasJeeMainsScore: true,
-      jeeMainsScore: 245,
-      jeeMainsRank: 15000,
-      jeeMainsYear: 2020,
-      preferredCourseId: "cs-1",
-      preferredCourse: {
-        id: "cs-1",
-        name: "Computer Science Engineering",
-        code: "CSE",
-        university: {
-          id: "univ-1",
-          name: "Indian Institute of Technology",
-        },
-      },
-      status: "PENDING",
-      documents: [],
-      user: {
-        id: "user-1",
-        name: "Sarah Johnson",
-        email: "sarah.johnson@email.com",
-      },
-      userId: "user-1",
-      createdAt: "2024-01-15T10:30:00Z",
-      updatedAt: "2024-01-15T10:30:00Z",
-    },
-    {
-      id: "2",
-      firstName: "Michael",
-      lastName: "Chen",
-      dateOfBirth: "1999-12-08",
-      gender: "MALE",
-      nationality: "Indian",
-      phoneNumber: "+91-9876543211",
-      address: "456 Oak Avenue",
-      city: "Delhi",
-      state: "Delhi",
-      pincode: "110001",
-      class10Percentage: 92.0,
-      class10Board: "CBSE",
-      class10YearOfPassing: 2017,
-      class12Percentage: 94.5,
-      class12Board: "CBSE",
-      class12YearOfPassing: 2019,
-      class12Stream: "Science",
-      hasJeeMainsScore: true,
-      jeeMainsScore: 285,
-      jeeMainsRank: 8500,
-      jeeMainsYear: 2019,
-      preferredCourseId: "ee-1",
-      preferredCourse: {
-        id: "ee-1",
-        name: "Electrical Engineering",
-        code: "EE",
-        university: {
-          id: "univ-1",
-          name: "Indian Institute of Technology",
-        },
-      },
-      status: "UNDER_REVIEW",
-      documents: [],
-      user: {
-        id: "user-2",
-        name: "Michael Chen",
-        email: "michael.chen@email.com",
-      },
-      userId: "user-2",
-      createdAt: "2024-01-14T14:20:00Z",
-      updatedAt: "2024-01-16T09:15:00Z",
-    },
-    {
-      id: "3",
-      firstName: "Emily",
-      lastName: "Davis",
-      dateOfBirth: "2001-03-22",
-      gender: "FEMALE",
-      nationality: "Indian",
-      phoneNumber: "+91-9876543212",
-      address: "789 Pine Road",
-      city: "Bangalore",
-      state: "Karnataka",
-      pincode: "560001",
-      class10Percentage: 89.8,
-      class10Board: "ICSE",
-      class10YearOfPassing: 2019,
-      class12Percentage: 91.2,
-      class12Board: "ICSE",
-      class12YearOfPassing: 2021,
-      class12Stream: "Commerce",
-      hasJeeMainsScore: false,
-      preferredCourseId: "ba-1",
-      preferredCourse: {
-        id: "ba-1",
-        name: "Business Administration",
-        code: "BBA",
-        university: {
-          id: "univ-2",
-          name: "Delhi University",
-        },
-      },
-      status: "VERIFIED",
-      verifiedBy: {
-        id: "admin-1",
-        name: "Admin User",
-        email: "admin@university.edu",
-      },
-      verifiedAt: "2024-01-17T11:45:00Z",
-      documents: [],
-      user: {
-        id: "user-3",
-        name: "Emily Davis",
-        email: "emily.davis@email.com",
-      },
-      userId: "user-3",
-      createdAt: "2024-01-13T16:10:00Z",
-      updatedAt: "2024-01-17T11:45:00Z",
-    },
-  ]
 
   useEffect(() => {
     const fetchApplications = async () => {
       try {
         setLoading(true)
-        // In a real app, this would be: const response = await apiClient.getApplications(filters)
-        // For now, we'll use mock data
-        setTimeout(() => {
-          setApplications(mockApplications)
-          setLoading(false)
-        }, 1000)
+        const response = await apiClient.getApplications(filters)
+        if (response.success && response.data) {
+          setApplications(response.data)
+        }
       } catch (error) {
         console.error("Failed to fetch applications:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load applications",
+          variant: "destructive",
+        })
+      } finally {
         setLoading(false)
       }
     }

@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { UniversityCard } from "@/components/universities/university-card"
 import { Download, RefreshCw, Building2, Search } from "lucide-react"
 import Link from "next/link"
+import { apiClient } from "@/lib/api-client"
+import { toast } from "@/hooks/use-toast"
 import type { University } from "@/types/university"
 
 export default function UniversitiesPage() {
@@ -14,63 +16,23 @@ export default function UniversitiesPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
 
-  // Mock data for demonstration
-  const mockUniversities = [
-    {
-      id: "univ-1",
-      name: "Indian Institute of Technology",
-      uid: 12345,
-      courses: [],
-      hostels: [],
-      users: [],
-      notices: [],
-      createdAt: "2024-01-01T00:00:00Z",
-      updatedAt: "2024-01-01T00:00:00Z",
-      totalUsers: 1250,
-      totalCourses: 15,
-      totalHostels: 8,
-    },
-    {
-      id: "univ-2",
-      name: "Delhi University",
-      uid: 67890,
-      courses: [],
-      hostels: [],
-      users: [],
-      notices: [],
-      createdAt: "2024-01-05T00:00:00Z",
-      updatedAt: "2024-01-05T00:00:00Z",
-      totalUsers: 890,
-      totalCourses: 12,
-      totalHostels: 5,
-    },
-    {
-      id: "univ-3",
-      name: "Mumbai University",
-      uid: 11111,
-      courses: [],
-      hostels: [],
-      users: [],
-      notices: [],
-      createdAt: "2024-01-10T00:00:00Z",
-      updatedAt: "2024-01-10T00:00:00Z",
-      totalUsers: 2100,
-      totalCourses: 20,
-      totalHostels: 12,
-    },
-  ]
 
   useEffect(() => {
     const fetchUniversities = async () => {
       try {
         setLoading(true)
-        // In a real app: const response = await apiClient.getUniversities()
-        setTimeout(() => {
-          setUniversities(mockUniversities)
-          setLoading(false)
-        }, 1000)
+        const response = await apiClient.getUniversities()
+        if (response.success && response.data) {
+          setUniversities(response.data)
+        }
       } catch (error) {
         console.error("Failed to fetch universities:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load universities",
+          variant: "destructive",
+        })
+      } finally {
         setLoading(false)
       }
     }

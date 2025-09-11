@@ -1,13 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Home, Plus, Search, Users, Bed, MapPin, Phone, Mail } from "lucide-react"
+import { Home, Plus, Search, Users, Bed, MapPin, Phone, Mail, RefreshCw } from "lucide-react"
+import { apiClient } from "@/lib/api-client"
+import { toast } from "@/hooks/use-toast"
 
 interface Hostel {
   id: string
@@ -24,52 +26,34 @@ interface Hostel {
 }
 
 export default function HostelsPage() {
+  const [hostels, setHostels] = useState<Hostel[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [typeFilter, setTypeFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
 
-  // Mock data
-  const hostels: Hostel[] = [
-    {
-      id: "1",
-      name: "Sunrise Boys Hostel",
-      type: "BOYS",
-      capacity: 200,
-      occupied: 185,
-      address: "Block A, University Campus",
-      warden: "Dr. Rajesh Kumar",
-      contact: "+91 9876543210",
-      email: "sunrise.boys@university.edu",
-      status: "ACTIVE",
-      university: "Delhi University",
-    },
-    {
-      id: "2",
-      name: "Moonlight Girls Hostel",
-      type: "GIRLS",
-      capacity: 150,
-      occupied: 142,
-      address: "Block B, University Campus",
-      warden: "Dr. Priya Sharma",
-      contact: "+91 9876543211",
-      email: "moonlight.girls@university.edu",
-      status: "ACTIVE",
-      university: "Delhi University",
-    },
-    {
-      id: "3",
-      name: "Unity Mixed Hostel",
-      type: "MIXED",
-      capacity: 300,
-      occupied: 275,
-      address: "Block C, University Campus",
-      warden: "Dr. Amit Patel",
-      contact: "+91 9876543212",
-      email: "unity.mixed@university.edu",
-      status: "MAINTENANCE",
-      university: "Mumbai University",
-    },
-  ]
+  useEffect(() => {
+    const fetchHostels = async () => {
+      try {
+        setLoading(true)
+        const response = await apiClient.getHostels()
+        if (response.success && response.data) {
+          setHostels(response.data)
+        }
+      } catch (error) {
+        console.error("Failed to fetch hostels:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load hostels",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchHostels()
+  }, [])
 
   const filteredHostels = hostels.filter((hostel) => {
     const matchesSearch =

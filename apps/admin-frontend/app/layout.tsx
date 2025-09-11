@@ -29,7 +29,9 @@ export default function RootLayout({
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} ${playfairDisplay.variable}`}>
         <Suspense fallback={null}>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-            <AuthProvider>{children}</AuthProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
           </ThemeProvider>
         </Suspense>
       </body>

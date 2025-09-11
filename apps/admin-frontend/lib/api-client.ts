@@ -1,27 +1,17 @@
 import {
-    // User types
-    User,
     UserFilters,
     CreateUserRequest,
     UpdateUserRequest,
-
-    // University types
-    University,
-    UniversityFilters,
     CreateUniversityRequest,
     UpdateUniversityRequest,
     OnboardUniversityRequest,
 
-    // Course types
-    Course,
     CourseFilters,
     CreateCourseRequest,
     UpdateCourseRequest,
     Semester,
-    Subject,
-    Exam,
-    ExamResult,
-    Grade,
+    Subject, 
+    Grade,  
 
     // Application types
     Application,
@@ -34,9 +24,6 @@ import {
     // Hostel and Notice types from university
     UniversityHostel as Hostel,
     UniversityNotice as Notice,
-
-    // Common types
-    PaginatedResponse,
 
     // Additional API types
     LoginCredentials,
@@ -72,7 +59,7 @@ import {
 } from "../types";
 
 const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+    process.env.NEXT_PUBLIC_API_URL || "/api/v1";
 
 class ApiClient {
     private baseURL: string;
@@ -106,13 +93,23 @@ class ApiClient {
             const response = await fetch(url, config);
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                let errorMessage = `HTTP error! status: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || errorData.error || errorMessage;
+                } catch {
+                    // If we can't parse the error response, use the default message
+                }
+                throw new Error(errorMessage);
             }
 
             const data = await response.json();
             return data;
         } catch (error) {
             console.error("API request failed:", error);
+            if (error instanceof TypeError && error.message.includes('fetch')) {
+                throw new Error("Unable to connect to the server. Please make sure the backend server is running.");
+            }
             throw error;
         }
     }
@@ -132,7 +129,9 @@ class ApiClient {
     }
 
     async getCurrentUser() {
-        return this.request("/auth/me");
+        // Since we don't have /auth/me endpoint, we'll need to get user ID from token
+        // For now, let's return null and handle this in the auth context
+        return null;
     }
 
     async refreshToken() {

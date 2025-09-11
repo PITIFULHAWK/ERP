@@ -7,6 +7,8 @@ import { UserFiltersComponent } from "@/components/users/user-filters"
 import { UsersTable } from "@/components/users/users-table"
 import { Download, RefreshCw, UserPlus } from "lucide-react"
 import Link from "next/link"
+import { apiClient } from "@/lib/api-client"
+import { toast } from "@/hooks/use-toast"
 import type { User, UserFilters } from "@/types/user"
 
 export default function UsersPage() {
@@ -15,96 +17,23 @@ export default function UsersPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [filters, setFilters] = useState<UserFilters>({})
 
-  // Mock data for demonstration
-  const mockUsers: User[] = [
-    {
-      id: "1",
-      name: "John Admin",
-      email: "john.admin@iit.edu",
-      role: "ADMIN",
-      userStatus: "VERIFIED",
-      universityId: "univ-1",
-      university: {
-        id: "univ-1",
-        name: "Indian Institute of Technology",
-        uid: 12345,
-      },
-      createdAt: "2024-01-10T10:30:00Z",
-      updatedAt: "2024-01-10T10:30:00Z",
-    },
-    {
-      id: "2",
-      name: "Sarah Verifier",
-      email: "sarah.verifier@iit.edu",
-      role: "VERIFIER",
-      userStatus: "VERIFIED",
-      universityId: "univ-1",
-      university: {
-        id: "univ-1",
-        name: "Indian Institute of Technology",
-        uid: 12345,
-      },
-      createdAt: "2024-01-12T14:20:00Z",
-      updatedAt: "2024-01-12T14:20:00Z",
-    },
-    {
-      id: "3",
-      name: "Dr. Michael Professor",
-      email: "michael.prof@du.edu",
-      role: "PROFESSOR",
-      userStatus: "VERIFIED",
-      universityId: "univ-2",
-      university: {
-        id: "univ-2",
-        name: "Delhi University",
-        uid: 67890,
-      },
-      createdAt: "2024-01-08T09:15:00Z",
-      updatedAt: "2024-01-08T09:15:00Z",
-    },
-    {
-      id: "4",
-      name: "Emily Student",
-      email: "emily.student@iit.edu",
-      role: "STUDENT",
-      userStatus: "VERIFIED",
-      universityId: "univ-1",
-      university: {
-        id: "univ-1",
-        name: "Indian Institute of Technology",
-        uid: 12345,
-      },
-      createdAt: "2024-01-15T16:45:00Z",
-      updatedAt: "2024-01-15T16:45:00Z",
-    },
-    {
-      id: "5",
-      name: "David User",
-      email: "david.user@gmail.com",
-      role: "USER",
-      userStatus: "NOT_VERIFIED",
-      universityId: "univ-1",
-      university: {
-        id: "univ-1",
-        name: "Indian Institute of Technology",
-        uid: 12345,
-      },
-      createdAt: "2024-01-18T11:30:00Z",
-      updatedAt: "2024-01-18T11:30:00Z",
-    },
-  ]
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         setLoading(true)
-        // In a real app: const response = await apiClient.getUsers(filters)
-        setTimeout(() => {
-          setUsers(mockUsers)
-          setLoading(false)
-        }, 1000)
+        const response = await apiClient.getUsers(filters)
+        if (response.success && response.data) {
+          setUsers(response.data)
+        }
       } catch (error) {
         console.error("Failed to fetch users:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load users",
+          variant: "destructive",
+        })
+      } finally {
         setLoading(false)
       }
     }

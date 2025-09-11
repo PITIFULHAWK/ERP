@@ -7,6 +7,8 @@ import { CourseFiltersComponent } from "@/components/courses/course-filters"
 import { CourseCard } from "@/components/courses/course-card"
 import { Download, RefreshCw, GraduationCap } from "lucide-react"
 import Link from "next/link"
+import { apiClient } from "@/lib/api-client"
+import { toast } from "@/hooks/use-toast"
 import type { Course, CourseFilters } from "@/types/course"
 
 export default function CoursesPage() {
@@ -14,88 +16,23 @@ export default function CoursesPage() {
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState<CourseFilters>({})
 
-  // Mock data for demonstration
-  const mockCourses: Course[] = [
-    {
-      id: "course-1",
-      name: "Computer Science Engineering",
-      code: "CSE",
-      credits: 4,
-      totalSemester: 8,
-      totalFees: 500000,
-      currentStudents: 45,
-      maxStudents: 60,
-      description:
-        "Comprehensive computer science program covering algorithms, data structures, and software engineering.",
-      university: {
-        id: "univ-1",
-        name: "Indian Institute of Technology",
-        uid: 12345,
-      },
-      universityId: "univ-1",
-      users: [],
-      applications: [],
-      semesters: [],
-      createdAt: "2024-01-01T00:00:00Z",
-      updatedAt: "2024-01-01T00:00:00Z",
-    },
-    {
-      id: "course-2",
-      name: "Electrical Engineering",
-      code: "EE",
-      credits: 4,
-      totalSemester: 8,
-      totalFees: 480000,
-      currentStudents: 38,
-      maxStudents: 50,
-      description: "Electrical engineering program focusing on power systems, electronics, and control systems.",
-      university: {
-        id: "univ-1",
-        name: "Indian Institute of Technology",
-        uid: 12345,
-      },
-      universityId: "univ-1",
-      users: [],
-      applications: [],
-      semesters: [],
-      createdAt: "2024-01-02T00:00:00Z",
-      updatedAt: "2024-01-02T00:00:00Z",
-    },
-    {
-      id: "course-3",
-      name: "Business Administration",
-      code: "BBA",
-      credits: 3,
-      totalSemester: 6,
-      totalFees: 300000,
-      currentStudents: 72,
-      maxStudents: 80,
-      description: "Business administration program covering management, finance, and marketing.",
-      university: {
-        id: "univ-2",
-        name: "Delhi University",
-        uid: 67890,
-      },
-      universityId: "univ-2",
-      users: [],
-      applications: [],
-      semesters: [],
-      createdAt: "2024-01-03T00:00:00Z",
-      updatedAt: "2024-01-03T00:00:00Z",
-    },
-  ]
 
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         setLoading(true)
-        // In a real app: const response = await apiClient.getCourses(filters)
-        setTimeout(() => {
-          setCourses(mockCourses)
-          setLoading(false)
-        }, 1000)
+        const response = await apiClient.getCourses(filters)
+        if (response.success && response.data) {
+          setCourses(response.data)
+        }
       } catch (error) {
         console.error("Failed to fetch courses:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load courses",
+          variant: "destructive",
+        })
+      } finally {
         setLoading(false)
       }
     }

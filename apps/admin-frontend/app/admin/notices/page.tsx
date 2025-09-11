@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Bell, Plus, Search, Calendar, User, Eye, Edit, Trash2 } from "lucide-react"
+import { Bell, Plus, Search, Calendar, User, Eye, Edit, Trash2, RefreshCw } from "lucide-react"
+import { apiClient } from "@/lib/api-client"
+import { toast } from "@/hooks/use-toast"
 
 interface Notice {
   id: string
@@ -26,59 +28,35 @@ interface Notice {
 }
 
 export default function NoticesPage() {
+  const [notices, setNotices] = useState<Notice[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [typeFilter, setTypeFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
 
-  // Mock data
-  const notices: Notice[] = [
-    {
-      id: "1",
-      title: "Semester Examination Schedule Released",
-      content:
-        "The examination schedule for the upcoming semester has been released. Students are advised to check their respective examination dates and prepare accordingly.",
-      type: "ACADEMIC",
-      priority: "HIGH",
-      author: "Dr. Academic Officer",
-      university: "Delhi University",
-      targetAudience: "STUDENTS",
-      publishDate: "2024-01-15",
-      expiryDate: "2024-03-15",
-      status: "PUBLISHED",
-      views: 1250,
-    },
-    {
-      id: "2",
-      title: "Hostel Fee Payment Deadline",
-      content:
-        "All students residing in university hostels are reminded that the hostel fee payment deadline is approaching. Please ensure timely payment to avoid any inconvenience.",
-      type: "HOSTEL",
-      priority: "MEDIUM",
-      author: "Hostel Administration",
-      university: "Delhi University",
-      targetAudience: "STUDENTS",
-      publishDate: "2024-01-10",
-      expiryDate: "2024-02-10",
-      status: "PUBLISHED",
-      views: 890,
-    },
-    {
-      id: "3",
-      title: "Faculty Meeting - Department Heads",
-      content:
-        "All department heads are requested to attend the monthly faculty meeting scheduled for next week. Agenda will be shared separately.",
-      type: "GENERAL",
-      priority: "MEDIUM",
-      author: "Vice Chancellor Office",
-      university: "Mumbai University",
-      targetAudience: "FACULTY",
-      publishDate: "2024-01-12",
-      expiryDate: "2024-01-25",
-      status: "PUBLISHED",
-      views: 45,
-    },
-  ]
+  useEffect(() => {
+    const fetchNotices = async () => {
+      try {
+        setLoading(true)
+        const response = await apiClient.getNotices()
+        if (response.success && response.data) {
+          setNotices(response.data)
+        }
+      } catch (error) {
+        console.error("Failed to fetch notices:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load notices",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchNotices()
+  }, [])
 
   const filteredNotices = notices.filter((notice) => {
     const matchesSearch =
