@@ -15,7 +15,9 @@ import type { CreateUniversityRequest } from "@/types/university"
 
 const createUniversitySchema = z.object({
   name: z.string().min(2, "University name must be at least 2 characters"),
-  uid: z.number().min(1, "UID must be a positive number"),
+  location: z.string().min(2, "Location must be at least 2 characters"),
+  type: z.enum(["PUBLIC", "PRIVATE"], { message: "Please select university type" }),
+  establishedYear: z.number().min(1800, "Year must be after 1800").max(new Date().getFullYear(), "Year cannot be in the future"),
   adminName: z.string().min(2, "Admin name must be at least 2 characters"),
   adminEmail: z.string().email("Please enter a valid email address"),
   adminPassword: z.string().min(6, "Password must be at least 6 characters"),

@@ -77,14 +77,14 @@ export function PaymentFiltersComponent({ filters, onFiltersChange, onClearFilte
           {/* Basic Filters */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Select
-              value={filters.status || ""}
-              onValueChange={(value) => handleFilterChange("status", value)}
+              value={filters.status || "all"}
+              onValueChange={(value) => handleFilterChange("status", value === "all" ? "" : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Payment Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="PENDING">Pending</SelectItem>
                 <SelectItem value="SUCCESS">Success</SelectItem>
                 <SelectItem value="FAILED">Failed</SelectItem>
@@ -92,28 +92,28 @@ export function PaymentFiltersComponent({ filters, onFiltersChange, onClearFilte
             </Select>
 
             <Select
-              value={filters.type || ""}
-              onValueChange={(value) => handleFilterChange("type", value)}
+              value={filters.type || "all"}
+              onValueChange={(value) => handleFilterChange("type", value === "all" ? "" : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Payment Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
+                <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="COURSE">Course Fees</SelectItem>
                 <SelectItem value="HOSTEL">Hostel Fees</SelectItem>
               </SelectContent>
             </Select>
 
             <Select
-              value={filters.method || ""}
-              onValueChange={(value) => handleFilterChange("method", value)}
+              value={filters.method || "all"}
+              onValueChange={(value) => handleFilterChange("method", value === "all" ? "" : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Payment Method" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Methods</SelectItem>
+                <SelectItem value="all">All Methods</SelectItem>
                 <SelectItem value="MANUAL">Manual</SelectItem>
                 <SelectItem value="RAZORPAY">Razorpay</SelectItem>
                 <SelectItem value="CARD">Card</SelectItem>

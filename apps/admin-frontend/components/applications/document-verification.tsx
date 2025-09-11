@@ -16,10 +16,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { CheckCircle, XCircle, Eye, Download, FileText } from "lucide-react"
-import type { Document } from "@/types/application"
+import type { ApplicationDocument } from "@/types/application"
 
 interface DocumentVerificationProps {
-  documents: Document[]
+  documents: ApplicationDocument[]
   onVerifyDocument: (documentId: string, isVerified: boolean, notes?: string) => void
 }
 

@@ -88,6 +88,8 @@ export interface ApplicationFilters {
     search?: string;
     appliedAfter?: string;
     appliedBefore?: string;
+    dateFrom?: string;
+    dateTo?: string;
     sortBy?: "appliedAt" | "status" | "applicantName";
     sortOrder?: "asc" | "desc";
 }
@@ -131,13 +133,7 @@ export interface UpdateApplicationRequest {
 }
 
 export interface ApplicationStatusUpdate {
-    status:
-        | "PENDING"
-        | "UNDER_REVIEW"
-        | "VERIFIED"
-        | "REJECTED"
-        | "INCOMPLETE";
+    status: "PENDING" | "UNDER_REVIEW" | "VERIFIED" | "REJECTED" | "INCOMPLETE";
     verificationNotes?: string;
     rejectionReason?: string;
 }
-

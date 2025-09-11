@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { GraduationCap, Users, Calendar, DollarSign, Eye, Edit } from "lucide-react"
+import { GraduationCap, Users, Calendar, DollarSign, Eye } from "lucide-react"
 import Link from "next/link"
 import type { Course } from "@/types/course"
 
@@ -87,16 +87,10 @@ export function CourseCard({ course }: CourseCardProps) {
 
         {/* Actions */}
         <div className="flex items-center space-x-2">
-          <Button size="sm" variant="outline" asChild className="flex-1 bg-transparent">
+          <Button size="sm" variant="outline" asChild className="w-full bg-transparent">
             <Link href={`/admin/courses/${course.id}`}>
               <Eye className="w-4 h-4 mr-1" />
-              View
-            </Link>
-          </Button>
-          <Button size="sm" variant="outline" asChild className="flex-1 bg-transparent">
-            <Link href={`/admin/courses/${course.id}/edit`}>
-              <Edit className="w-4 h-4 mr-1" />
-              Edit
+              View Details
             </Link>
           </Button>
         </div>

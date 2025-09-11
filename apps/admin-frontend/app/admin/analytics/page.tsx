@@ -74,7 +74,7 @@ export default function AnalyticsPage() {
         // Fetch data for single university analytics
         const [users, courses, applications, notices, hostels] = await Promise.all([
           apiClient.getUsers({}).catch(() => ({ success: true, data: [] })),
-          apiClient.getCourses({}).catch(() => ({ success: true, data: [] })),
+          apiClient.getCourses().catch(() => ({ success: true, data: [] })),
           apiClient.getApplications({}).catch(() => ({ success: true, data: [] })),
           apiClient.getNotices().catch(() => ({ success: true, data: [] })),
           apiClient.getHostels({}).catch(() => ({ success: true, data: [] })),

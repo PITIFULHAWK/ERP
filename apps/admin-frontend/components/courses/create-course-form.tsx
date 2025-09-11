@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -12,12 +12,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, GraduationCap } from "lucide-react"
+import { apiClient } from "@/lib/api-client"
 import type { CreateCourseRequest } from "@/types/course"
+import type { University } from "@/types/university"
+
+interface ApiResponse<T = unknown> {
+  success: boolean
+  message: string
+  data?: T
+  error?: string
+}
 
 const createCourseSchema = z.object({
   name: z.string().min(2, "Course name must be at least 2 characters"),
   code: z.string().min(2, "Course code must be at least 2 characters"),
-  credits: z.number().min(1, "Credits must be at least 1").max(10, "Credits cannot exceed 10"),
+  credits: z.number().min(1, "Credits must be at least 1"),
   totalSemester: z.number().min(1, "Must have at least 1 semester").max(12, "Cannot exceed 12 semesters"),
   totalFees: z.number().min(0, "Fees cannot be negative"),
   maxStudents: z.number().min(1, "Must allow at least 1 student").optional(),
@@ -34,6 +43,8 @@ interface CreateCourseFormProps {
 
 export function CreateCourseForm({ onSubmit, isLoading = false }: CreateCourseFormProps) {
   const [error, setError] = useState<string | null>(null)
+  const [universities, setUniversities] = useState<University[]>([])
+  const [loadingUniversities, setLoadingUniversities] = useState(true)
 
   const {
     register,
@@ -47,6 +58,25 @@ export function CreateCourseForm({ onSubmit, isLoading = false }: CreateCourseFo
   })
 
   const watchedUniversityId = watch("universityId")
+
+  useEffect(() => {
+    const fetchUniversities = async () => {
+      try {
+        setLoadingUniversities(true)
+        const response = await apiClient.getUniversities() as ApiResponse<University[]>
+        if (response.success && response.data) {
+          setUniversities(response.data)
+        }
+      } catch (error) {
+        console.error("Failed to fetch universities:", error)
+        setError("Failed to load universities")
+      } finally {
+        setLoadingUniversities(false)
+      }
+    }
+
+    fetchUniversities()
+  }, [])
 
   const handleFormSubmit = async (data: CreateCourseFormData) => {
     try {
@@ -169,12 +199,22 @@ export function CreateCourseForm({ onSubmit, isLoading = false }: CreateCourseFo
               <Label htmlFor="universityId">Select University</Label>
               <Select value={watchedUniversityId} onValueChange={(value) => setValue("universityId", value)}>
                 <SelectTrigger className={errors.universityId ? "border-destructive" : ""}>
-                  <SelectValue placeholder="Choose a university" />
+                  <SelectValue placeholder={
+                    loadingUniversities 
+                      ? "Loading universities..." 
+                      : universities.length === 0 
+                        ? "No universities available" 
+                        : "Choose a university"
+                  } />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="univ-1">Indian Institute of Technology</SelectItem>
-                  <SelectItem value="univ-2">Delhi University</SelectItem>
-                  <SelectItem value="univ-3">Mumbai University</SelectItem>
+                  {!loadingUniversities && universities.length > 0 && (
+                    universities.map((university) => (
+                      <SelectItem key={university.id} value={university.id}>
+                        {university.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
               {errors.universityId && <p className="text-sm text-destructive mt-1">{errors.universityId.message}</p>}

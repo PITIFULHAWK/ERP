@@ -129,13 +129,6 @@ export interface Grade {
     updatedAt: string;
 }
 
-export interface CourseFilters {
-    search?: string;
-    universityId?: string;
-    sortBy?: "name" | "code" | "createdAt" | "currentStudents";
-    sortOrder?: "asc" | "desc";
-}
-
 export interface CreateCourseRequest {
     name: string;
     code: string;

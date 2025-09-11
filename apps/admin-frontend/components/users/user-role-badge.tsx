@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge"
 import { Shield, Users, GraduationCap, UserCheck, User } from "lucide-react"
 
 interface UserRoleBadgeProps {
-  role: "USER" | "STUDENT" | "PROFESSOR" | "ADMIN" | "VERIFIER"
+  role: "USER" | "STUDENT" | "PROFESSOR" | "ADMIN" | "VERIFIER" | "STAFF"
   showIcon?: boolean
 }
 
@@ -37,11 +37,25 @@ export function UserRoleBadge({ role, showIcon = true }: UserRoleBadgeProps) {
           label: "Student",
           className: "bg-chart-4 text-white hover:bg-chart-4/90",
         }
-      default: // USER
+      case "USER":
         return {
           variant: "outline" as const,
           icon: User,
           label: "User",
+          className: "",
+        }
+      case "STAFF":
+        return {
+          variant: "secondary" as const,
+          icon: Users,
+          label: "Staff",
+          className: "bg-purple-100 text-purple-800 hover:bg-purple-100",
+        }
+      default:
+        return {
+          variant: "outline" as const,
+          icon: User,
+          label: "Unknown",
           className: "",
         }
     }

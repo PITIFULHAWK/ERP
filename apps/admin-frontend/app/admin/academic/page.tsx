@@ -90,22 +90,6 @@ export default function AcademicPage() {
     ? semesters 
     : semesters.filter(sem => sem.courseId === selectedCourseId)
 
-  const handleCreateSemester = async (data: { name: string; number: number }) => {
-    const payload = { code: data.name, number: data.number, courseId: selectedCourseId }
-    const created = await apiClient.createSemester(payload)
-    setSemesters((prev) => [...prev, (created as { data: Semester })?.data ?? created as Semester])
-  }
-
-  const handleUpdateSemester = async (id: string, data: { name: string; number: number }) => {
-    await apiClient.updateSemester(id, { code: data.name, number: data.number })
-    setSemesters((prev) => prev.map((sem) => (sem.id === id ? { ...sem, name: data.name, number: data.number } : sem)))
-  }
-
-  const handleDeleteSemester = async (id: string) => {
-    await apiClient.deleteSemester(id)
-    setSemesters((prev) => prev.filter((sem) => sem.id !== id))
-  }
-
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -200,11 +184,9 @@ export default function AcademicPage() {
 
         <TabsContent value="semesters">
           <SemesterManagement
-            courseId={selectedCourseId}
+            selectedCourseId={selectedCourseId}
+            courses={courses}
             semesters={filteredSemesters}
-            onCreateSemester={handleCreateSemester}
-            onUpdateSemester={handleUpdateSemester}
-            onDeleteSemester={handleDeleteSemester}
           />
         </TabsContent>
 

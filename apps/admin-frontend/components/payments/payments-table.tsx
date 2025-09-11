@@ -84,10 +84,10 @@ export function PaymentsTable({ payments, onPaymentUpdate }: PaymentsTableProps)
   const handleVerifyPayment = async (paymentId: string, verified: boolean) => {
     setIsVerifying(true)
     try {
-      const response : ApiResponse<Payment> = await apiClient.verifyPayment(paymentId, {
+      const response = await apiClient.verifyPayment(paymentId, {
         verifiedById: "admin-user-id", // This should be the current admin user ID
         verificationNotes: verified ? verificationNotes : `Payment ${verified ? "verified" : "rejected"}`,
-      })
+      }) as ApiResponse<Payment>
 
       if (response.success) {
         toast({

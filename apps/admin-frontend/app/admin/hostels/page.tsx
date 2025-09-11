@@ -7,84 +7,286 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Home, Plus, Search, Users, Bed, MapPin, Phone, Mail, RefreshCw } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Home, Plus, Search, Users, Bed, Phone, Mail, UserPlus, Check } from "lucide-react"
 import { apiClient } from "@/lib/api-client"
 import { toast } from "@/hooks/use-toast"
+import { Hostel } from "@/types/academic"
+import { University } from "@/types/university"
 
-interface Hostel {
+interface ApiResponse<T = unknown> {
+  success: boolean
+  message: string
+  data?: T
+  error?: string
+}
+
+interface EligibleStudent {
   id: string
   name: string
-  type: "BOYS" | "GIRLS" | "MIXED"
-  capacity: number
-  occupied: number
-  address: string
-  warden: string
-  contact: string
   email: string
-  status: "ACTIVE" | "MAINTENANCE" | "CLOSED"
-  university: string
+  application: {
+    id: string
+    status: string
+    preferredCourse: {
+      id: string
+      name: string
+      code: string
+    }
+  }
+  coursePayment: {
+    id: string
+    status: string
+    amount: number
+  }
+  hostelPayment: {
+    id: string
+    status: string
+    amount: number
+  }
 }
 
 export default function HostelsPage() {
   const [hostels, setHostels] = useState<Hostel[]>([])
-  const [loading, setLoading] = useState(true)
+  const [universities, setUniversities] = useState<University[]>([])
+  const [eligibleStudents, setEligibleStudents] = useState<EligibleStudent[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [typeFilter, setTypeFilter] = useState("all")
-  const [statusFilter, setStatusFilter] = useState("all")
+  const [selectedHostel, setSelectedHostel] = useState<Hostel | null>(null)
+  const [assignStudentDialogOpen, setAssignStudentDialogOpen] = useState(false)
+  const [assigningStudent, setAssigningStudent] = useState(false)
+  const [addHostelDialogOpen, setAddHostelDialogOpen] = useState(false)
+  const [creatingHostel, setCreatingHostel] = useState(false)
+  const [newHostelData, setNewHostelData] = useState({
+    name: "",
+    fees: "",
+    totalCapacity: "",
+    type: "AC" as "AC" | "NON_AC",
+    universityId: ""
+  })
 
   useEffect(() => {
-    const fetchHostels = async () => {
+    const fetchData = async () => {
       try {
-        setLoading(true)
-        const response = await apiClient.getHostels()
-        if (response.success && response.data) {
-          setHostels(response.data)
+        // Fetch hostels
+        const hostelResponse = await apiClient.getHostels() as ApiResponse<Hostel[]>
+        if (hostelResponse.success && hostelResponse.data) {
+          setHostels(hostelResponse.data)
         }
+
+        // Fetch universities
+        const universitiesResponse = await apiClient.getUniversities() as ApiResponse<University[]>
+        if (universitiesResponse.success && universitiesResponse.data) {
+          setUniversities(universitiesResponse.data)
+        }
+
+        // Fetch eligible students (those with verified applications, course payments, and hostel payments)
+        await fetchEligibleStudents()
+        
       } catch (error) {
-        console.error("Failed to fetch hostels:", error)
+        console.error("Failed to fetch data:", error)
         toast({
           title: "Error",
-          description: "Failed to load hostels",
+          description: "Failed to load data",
           variant: "destructive",
         })
-      } finally {
-        setLoading(false)
       }
     }
 
-    fetchHostels()
+    fetchData()
   }, [])
+
+  const fetchEligibleStudents = async () => {
+    try {
+      // Get verified applications
+      const applicationsResponse = await apiClient.getApplications({ status: "VERIFIED" }) as ApiResponse<Array<{
+        id: string;
+        userId: string;
+        status: string;
+        preferredCourseId: string;
+        user: { name: string; email: string };
+        preferredCourse: { id: string; name: string; code: string };
+      }>>
+      
+      if (!applicationsResponse.success || !applicationsResponse.data) {
+        return
+      }
+
+      const verifiedApplications = applicationsResponse.data
+      const eligibleStudentsList: EligibleStudent[] = []
+
+      // For each verified application, check if they have successful course and hostel payments
+      for (const application of verifiedApplications) {
+        try {
+          const paymentsResponse = await apiClient.getPayments({ 
+            userId: application.userId,
+            status: "SUCCESS" 
+          }) as ApiResponse<Array<{
+            id: string;
+            type: string;
+            status: string;
+            amount: number;
+            courseId?: string;
+          }>>
+
+          if (paymentsResponse.success && paymentsResponse.data) {
+            const payments = paymentsResponse.data
+            const coursePayment = payments.find(p => p.type === "COURSE" && p.courseId === application.preferredCourseId)
+            const hostelPayment = payments.find(p => p.type === "HOSTEL")
+
+            if (coursePayment && hostelPayment) {
+              eligibleStudentsList.push({
+                id: application.userId,
+                name: application.user.name,
+                email: application.user.email,
+                application: {
+                  id: application.id,
+                  status: application.status,
+                  preferredCourse: application.preferredCourse
+                },
+                coursePayment: {
+                  id: coursePayment.id,
+                  status: coursePayment.status,
+                  amount: coursePayment.amount
+                },
+                hostelPayment: {
+                  id: hostelPayment.id,
+                  status: hostelPayment.status,
+                  amount: hostelPayment.amount
+                }
+              })
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to fetch payments for user ${application.userId}:`, error)
+        }
+      }
+
+      setEligibleStudents(eligibleStudentsList)
+    } catch (error) {
+      console.error("Failed to fetch eligible students:", error)
+    }
+  }
+
+  const handleAssignStudent = async (studentId: string, hostelId: string) => {
+    try {
+      setAssigningStudent(true)
+      
+      const response = await apiClient.addStudentToHostel(hostelId, studentId) as ApiResponse
+      
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "Student successfully assigned to hostel",
+        })
+        
+        // Refresh data
+        await fetchEligibleStudents()
+        const hostelResponse = await apiClient.getHostels() as ApiResponse<Hostel[]>
+        if (hostelResponse.success && hostelResponse.data) {
+          setHostels(hostelResponse.data)
+        }
+        
+        setAssignStudentDialogOpen(false)
+        setSelectedHostel(null)
+      } else {
+        throw new Error("Failed to assign student")
+      }
+    } catch (error) {
+      console.error("Failed to assign student:", error)
+      toast({
+        title: "Error",
+        description: "Failed to assign student to hostel",
+        variant: "destructive",
+      })
+    } finally {
+      setAssigningStudent(false)
+    }
+  }
+
+  const handleOpenAssignDialog = (hostel: Hostel) => {
+    setSelectedHostel(hostel)
+    setAssignStudentDialogOpen(true)
+  }
+
+  const handleOpenAddHostelDialog = () => {
+    setNewHostelData({
+      name: "",
+      fees: "",
+      totalCapacity: "",
+      type: "AC",
+      universityId: ""
+    })
+    setAddHostelDialogOpen(true)
+  }
+
+  const handleCreateHostel = async () => {
+    try {
+      setCreatingHostel(true)
+      
+      // Validate required fields
+      if (!newHostelData.name || !newHostelData.fees || !newHostelData.totalCapacity || !newHostelData.universityId) {
+        toast({
+          title: "Error",
+          description: "Please fill in all required fields",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const hostelData = {
+        name: newHostelData.name,
+        fees: parseFloat(newHostelData.fees),
+        totalCapacity: parseInt(newHostelData.totalCapacity),
+        type: newHostelData.type,
+        universityId: newHostelData.universityId
+      }
+
+      const response = await apiClient.createHostel(hostelData) as ApiResponse<Hostel>
+      
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "Hostel created successfully",
+        })
+        
+        // Refresh hostels data
+        const hostelResponse = await apiClient.getHostels() as ApiResponse<Hostel[]>
+        if (hostelResponse.success && hostelResponse.data) {
+          setHostels(hostelResponse.data)
+        }
+        
+        setAddHostelDialogOpen(false)
+      } else {
+        throw new Error("Failed to create hostel")
+      }
+    } catch (error) {
+      console.error("Failed to create hostel:", error)
+      toast({
+        title: "Error",
+        description: "Failed to create hostel",
+        variant: "destructive",
+      })
+    } finally {
+      setCreatingHostel(false)
+    }
+  }
 
   const filteredHostels = hostels.filter((hostel) => {
     const matchesSearch =
       hostel.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      hostel.warden.toLowerCase().includes(searchTerm.toLowerCase())
+      hostel.university.name.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesType = typeFilter === "all" || hostel.type === typeFilter
-    const matchesStatus = statusFilter === "all" || hostel.status === statusFilter
-    return matchesSearch && matchesType && matchesStatus
+    return matchesSearch && matchesType
   })
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "ACTIVE":
-        return "bg-green-100 text-green-800"
-      case "MAINTENANCE":
-        return "bg-yellow-100 text-yellow-800"
-      case "CLOSED":
-        return "bg-red-100 text-red-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case "BOYS":
+      case "AC":
         return "bg-blue-100 text-blue-800"
-      case "GIRLS":
-        return "bg-pink-100 text-pink-800"
-      case "MIXED":
-        return "bg-purple-100 text-purple-800"
+      case "NON_AC":
+        return "bg-gray-100 text-gray-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
@@ -102,7 +304,7 @@ export default function HostelsPage() {
           <h1 className="text-3xl font-bold">Hostel Management</h1>
           <p className="text-muted-foreground">Manage university hostels and accommodation</p>
         </div>
-        <Button>
+        <Button onClick={handleOpenAddHostelDialog}>
           <Plus className="h-4 w-4 mr-2" />
           Add Hostel
         </Button>
@@ -125,7 +327,7 @@ export default function HostelsPage() {
             <Bed className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{hostels.reduce((sum, h) => sum + h.capacity, 0)}</div>
+            <div className="text-2xl font-bold">{hostels.reduce((sum, h) => sum + h.totalCapacity, 0)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -134,7 +336,7 @@ export default function HostelsPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{hostels.reduce((sum, h) => sum + h.occupied, 0)}</div>
+            <div className="text-2xl font-bold">{hostels.reduce((sum, h) => sum + h.currentTotalStudents, 0)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -145,7 +347,7 @@ export default function HostelsPage() {
           <CardContent>
             <div className="text-2xl font-bold">
               {Math.round(
-                (hostels.reduce((sum, h) => sum + h.occupied, 0) / hostels.reduce((sum, h) => sum + h.capacity, 0)) *
+                (hostels.reduce((sum, h) => sum + h.currentTotalStudents, 0) / hostels.reduce((sum, h) => sum + h.totalCapacity, 0)) *
                   100,
               )}
               %
@@ -178,20 +380,8 @@ export default function HostelsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="BOYS">Boys</SelectItem>
-                <SelectItem value="GIRLS">Girls</SelectItem>
-                <SelectItem value="MIXED">Mixed</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
-                <SelectItem value="CLOSED">Closed</SelectItem>
+                <SelectItem value="AC">AC</SelectItem>
+                <SelectItem value="NON_AC">Non-AC</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -222,11 +412,7 @@ export default function HostelsPage() {
                   <TableCell>
                     <div>
                       <div className="font-medium">{hostel.name}</div>
-                      <div className="text-sm text-muted-foreground flex items-center">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        {hostel.address}
-                      </div>
-                      <div className="text-sm text-muted-foreground">{hostel.university}</div>
+                      <div className="text-sm text-muted-foreground">{hostel.university.name}</div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -235,30 +421,30 @@ export default function HostelsPage() {
                   <TableCell>
                     <div>
                       <div className="font-medium">
-                        {hostel.occupied}/{hostel.capacity}
+                        {hostel.currentTotalStudents}/{hostel.totalCapacity}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {getOccupancyRate(hostel.occupied, hostel.capacity)}% occupied
+                        {getOccupancyRate(hostel.currentTotalStudents, hostel.totalCapacity)}% occupied
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium">{hostel.warden}</div>
+                    <div className="font-medium">-</div>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">
                       <div className="flex items-center text-sm">
                         <Phone className="h-3 w-3 mr-1" />
-                        {hostel.contact}
+                        -
                       </div>
                       <div className="flex items-center text-sm">
                         <Mail className="h-3 w-3 mr-1" />
-                        {hostel.email}
+                        -
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge className={getStatusColor(hostel.status)}>{hostel.status}</Badge>
+                    <Badge className="bg-green-100 text-green-800">Active</Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -268,6 +454,15 @@ export default function HostelsPage() {
                       <Button variant="outline" size="sm">
                         Edit
                       </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleOpenAssignDialog(hostel)}
+                        disabled={hostel.currentTotalStudents >= hostel.totalCapacity}
+                      >
+                        <UserPlus className="h-3 w-3 mr-1" />
+                        Assign Student
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -276,6 +471,176 @@ export default function HostelsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Assign Student Dialog */}
+      <Dialog open={assignStudentDialogOpen} onOpenChange={setAssignStudentDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Assign Student to {selectedHostel?.name}</DialogTitle>
+            <DialogDescription>
+              Select an eligible student to assign to this hostel. Students must have verified applications, 
+              course enrollment, and completed hostel fees payment.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {eligibleStudents.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">No Eligible Students</h3>
+                <p className="text-muted-foreground">
+                  No students meet the requirements for hostel assignment. 
+                  Students need verified applications, course enrollment, and completed hostel fees payment.
+                </p>
+              </div>
+            ) : (
+              <div className="max-h-96 overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Student</TableHead>
+                      <TableHead>Course</TableHead>
+                      <TableHead>Application</TableHead>
+                      <TableHead>Payments</TableHead>
+                      <TableHead>Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {eligibleStudents.map((student) => (
+                      <TableRow key={student.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{student.name}</div>
+                            <div className="text-sm text-muted-foreground">{student.email}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{student.application.preferredCourse.name}</div>
+                            <div className="text-sm text-muted-foreground">{student.application.preferredCourse.code}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className="bg-green-100 text-green-800">
+                            <Check className="h-3 w-3 mr-1" />
+                            {student.application.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <Badge className="bg-green-100 text-green-800 text-xs">
+                              <Check className="h-3 w-3 mr-1" />
+                              Course: ₹{student.coursePayment.amount}
+                            </Badge>
+                            <br />
+                            <Badge className="bg-green-100 text-green-800 text-xs">
+                              <Check className="h-3 w-3 mr-1" />
+                              Hostel: ₹{student.hostelPayment.amount}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            onClick={() => handleAssignStudent(student.id, selectedHostel!.id)}
+                            disabled={assigningStudent}
+                          >
+                            {assigningStudent ? "Assigning..." : "Assign"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Hostel Dialog */}
+      <Dialog open={addHostelDialogOpen} onOpenChange={setAddHostelDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Hostel</DialogTitle>
+            <DialogDescription>
+              Create a new hostel for the university.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="hostel-name">Hostel Name *</Label>
+              <Input
+                id="hostel-name"
+                placeholder="Enter hostel name"
+                value={newHostelData.name}
+                onChange={(e) => setNewHostelData({ ...newHostelData, name: e.target.value })}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="hostel-fees">Fees (₹) *</Label>
+              <Input
+                id="hostel-fees"
+                type="number"
+                placeholder="Enter hostel fees"
+                value={newHostelData.fees}
+                onChange={(e) => setNewHostelData({ ...newHostelData, fees: e.target.value })}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="hostel-capacity">Total Capacity *</Label>
+              <Input
+                id="hostel-capacity"
+                type="number"
+                placeholder="Enter total capacity"
+                value={newHostelData.totalCapacity}
+                onChange={(e) => setNewHostelData({ ...newHostelData, totalCapacity: e.target.value })}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="hostel-type">Type *</Label>
+              <Select value={newHostelData.type} onValueChange={(value: "AC" | "NON_AC") => setNewHostelData({ ...newHostelData, type: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select hostel type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AC">AC</SelectItem>
+                  <SelectItem value="NON_AC">Non-AC</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="university-id">University *</Label>
+              <Select value={newHostelData.universityId} onValueChange={(value) => setNewHostelData({ ...newHostelData, universityId: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select university" />
+                </SelectTrigger>
+                <SelectContent>
+                  {universities.map((university) => (
+                    <SelectItem key={university.id} value={university.id}>
+                      {university.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setAddHostelDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateHostel} disabled={creatingHostel}>
+                {creatingHostel ? "Creating..." : "Create Hostel"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

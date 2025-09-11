@@ -10,6 +10,8 @@ import { Separator } from "@/components/ui/separator"
 import { ApplicationStatusBadge } from "@/components/applications/application-status-badge"
 import { DocumentVerification } from "@/components/applications/document-verification"
 import { ArrowLeft, CheckCircle, XCircle, Clock, FileText } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
+import { toast } from "@/hooks/use-toast"
 import type { Application } from "@/types/application"
 import type { VerifyApplicationRequest } from "@/types/api"
 import { apiClient } from "@/lib/api-client"
@@ -17,6 +19,7 @@ import { apiClient } from "@/lib/api-client"
 export default function ApplicationDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const { user } = useAuth()
   const [application, setApplication] = useState<Application | null>(null)
   const [loading, setLoading] = useState(true)
   const [verificationNotes, setVerificationNotes] = useState("")
@@ -43,12 +46,17 @@ export default function ApplicationDetailPage() {
 
     try {
       setIsSubmitting(true)
+      console.log(`Verifying application ${application.id} with status ${status} by user ${user?.id}`)
+      
       const request: VerifyApplicationRequest = {
         status,
         remarks: verificationNotes || undefined,
+        verifierId: user?.id || "admin-user-id",
       }
 
-      await apiClient.verifyApplication(application.id, request)
+      console.log("Verification request:", request)
+      const response = await apiClient.verifyApplication(application.id, request)
+      console.log("Verification response:", response)
 
       // Update local state
       setApplication({
@@ -59,8 +67,18 @@ export default function ApplicationDetailPage() {
       })
 
       setVerificationNotes("")
+      
+      toast({
+        title: "Success",
+        description: `Application ${status.toLowerCase()} successfully`,
+      })
     } catch (error) {
       console.error("Failed to verify application:", error)
+      toast({
+        title: "Error",
+        description: `Failed to ${status.toLowerCase()} application: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive",
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -70,7 +88,7 @@ export default function ApplicationDetailPage() {
     if (!application) return
 
     try {
-      await apiClient.verifyDocument(documentId)
+      await apiClient.verifyDocument(documentId, user?.id || "admin-user-id")
 
       // Update local state
       const updatedDocuments = application.documents.map((doc) =>
@@ -172,7 +190,7 @@ export default function ApplicationDetailPage() {
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Email</Label>
-                  <p className="text-sm">{application.user.email}</p>
+                  <p className="text-sm">{application.user?.email || "N/A"}</p>
                 </div>
               </div>
               <Separator />
@@ -266,12 +284,12 @@ export default function ApplicationDetailPage() {
               <div className="space-y-2">
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Preferred Course</Label>
-                  <p className="text-sm font-medium">{application.preferredCourse.name}</p>
-                  <p className="text-sm text-muted-foreground">Code: {application.preferredCourse.code}</p>
+                  <p className="text-sm font-medium">{application.preferredCourse?.name || "N/A"}</p>
+                  <p className="text-sm text-muted-foreground">Code: {application.preferredCourse?.code || "N/A"}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">University</Label>
-                  <p className="text-sm">{application.preferredCourse.university.name}</p>
+                  <p className="text-sm">{application.preferredCourse?.university?.name || "N/A"}</p>
                 </div>
               </div>
             </CardContent>

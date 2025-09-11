@@ -5,13 +5,7 @@ import {
     CreateUniversityRequest,
     UpdateUniversityRequest,
     OnboardUniversityRequest,
-
-    CourseFilters,
     CreateCourseRequest,
-    UpdateCourseRequest,
-    Semester,
-    Subject, 
-    Grade,  
 
     // Application types
     Application,
@@ -47,7 +41,7 @@ import {
     CreateNoticeRequest,
     UpdateNoticeRequest,
     NoticeFilters,
-    
+
     // Payment types
     Payment,
     CreatePaymentRequest,
@@ -58,8 +52,7 @@ import {
     Receipt,
 } from "../types";
 
-const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL || "/api/v1";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
 
 class ApiClient {
     private baseURL: string;
@@ -96,7 +89,8 @@ class ApiClient {
                 let errorMessage = `HTTP error! status: ${response.status}`;
                 try {
                     const errorData = await response.json();
-                    errorMessage = errorData.message || errorData.error || errorMessage;
+                    errorMessage =
+                        errorData.message || errorData.error || errorMessage;
                 } catch {
                     // If we can't parse the error response, use the default message
                 }
@@ -107,8 +101,10 @@ class ApiClient {
             return data;
         } catch (error) {
             console.error("API request failed:", error);
-            if (error instanceof TypeError && error.message.includes('fetch')) {
-                throw new Error("Unable to connect to the server. Please make sure the backend server is running.");
+            if (error instanceof TypeError && error.message.includes("fetch")) {
+                throw new Error(
+                    "Unable to connect to the server. Please make sure the backend server is running."
+                );
             }
             throw error;
         }
@@ -222,11 +218,8 @@ class ApiClient {
     }
 
     // ====== COURSE MANAGEMENT ======
-    async getCourses(filters?: CourseFilters) {
-        const params = filters
-            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
-            : "";
-        return this.request(`/courses${params}`);
+    async getCourses() {
+        return this.request(`/courses`);
     }
 
     async getCourse(id: string) {
@@ -237,19 +230,6 @@ class ApiClient {
         return this.request("/courses", {
             method: "POST",
             body: JSON.stringify(courseData),
-        });
-    }
-
-    async updateCourse(id: string, courseData: UpdateCourseRequest) {
-        return this.request(`/courses/${id}`, {
-            method: "PATCH",
-            body: JSON.stringify(courseData),
-        });
-    }
-
-    async deleteCourse(id: string) {
-        return this.request(`/courses/${id}`, {
-            method: "DELETE",
         });
     }
 
@@ -330,13 +310,23 @@ class ApiClient {
         id: string,
         verificationData: VerifyApplicationRequest
     ) {
+        const headers: HeadersInit = {
+            ...this.getAuthHeaders(),
+        };
+
+        // Add verifier ID to headers if provided
+        if (verificationData.verifierId) {
+            (headers as Record<string, string>)["x-verifier-id"] =
+                verificationData.verifierId;
+            console.log(
+                `Setting verifier ID in header: ${verificationData.verifierId}`
+            );
+        }
+
         return this.request(`/applications/${id}/verify`, {
             method: "PATCH",
             body: JSON.stringify(verificationData),
-            headers: {
-                ...this.getAuthHeaders(),
-                "x-verifier-id": "admin-user-id", // This should be dynamically set based on current user
-            },
+            headers,
         });
     }
 
@@ -354,13 +344,22 @@ class ApiClient {
         });
     }
 
-    async verifyDocument(id: string) {
+    async verifyDocument(id: string, verifierId?: string) {
+        const headers: HeadersInit = {
+            ...this.getAuthHeaders(),
+        };
+
+        // Add verifier ID to headers if provided
+        if (verifierId) {
+            (headers as Record<string, string>)["x-verifier-id"] = verifierId;
+            console.log(
+                `Setting document verifier ID in header: ${verifierId}`
+            );
+        }
+
         return this.request(`/applications/documents/${id}/verify`, {
             method: "PATCH",
-            headers: {
-                ...this.getAuthHeaders(),
-                "x-verifier-id": "admin-user-id", // This should be dynamically set
-            },
+            headers,
         });
     }
 

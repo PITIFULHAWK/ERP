@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ApplicationStatusBadge } from "./application-status-badge"
-import { Eye, MoreHorizontal, CheckCircle, XCircle } from "lucide-react"
+import { Eye, MoreHorizontal, CheckCircle, XCircle, Clock } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { Application } from "@/types/application"
 
@@ -15,6 +15,7 @@ interface ApplicationsTableProps {
   selectedIds: string[]
   onSelectionChange: (ids: string[]) => void
   onBulkAction: (action: string, ids: string[]) => void
+  isLoading?: boolean
 }
 
 export function ApplicationsTable({
@@ -22,6 +23,7 @@ export function ApplicationsTable({
   selectedIds,
   onSelectionChange,
   onBulkAction,
+  isLoading = false,
 }: ApplicationsTableProps) {
   const [sortField, setSortField] = useState<keyof Application>("createdAt")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
@@ -54,6 +56,11 @@ export function ApplicationsTable({
     const aValue = a[sortField]
     const bValue = b[sortField]
 
+    // Handle undefined values
+    if (aValue == null && bValue == null) return 0
+    if (aValue == null) return 1
+    if (bValue == null) return -1
+
     if (sortDirection === "asc") {
       return aValue < bValue ? -1 : aValue > bValue ? 1 : 0
     } else {
@@ -68,11 +75,11 @@ export function ApplicationsTable({
         <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
           <span className="text-sm font-medium">{selectedIds.length} applications selected</span>
           <div className="flex items-center space-x-2">
-            <Button size="sm" variant="outline" onClick={() => onBulkAction("approve", selectedIds)}>
+            <Button size="sm" variant="outline" onClick={() => onBulkAction("approve", selectedIds)} disabled={isLoading}>
               <CheckCircle className="w-4 h-4 mr-1" />
               Bulk Approve
             </Button>
-            <Button size="sm" variant="outline" onClick={() => onBulkAction("reject", selectedIds)}>
+            <Button size="sm" variant="outline" onClick={() => onBulkAction("reject", selectedIds)} disabled={isLoading}>
               <XCircle className="w-4 h-4 mr-1" />
               Bulk Reject
             </Button>
@@ -114,18 +121,18 @@ export function ApplicationsTable({
                     <div className="font-medium">
                       {application.firstName} {application.lastName}
                     </div>
-                    <div className="text-sm text-muted-foreground">{application.user.email}</div>
+                    <div className="text-sm text-muted-foreground">{application.user?.email || "N/A"}</div>
                     <div className="text-sm text-muted-foreground">{application.phoneNumber}</div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div>
-                    <div className="font-medium">{application.preferredCourse.name}</div>
-                    <div className="text-sm text-muted-foreground">{application.preferredCourse.code}</div>
+                    <div className="font-medium">{application.preferredCourse?.name || "N/A"}</div>
+                    <div className="text-sm text-muted-foreground">{application.preferredCourse?.code || "N/A"}</div>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div className="text-sm">{application.preferredCourse.university.name}</div>
+                  <div className="text-sm">{application.preferredCourse?.university?.name || "N/A"}</div>
                 </TableCell>
                 <TableCell>
                   <ApplicationStatusBadge status={application.status} />
@@ -156,9 +163,32 @@ export function ApplicationsTable({
                         </Link>
                       </DropdownMenuItem>
                       {application.status === "PENDING" && (
-                        <DropdownMenuItem onClick={() => onBulkAction("review", [application.id])}>
-                          Start Review
-                        </DropdownMenuItem>
+                        <>
+                          <DropdownMenuItem onClick={() => onBulkAction("review", [application.id])} disabled={isLoading}>
+                            <Clock className="w-4 h-4 mr-2" />
+                            Start Review
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onBulkAction("approve", [application.id])} disabled={isLoading}>
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Approve
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onBulkAction("reject", [application.id])} disabled={isLoading}>
+                            <XCircle className="w-4 h-4 mr-2" />
+                            Reject
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      {application.status === "UNDER_REVIEW" && (
+                        <>
+                          <DropdownMenuItem onClick={() => onBulkAction("approve", [application.id])} disabled={isLoading}>
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Approve
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onBulkAction("reject", [application.id])} disabled={isLoading}>
+                            <XCircle className="w-4 h-4 mr-2" />
+                            Reject
+                          </DropdownMenuItem>
+                        </>
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>

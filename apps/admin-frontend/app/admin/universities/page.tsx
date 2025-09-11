@@ -10,34 +10,66 @@ import Link from "next/link"
 import { apiClient } from "@/lib/api-client"
 import { toast } from "@/hooks/use-toast"
 import type { University } from "@/types/university"
+import type { User } from "@/types/user"
 
 export default function UniversitiesPage() {
   const [universities, setUniversities] = useState<University[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [totalUsersCount, setTotalUsersCount] = useState(0)
 
+
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      
+      // Fetch universities and users in parallel
+      const [universitiesResponse, usersResponse] = await Promise.all([
+        apiClient.getUniversities() as Promise<{ success: boolean; data: University[] }>,
+        apiClient.getUsers() as Promise<{ success: boolean; data: User[] }>
+      ])
+      
+      // Handle universities response
+      if (universitiesResponse.success && universitiesResponse.data) {
+        setUniversities(universitiesResponse.data)
+      } else if (universitiesResponse && Array.isArray(universitiesResponse)) {
+        setUniversities(universitiesResponse)
+      } else {
+        console.error("Unexpected universities response format:", universitiesResponse)
+      }
+      
+      // Handle users response
+      if (usersResponse.success && usersResponse.data) {
+        setTotalUsersCount(usersResponse.data.length)
+      } else if (usersResponse && Array.isArray(usersResponse)) {
+        setTotalUsersCount(usersResponse.length)
+      } else {
+        console.error("Unexpected users response format:", usersResponse)
+        setTotalUsersCount(0)
+        // Don't show error toast for users if universities loaded successfully
+        if (!universitiesResponse.success && !Array.isArray(universitiesResponse)) {
+          toast({
+            title: "Warning", 
+            description: "Could not load user count",
+            variant: "destructive",
+          })
+        }
+      }
+      
+    } catch (error) {
+      console.error("Failed to fetch data:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load universities and user data",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchUniversities = async () => {
-      try {
-        setLoading(true)
-        const response = await apiClient.getUniversities()
-        if (response.success && response.data) {
-          setUniversities(response.data)
-        }
-      } catch (error) {
-        console.error("Failed to fetch universities:", error)
-        toast({
-          title: "Error",
-          description: "Failed to load universities",
-          variant: "destructive",
-        })
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchUniversities()
+    fetchData()
   }, [])
 
   const handleExport = () => {
@@ -47,12 +79,22 @@ export default function UniversitiesPage() {
   const filteredUniversities = universities.filter((university) => {
     if (!searchTerm) return true
     const searchLower = searchTerm.toLowerCase()
-    return university.name.toLowerCase().includes(searchLower) || university.uid.toString().includes(searchLower)
+    return university.name.toLowerCase().includes(searchLower) || 
+           university.location.toLowerCase().includes(searchLower) ||
+           university.id.toLowerCase().includes(searchLower)
   })
 
-  const totalUsers = universities.reduce((sum, univ) => sum + univ.totalUsers, 0)
-  const totalCourses = universities.reduce((sum, univ) => sum + univ.totalCourses, 0)
-  const totalHostels = universities.reduce((sum, univ) => sum + univ.totalHostels, 0)
+  // Add calculated properties to universities for the card component
+  const universitiesWithStats = filteredUniversities.map(university => ({
+    ...university,
+    totalUsers: Array.isArray(university.users) ? university.users.length : 0,
+    totalCourses: Array.isArray(university.courses) ? university.courses.length : 0,
+    totalHostels: Array.isArray(university.hostels) ? university.hostels.length : 0,
+  }))
+
+  const totalUsers = totalUsersCount
+  const totalCourses = universities.reduce((sum, univ) => sum + (Array.isArray(univ.courses) ? univ.courses.length : 0), 0)
+  const totalHostels = universities.reduce((sum, univ) => sum + (Array.isArray(univ.hostels) ? univ.hostels.length : 0), 0)
 
   return (
     <div className="p-6 space-y-6">
@@ -88,7 +130,7 @@ export default function UniversitiesPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Users (System-wide)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-chart-1">{totalUsers}</div>
@@ -96,7 +138,7 @@ export default function UniversitiesPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Courses (All Universities)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-chart-2">{totalCourses}</div>
@@ -104,7 +146,7 @@ export default function UniversitiesPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Hostels</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Hostels (All Universities)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-chart-3">{totalHostels}</div>
@@ -121,7 +163,7 @@ export default function UniversitiesPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
-              placeholder="Search by name or UID..."
+              placeholder="Search by name, location, or ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -133,9 +175,9 @@ export default function UniversitiesPage() {
       {/* Universities Grid */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-playfair font-semibold">Universities ({filteredUniversities.length})</h2>
-          <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
-            <RefreshCw className="w-4 h-4 mr-2" />
+          <h2 className="text-xl font-playfair font-semibold">Universities ({universitiesWithStats.length})</h2>
+          <Button variant="ghost" size="sm" onClick={fetchData} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
@@ -145,7 +187,7 @@ export default function UniversitiesPage() {
             <RefreshCw className="w-6 h-6 animate-spin mr-2" />
             Loading universities...
           </div>
-        ) : filteredUniversities.length === 0 ? (
+        ) : universitiesWithStats.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
               <Building2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
@@ -163,7 +205,7 @@ export default function UniversitiesPage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredUniversities.map((university) => (
+            {universitiesWithStats.map((university) => (
               <UniversityCard key={university.id} university={university} />
             ))}
           </div>

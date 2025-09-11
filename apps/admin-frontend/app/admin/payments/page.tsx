@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -11,6 +11,7 @@ import { PaymentsTable } from "@/components/payments/payments-table"
 import { apiClient } from "@/lib/api-client"
 import { toast } from "@/hooks/use-toast"
 import type { Payment, PaymentFilters } from "@/types"
+import type { ApiResponse } from "@/types/api"
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([])
@@ -23,14 +24,10 @@ export default function PaymentsPage() {
     failed: 0,
   })
 
-  useEffect(() => {
-    fetchPayments()
-  }, [filters])
-
-  const fetchPayments = async () => {
+  const fetchPayments = useCallback(async () => {
     setIsLoading(true)
     try {
-      const response = await apiClient.getPayments(filters)
+      const response = await apiClient.getPayments(filters) as ApiResponse<Payment[]>
       if (response.success && response.data) {
         setPayments(response.data)
         calculateStats(response.data)
@@ -45,7 +42,11 @@ export default function PaymentsPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [filters])
+
+  useEffect(() => {
+    fetchPayments()
+  }, [fetchPayments])
 
   const calculateStats = (paymentData: Payment[]) => {
     const total = paymentData.length
@@ -69,11 +70,77 @@ export default function PaymentsPage() {
   }
 
   const exportPayments = () => {
-    // TODO: Implement CSV export functionality
-    toast({
-      title: "Export",
-      description: "Export functionality will be implemented soon",
-    })
+    try {
+      if (payments.length === 0) {
+        toast({
+          title: "No Data",
+          description: "No payments available to export",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Create CSV content
+      const csvHeaders = [
+        "Payment ID",
+        "Student Name",
+        "Student Email",
+        "Course/Hostel",
+        "Payment Type",
+        "Amount",
+        "Status",
+        "Payment Method",
+        "Reference/Transaction ID",
+        "Payment Date",
+        "Verified By",
+        "Verification Date"
+      ]
+      
+      const csvData = payments.map(payment => [
+        payment.id,
+        payment.user?.name || "N/A",
+        payment.user?.email || "N/A",
+        payment.course?.name || payment.hostel?.name || "N/A",
+        payment.type,
+        payment.amount,
+        payment.status,
+        payment.method || "N/A",
+        payment.reference || payment.gatewayPaymentId || "N/A",
+        new Date(payment.createdAt).toLocaleDateString(),
+        "N/A", // No verifiedBy field in the Payment type
+        "N/A"  // No verifiedAt field in the Payment type
+      ])
+      
+      const csvContent = [
+        csvHeaders.join(","),
+        ...csvData.map(row => row.map(field => `"${field}"`).join(","))
+      ].join("\n")
+      
+      // Create and download file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+      const link = document.createElement("a")
+      const url = URL.createObjectURL(blob)
+      
+      link.setAttribute("href", url)
+      link.setAttribute("download", `payments_export_${new Date().toISOString().split("T")[0]}.csv`)
+      link.style.visibility = "hidden"
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      
+      toast({
+        title: "Success",
+        description: `Exported ${payments.length} payment records to CSV`,
+      })
+    } catch (error) {
+      console.error("Export failed:", error)
+      toast({
+        title: "Error",
+        description: "Failed to export payments",
+        variant: "destructive",
+      })
+    }
   }
 
   return (

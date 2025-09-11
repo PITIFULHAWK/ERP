@@ -3,63 +3,39 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CourseFiltersComponent } from "@/components/courses/course-filters"
 import { CourseCard } from "@/components/courses/course-card"
-import { Download, RefreshCw, GraduationCap } from "lucide-react"
+import { RefreshCw, GraduationCap } from "lucide-react"
 import Link from "next/link"
 import { apiClient } from "@/lib/api-client"
 import { toast } from "@/hooks/use-toast"
-import type { Course, CourseFilters } from "@/types/course"
+import type { Course } from "@/types/course"
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
-  const [filters, setFilters] = useState<CourseFilters>({})
 
+  const fetchCourses = async () => {
+    try {
+      setLoading(true)
+      const response = await apiClient.getCourses() as { success: boolean; data: Course[] }
+      if (response.success && response.data) {
+        setCourses(response.data)
+      }
+    } catch (error) {
+      console.error("Failed to fetch courses:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load courses",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        setLoading(true)
-        const response = await apiClient.getCourses(filters)
-        if (response.success && response.data) {
-          setCourses(response.data)
-        }
-      } catch (error) {
-        console.error("Failed to fetch courses:", error)
-        toast({
-          title: "Error",
-          description: "Failed to load courses",
-          variant: "destructive",
-        })
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchCourses()
-  }, [filters])
-
-  const handleExport = () => {
-    console.log("Exporting courses...")
-  }
-
-  const clearFilters = () => {
-    setFilters({})
-  }
-
-  const filteredCourses = courses.filter((course) => {
-    if (filters.universityId && course.universityId !== filters.universityId) return false
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase()
-      const name = course.name.toLowerCase()
-      const code = course.code.toLowerCase()
-      if (!name.includes(searchTerm) && !code.includes(searchTerm)) {
-        return false
-      }
-    }
-    return true
-  })
+  }, [])
 
   const totalStudents = courses.reduce((sum, course) => sum + course.currentStudents, 0)
   const totalFees = courses.reduce((sum, course) => sum + course.totalFees, 0)
@@ -74,10 +50,6 @@ export default function CoursesPage() {
           <p className="text-muted-foreground">Manage academic courses and curriculum</p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
           <Button asChild>
             <Link href="/admin/courses/create">
               <GraduationCap className="w-4 h-4 mr-2" />
@@ -123,15 +95,12 @@ export default function CoursesPage() {
         </Card>
       </div>
 
-      {/* Filters */}
-      <CourseFiltersComponent filters={filters} onFiltersChange={setFilters} onClearFilters={clearFilters} />
-
       {/* Courses Grid */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-playfair font-semibold">Courses ({filteredCourses.length})</h2>
-          <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
-            <RefreshCw className="w-4 h-4 mr-2" />
+          <h2 className="text-xl font-playfair font-semibold">Courses ({courses.length})</h2>
+          <Button variant="ghost" size="sm" onClick={fetchCourses} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
@@ -141,15 +110,13 @@ export default function CoursesPage() {
             <RefreshCw className="w-6 h-6 animate-spin mr-2" />
             Loading courses...
           </div>
-        ) : filteredCourses.length === 0 ? (
+        ) : courses.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
               <GraduationCap className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-2">No Courses Found</h3>
               <p className="text-muted-foreground mb-4">
-                {filters.search || filters.universityId
-                  ? "No courses match your search criteria."
-                  : "No courses have been added yet."}
+                No courses have been added yet.
               </p>
               <Button asChild>
                 <Link href="/admin/courses/create">
@@ -161,7 +128,7 @@ export default function CoursesPage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCourses.map((course) => (
+            {courses.map((course) => (
               <CourseCard key={course.id} course={course} />
             ))}
           </div>

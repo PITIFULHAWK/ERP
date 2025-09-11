@@ -10,19 +10,18 @@ import Link from "next/link"
 import { apiClient } from "@/lib/api-client"
 import { toast } from "@/hooks/use-toast"
 import type { User, UserFilters } from "@/types/user"
+import type { ApiResponse } from "@/types/api"
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [filters, setFilters] = useState<UserFilters>({})
-
-
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         setLoading(true)
-        const response = await apiClient.getUsers(filters)
+        const response = await apiClient.getUsers(filters) as ApiResponse<User[]>
         if (response.success && response.data) {
           setUsers(response.data)
         }
@@ -44,15 +43,113 @@ export default function UsersPage() {
   const handleBulkAction = async (action: string, ids: string[]) => {
     try {
       console.log(`Performing ${action} on users:`, ids)
-      // In a real app, implement bulk actions here
+      
+      switch (action) {
+        case "verify":
+          await Promise.all(
+            ids.map(id => apiClient.updateUser(id, { userStatus: "VERIFIED" }))
+          )
+          toast({
+            title: "Success",
+            description: `${ids.length} user(s) verified successfully`,
+          })
+          break
+          
+        case "promote":
+          await Promise.all(
+            ids.map(id => apiClient.updateUserRole(id, "STUDENT"))
+          )
+          toast({
+            title: "Success",
+            description: `${ids.length} user(s) promoted to student successfully`,
+          })
+          break
+          
+        case "delete":
+          if (!confirm(`Are you sure you want to delete ${ids.length} user(s)? This action cannot be undone.`)) {
+            return
+          }
+          await Promise.all(
+            ids.map(id => apiClient.deleteUser(id))
+          )
+          toast({
+            title: "Success",
+            description: `${ids.length} user(s) deleted successfully`,
+          })
+          break
+          
+        default:
+          console.warn("Unknown bulk action:", action)
+          return
+      }
+      
+      // Refresh the users list
       setSelectedIds([])
+      const response = await apiClient.getUsers(filters) as ApiResponse<User[]>
+      if (response.success && response.data) {
+        setUsers(response.data)
+      }
     } catch (error) {
       console.error("Bulk action failed:", error)
+      toast({
+        title: "Error",
+        description: `Failed to perform ${action} on selected users`,
+        variant: "destructive",
+      })
     }
   }
 
   const handleExport = () => {
-    console.log("Exporting users...")
+    try {
+      // Create CSV content
+      const csvHeaders = [
+        "Name",
+        "Email", 
+        "Role",
+        "Status",
+        "University",
+        "Joined Date"
+      ]
+      
+      const csvData = filteredUsers.map(user => [
+        user.name,
+        user.email,
+        user.role,
+        user.userStatus,
+        user.university?.name || "N/A",
+        new Date(user.createdAt).toLocaleDateString()
+      ])
+      
+      const csvContent = [
+        csvHeaders.join(","),
+        ...csvData.map(row => row.map(field => `"${field}"`).join(","))
+      ].join("\n")
+      
+      // Create and download file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+      const link = document.createElement("a")
+      const url = URL.createObjectURL(blob)
+      
+      link.setAttribute("href", url)
+      link.setAttribute("download", `users_export_${new Date().toISOString().split("T")[0]}.csv`)
+      link.style.visibility = "hidden"
+      
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      toast({
+        title: "Success",
+        description: `Exported ${filteredUsers.length} users to CSV`,
+      })
+    } catch (error) {
+      console.error("Export failed:", error)
+      toast({
+        title: "Error",
+        description: "Failed to export users",
+        variant: "destructive",
+      })
+    }
   }
 
   const clearFilters = () => {

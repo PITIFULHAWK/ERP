@@ -1,3 +1,11 @@
+// Generic API Response interface
+export interface ApiResponse<T = unknown> {
+    success: boolean;
+    message: string;
+    data?: T;
+    error?: string;
+}
+
 // Additional API types that are missing from the main type files
 
 // Login types
@@ -64,8 +72,10 @@ export interface VerifyApplicationRequest {
         | "APPROVED"
         | "REJECTED"
         | "VERIFIED"
-        | "CANCELLED";
+        | "CANCELLED"
+        | "INCOMPLETE";
     remarks?: string;
+    verifierId?: string;
 }
 
 // Document types
