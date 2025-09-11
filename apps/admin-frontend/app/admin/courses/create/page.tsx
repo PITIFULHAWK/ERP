@@ -6,6 +6,7 @@ import { CreateCourseForm } from "@/components/courses/create-course-form"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import type { CreateCourseRequest } from "@/types/course"
+import { apiClient } from "@/lib/api-client"
 
 export default function CreateCoursePage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -14,11 +15,7 @@ export default function CreateCoursePage() {
   const handleCreateCourse = async (data: CreateCourseRequest) => {
     try {
       setIsLoading(true)
-      // In a real app: await apiClient.createCourse(data)
-      console.log("Creating course:", data)
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      await apiClient.createCourse(data)
 
       // Redirect to courses list
       router.push("/admin/courses")

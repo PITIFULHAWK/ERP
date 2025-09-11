@@ -20,7 +20,7 @@ model Exam {
     maxMarks Float    @default(100)
 
     semester   Semester @relation(fields: [semesterId], references: [id])
-    semesterId String   @unique
+    semesterId String
 
     results ExamResult[]
 

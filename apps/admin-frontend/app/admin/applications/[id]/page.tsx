@@ -10,7 +10,9 @@ import { Separator } from "@/components/ui/separator"
 import { ApplicationStatusBadge } from "@/components/applications/application-status-badge"
 import { DocumentVerification } from "@/components/applications/document-verification"
 import { ArrowLeft, CheckCircle, XCircle, Clock, FileText } from "lucide-react"
-import type { Application, VerificationRequest } from "@/types/application"
+import type { Application } from "@/types/application"
+import type { VerifyApplicationRequest } from "@/types/api"
+import { apiClient } from "@/lib/api-client"
 
 export default function ApplicationDetailPage() {
   const params = useParams()
@@ -20,101 +22,13 @@ export default function ApplicationDetailPage() {
   const [verificationNotes, setVerificationNotes] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Mock application data
-  const mockApplication: Application = {
-    id: params.id as string,
-    firstName: "Sarah",
-    lastName: "Johnson",
-    dateOfBirth: "2000-05-15",
-    gender: "FEMALE",
-    nationality: "Indian",
-    phoneNumber: "+91-9876543210",
-    alternatePhoneNumber: "+91-9876543211",
-    address: "123 Main Street, Apartment 4B",
-    city: "Mumbai",
-    state: "Maharashtra",
-    pincode: "400001",
-    class10Percentage: 85.5,
-    class10Board: "CBSE",
-    class10YearOfPassing: 2018,
-    class12Percentage: 88.2,
-    class12Board: "CBSE",
-    class12YearOfPassing: 2020,
-    class12Stream: "Science",
-    hasJeeMainsScore: true,
-    jeeMainsScore: 245,
-    jeeMainsRank: 15000,
-    jeeMainsYear: 2020,
-    preferredCourseId: "cs-1",
-    preferredCourse: {
-      id: "cs-1",
-      name: "Computer Science Engineering",
-      code: "CSE",
-      university: {
-        id: "univ-1",
-        name: "Indian Institute of Technology",
-      },
-    },
-    status: "PENDING",
-    documents: [
-      {
-        id: "doc-1",
-        type: "CLASS_10_MARKSHEET",
-        fileName: "class10_marksheet.pdf",
-        fileUrl: "/class-10-marksheet-document.jpg",
-        fileSize: 245760,
-        mimeType: "application/pdf",
-        isVerified: true,
-        verifiedBy: { id: "admin-1", name: "Admin User" },
-        verifiedAt: "2024-01-16T10:30:00Z",
-        applicationId: params.id as string,
-        createdAt: "2024-01-15T10:30:00Z",
-        updatedAt: "2024-01-16T10:30:00Z",
-      },
-      {
-        id: "doc-2",
-        type: "CLASS_12_MARKSHEET",
-        fileName: "class12_marksheet.pdf",
-        fileUrl: "/class-12-marksheet-document.jpg",
-        fileSize: 312480,
-        mimeType: "application/pdf",
-        isVerified: false,
-        applicationId: params.id as string,
-        createdAt: "2024-01-15T10:30:00Z",
-        updatedAt: "2024-01-15T10:30:00Z",
-      },
-      {
-        id: "doc-3",
-        type: "PHOTO",
-        fileName: "passport_photo.jpg",
-        fileUrl: "/passport-photo-of-student.jpg",
-        fileSize: 89120,
-        mimeType: "image/jpeg",
-        isVerified: false,
-        applicationId: params.id as string,
-        createdAt: "2024-01-15T10:30:00Z",
-        updatedAt: "2024-01-15T10:30:00Z",
-      },
-    ],
-    user: {
-      id: "user-1",
-      name: "Sarah Johnson",
-      email: "sarah.johnson@email.com",
-    },
-    userId: "user-1",
-    createdAt: "2024-01-15T10:30:00Z",
-    updatedAt: "2024-01-15T10:30:00Z",
-  }
-
   useEffect(() => {
     const fetchApplication = async () => {
       try {
         setLoading(true)
-        // In a real app: const response = await apiClient.getApplication(params.id as string)
-        setTimeout(() => {
-          setApplication(mockApplication)
-          setLoading(false)
-        }, 1000)
+        const response = await apiClient.getApplication(params.id as string)
+        setApplication(((response as any)?.data ?? response) as Application)
+        setLoading(false)
       } catch (error) {
         console.error("Failed to fetch application:", error)
         setLoading(false)
@@ -129,13 +43,12 @@ export default function ApplicationDetailPage() {
 
     try {
       setIsSubmitting(true)
-      const request: VerificationRequest = {
+      const request: VerifyApplicationRequest = {
         status,
-        notes: verificationNotes || undefined,
+        remarks: verificationNotes || undefined,
       }
 
-      // In a real app: await apiClient.verifyApplication(application.id, request)
-      console.log("Verifying application:", request)
+      await apiClient.verifyApplication(application.id, request)
 
       // Update local state
       setApplication({
@@ -157,8 +70,7 @@ export default function ApplicationDetailPage() {
     if (!application) return
 
     try {
-      // In a real app: await apiClient.verifyDocument(documentId, { isVerified, notes })
-      console.log("Verifying document:", { documentId, isVerified, notes })
+      await apiClient.verifyDocument(documentId)
 
       // Update local state
       const updatedDocuments = application.documents.map((doc) =>

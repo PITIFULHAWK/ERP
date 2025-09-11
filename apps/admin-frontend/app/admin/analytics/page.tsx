@@ -1,112 +1,180 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { apiClient } from "@/lib/api-client"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MetricCard } from "@/components/analytics/metric-card"
 import { ApplicationStatusChart } from "@/components/analytics/application-status-chart"
-import { MonthlyTrendsChart } from "@/components/analytics/monthly-trends-chart"
 import { UserRoleChart } from "@/components/analytics/user-role-chart"
-import { RevenueChart } from "@/components/analytics/revenue-chart"
-import { Users, GraduationCap, BookOpen, FileText, Download } from "lucide-react"
-import type { SystemMetrics, ApplicationAnalytics, UserAnalytics, FinancialReport } from "@/types/analytics"
+import { Users, GraduationCap, BookOpen, FileText, Building, Bell, UserCheck, UserX, RefreshCw, Clock, AlertCircle } from "lucide-react"
+import type { SystemMetrics, ApplicationAnalytics, UserAnalytics } from "@/types/analytics"
 
 export default function AnalyticsPage() {
+  const router = useRouter()
   const [timeRange, setTimeRange] = useState("30d")
   const [loading, setLoading] = useState(true)
-
-  // Mock data - replace with actual API calls
-  const systemMetrics: SystemMetrics = {
-    totalUsers: 15420,
-    totalUniversities: 245,
-    totalCourses: 1850,
-    totalApplications: 8920,
-    pendingApplications: 1240,
-    verifiedApplications: 6180,
-    rejectedApplications: 1500,
-    monthlyGrowth: {
-      users: 12.5,
-      applications: 8.3,
-      universities: 5.2,
-    },
+  const [refreshing, setRefreshing] = useState(false)
+  const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null)
+  const [applicationAnalytics, setApplicationAnalytics] = useState<ApplicationAnalytics | null>(null)
+  const [userAnalytics, setUserAnalytics] = useState<UserAnalytics | null>(null)
+  const [totalNotices, setTotalNotices] = useState(0)
+  const [totalHostels, setTotalHostels] = useState(0)
+  const [totalStudents, setTotalStudents] = useState(0)
+  const [totalFaculty, setTotalFaculty] = useState(0)
+  const [verifiedUsers, setVerifiedUsers] = useState(0)
+  const [unverifiedUsers, setUnverifiedUsers] = useState(0)
+  const [totalCourses, setTotalCourses] = useState(0)
+  interface ActivityItem {
+    type: 'notice' | 'application'
+    title: string
+    time: string
+    icon: React.ReactNode
   }
 
-  const applicationAnalytics: ApplicationAnalytics = {
-    statusDistribution: [
-      { status: "VERIFIED", count: 6180, percentage: 69.3 },
-      { status: "PENDING", count: 1240, percentage: 13.9 },
-      { status: "REJECTED", count: 1500, percentage: 16.8 },
-    ],
-    monthlyTrends: [
-      { month: "Jan", submitted: 720, verified: 580, rejected: 140 },
-      { month: "Feb", submitted: 850, verified: 680, rejected: 170 },
-      { month: "Mar", submitted: 920, verified: 750, rejected: 170 },
-      { month: "Apr", submitted: 1100, verified: 890, rejected: 210 },
-      { month: "May", submitted: 1250, verified: 1020, rejected: 230 },
-      { month: "Jun", submitted: 1180, verified: 980, rejected: 200 },
-    ],
-    processingTimes: {
-      average: 5.2,
-      median: 4.8,
-      fastest: 1.2,
-      slowest: 12.5,
-    },
-  }
+  const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([])
 
-  const userAnalytics: UserAnalytics = {
-    roleDistribution: [
-      { role: "STUDENT", count: 12800, percentage: 83.0 },
-      { role: "PROFESSOR", count: 1850, percentage: 12.0 },
-      { role: "VERIFIER", count: 520, percentage: 3.4 },
-      { role: "ADMIN", count: 250, percentage: 1.6 },
-    ],
-    verificationStatus: {
-      verified: 13200,
-      unverified: 2220,
-    },
-    monthlyRegistrations: [
-      { month: "Jan", count: 1200 },
-      { month: "Feb", count: 1450 },
-      { month: "Mar", count: 1680 },
-      { month: "Apr", count: 1920 },
-      { month: "May", count: 2100 },
-      { month: "Jun", count: 1850 },
-    ],
-  }
+  const load = async () => {
+      // Calculate metrics from fetched data
+      interface ApiResponse<T> {
+        success: boolean
+        data: T[]
+      }
 
-  const financialReport: FinancialReport = {
-    totalRevenue: 45600000,
-    monthlyRevenue: [
-      { month: "Jan", amount: 6800000 },
-      { month: "Feb", amount: 7200000 },
-      { month: "Mar", amount: 7800000 },
-      { month: "Apr", amount: 8200000 },
-      { month: "May", amount: 8900000 },
-      { month: "Jun", amount: 8400000 },
-    ],
-    feeCollection: {
-      collected: 38400000,
-      pending: 5200000,
-      overdue: 2000000,
-    },
-    universityWiseRevenue: [
-      { universityName: "Delhi University", amount: 8500000 },
-      { universityName: "Mumbai University", amount: 7200000 },
-      { universityName: "Bangalore University", amount: 6800000 },
-    ],
+      interface User {
+        role: string
+        userStatus: string
+      }
+
+      interface Application {
+        status: string
+        user?: { name: string }
+        createdAt: string
+      }
+
+      interface Notice {
+        title: string
+        publishedAt?: string
+        createdAt: string
+      }
+
+
+      let totalCourses = 0
+      let totalStudents = 0
+      let totalFaculty = 0
+      let totalNotices = 0
+      let totalHostels = 0
+      let verifiedUsers = 0
+      let unverifiedUsers = 0
+
+      try {
+        setLoading(true)
+        // Fetch data for single university analytics
+        const [users, courses, applications, notices, hostels] = await Promise.all([
+          apiClient.getUsers({}).catch(() => ({ success: true, data: [] })),
+          apiClient.getCourses({}).catch(() => ({ success: true, data: [] })),
+          apiClient.getApplications({}).catch(() => ({ success: true, data: [] })),
+          apiClient.getNotices().catch(() => ({ success: true, data: [] })),
+          apiClient.getHostels({}).catch(() => ({ success: true, data: [] })),
+        ])
+
+        const usersList = (users as ApiResponse<User>).data || []
+        const coursesList = (courses as ApiResponse<unknown>).data || []
+        const noticesList = (notices as ApiResponse<Notice>).data || []
+        const hostelsList = (hostels as ApiResponse<unknown>).data || []
+        const apps = (applications as ApiResponse<Application>).data || []
+
+        // Calculate user metrics
+        const totalUsers = usersList.length
+        totalStudents = usersList.filter((u: User) => u.role === 'STUDENT').length
+        totalFaculty = usersList.filter((u: User) => u.role === 'PROFESSOR').length
+        verifiedUsers = usersList.filter((u: User) => u.userStatus === 'VERIFIED').length
+        unverifiedUsers = totalUsers - verifiedUsers
+
+        // Calculate other metrics
+        totalCourses = coursesList.length
+        totalNotices = noticesList.length
+        totalHostels = hostelsList.length
+
+        const pendingApplications = apps.filter((a: Application) => a.status === "PENDING").length
+        const verifiedApplications = apps.filter((a: Application) => a.status === "VERIFIED").length
+        const rejectedApplications = apps.filter((a: Application) => a.status === "REJECTED").length
+
+        // Set additional state
+        setTotalNotices(totalNotices)
+        setTotalHostels(totalHostels)
+        setTotalStudents(totalStudents)
+        setTotalFaculty(totalFaculty)
+        setVerifiedUsers(verifiedUsers)
+        setUnverifiedUsers(unverifiedUsers)
+        setTotalCourses(totalCourses)
+
+        setSystemMetrics({
+          totalUsers,
+          totalUniversities: 1, // Single university setup
+          totalCourses,
+          totalApplications: apps.length,
+          pendingApplications,
+          verifiedApplications,
+          rejectedApplications,
+          monthlyGrowth: { users: 0, applications: 0, universities: 0 },
+        })
+
+        setApplicationAnalytics({
+          statusDistribution: [
+            { status: "VERIFIED", count: verifiedApplications, percentage: apps.length ? (verifiedApplications / apps.length) * 100 : 0 },
+            { status: "PENDING", count: pendingApplications, percentage: apps.length ? (pendingApplications / apps.length) * 100 : 0 },
+            { status: "REJECTED", count: rejectedApplications, percentage: apps.length ? (rejectedApplications / apps.length) * 100 : 0 },
+          ],
+          monthlyTrends: [],
+          processingTimes: { average: 0, median: 0, fastest: 0, slowest: 0 },
+        })
+
+        setUserAnalytics({
+          roleDistribution: [
+            { role: "STUDENT", count: totalStudents, percentage: totalUsers ? (totalStudents / totalUsers) * 100 : 0 },
+            { role: "PROFESSOR", count: totalFaculty, percentage: totalUsers ? (totalFaculty / totalUsers) * 100 : 0 },
+            { role: "ADMIN", count: usersList.filter((u: User) => u.role === 'ADMIN').length, percentage: totalUsers ? (usersList.filter((u: User) => u.role === 'ADMIN').length / totalUsers) * 100 : 0 },
+          ],
+          verificationStatus: { verified: verifiedUsers, unverified: unverifiedUsers },
+          monthlyRegistrations: [],
+        })
+
+        // Generate recent activity
+        const activity: ActivityItem[] = [
+          ...noticesList.slice(0, 3).map((notice: Notice) => ({
+            type: 'notice' as const,
+            title: notice.title,
+            time: notice.publishedAt || notice.createdAt,
+            icon: <Bell className="h-4 w-4" />
+          })),
+          ...apps.slice(0, 2).map((app: Application) => ({
+            type: 'application' as const,
+            title: `New application from ${app.user?.name || 'Student'}`,
+            time: app.createdAt,
+            icon: <FileText className="h-4 w-4" />
+          }))
+        ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 5)
+
+        setRecentActivity(activity)
+
+      } finally {
+        setLoading(false)
+        setRefreshing(false)
+      }
+    }
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await load()
   }
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setLoading(false), 1000)
-    return () => clearTimeout(timer)
-  }, [timeRange])
+    load()
+  }, [timeRange]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleExportReport = () => {
-    // Implement export functionality
-    console.log("Exporting analytics report...")
-  }
 
   if (loading) {
     return (
@@ -136,9 +204,9 @@ export default function AnalyticsPage() {
               <SelectItem value="1y">Last year</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={handleExportReport} variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export Report
+          <Button onClick={handleRefresh} variant="outline" disabled={refreshing}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
           </Button>
         </div>
       </div>
@@ -146,114 +214,143 @@ export default function AnalyticsPage() {
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
-          title="Total Users"
-          value={systemMetrics.totalUsers.toLocaleString()}
-          change={systemMetrics.monthlyGrowth.users}
+          title="Total Students"
+          value={totalStudents.toLocaleString()}
           icon={<Users className="h-4 w-4 text-primary" />}
         />
         <MetricCard
-          title="Universities"
-          value={systemMetrics.totalUniversities.toLocaleString()}
-          change={systemMetrics.monthlyGrowth.universities}
+          title="Total Faculty"
+          value={totalFaculty.toLocaleString()}
           icon={<GraduationCap className="h-4 w-4 text-primary" />}
         />
         <MetricCard
           title="Total Courses"
-          value={systemMetrics.totalCourses.toLocaleString()}
+          value={totalCourses.toLocaleString()}
           icon={<BookOpen className="h-4 w-4 text-primary" />}
         />
         <MetricCard
+          title="Total Notices"
+          value={totalNotices.toLocaleString()}
+          icon={<Bell className="h-4 w-4 text-primary" />}
+        />
+      </div>
+
+      {/* Secondary Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <MetricCard
+          title="Total Hostels"
+          value={totalHostels.toLocaleString()}
+          icon={<Building className="h-4 w-4 text-primary" />}
+        />
+        <MetricCard
+          title="Verified Users"
+          value={verifiedUsers.toLocaleString()}
+          icon={<UserCheck className="h-4 w-4 text-green-600" />}
+        />
+        <MetricCard
+          title="Unverified Users"
+          value={unverifiedUsers.toLocaleString()}
+          icon={<UserX className="h-4 w-4 text-red-600" />}
+        />
+        <MetricCard
           title="Applications"
-          value={systemMetrics.totalApplications.toLocaleString()}
-          change={systemMetrics.monthlyGrowth.applications}
+          value={(systemMetrics?.totalApplications ?? 0).toLocaleString()}
           icon={<FileText className="h-4 w-4 text-primary" />}
         />
       </div>
 
-      {/* Application Analytics */}
+      {/* Quick Actions & Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ApplicationStatusChart data={applicationAnalytics.statusDistribution} />
-        <MonthlyTrendsChart data={applicationAnalytics.monthlyTrends} />
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" />
+              Quick Actions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {unverifiedUsers > 0 && (
+              <Button 
+                onClick={() => router.push('/admin/users')} 
+                variant="outline" 
+                className="w-full justify-start"
+              >
+                <UserCheck className="h-4 w-4 mr-2" />
+                Verify {unverifiedUsers} Pending Users
+              </Button>
+            )}
+            {(systemMetrics?.pendingApplications ?? 0) > 0 && (
+              <Button 
+                onClick={() => router.push('/admin/applications')} 
+                variant="outline" 
+                className="w-full justify-start"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Review {systemMetrics?.pendingApplications} Applications
+              </Button>
+            )}
+            <Button 
+              onClick={() => router.push('/admin/notices')} 
+              variant="outline" 
+              className="w-full justify-start"
+            >
+              <Bell className="h-4 w-4 mr-2" />
+              Create New Notice
+            </Button>
+            <Button 
+              onClick={() => router.push('/admin/courses')} 
+              variant="outline" 
+              className="w-full justify-start"
+            >
+              <BookOpen className="h-4 w-4 mr-2" />
+              Manage Courses
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Recent Activity */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Recent Activity
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {recentActivity.length > 0 ? (
+                recentActivity.map((item, index) => (
+                  <div key={index} className="flex items-start gap-3">
+                    <div className="text-muted-foreground mt-1">
+                      {item.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{item.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(item.time).toLocaleDateString()} at {new Date(item.time).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">No recent activity</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Application Analytics */}
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+        <ApplicationStatusChart data={applicationAnalytics?.statusDistribution ?? []} />
       </div>
 
       {/* User Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <UserRoleChart data={userAnalytics.roleDistribution} />
-        <Card>
-          <CardHeader>
-            <CardTitle>Processing Times</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Average</span>
-                <span className="font-semibold">{applicationAnalytics.processingTimes.average} days</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Median</span>
-                <span className="font-semibold">{applicationAnalytics.processingTimes.median} days</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Fastest</span>
-                <span className="font-semibold text-green-600">
-                  {applicationAnalytics.processingTimes.fastest} days
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Slowest</span>
-                <span className="font-semibold text-red-600">{applicationAnalytics.processingTimes.slowest} days</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+        <UserRoleChart data={userAnalytics?.roleDistribution ?? []} />
       </div>
 
-      {/* Financial Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <RevenueChart data={financialReport.monthlyRevenue} />
-        <Card>
-          <CardHeader>
-            <CardTitle>Fee Collection Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Collected</span>
-                <span className="font-semibold text-green-600">
-                  ₹{(financialReport.feeCollection.collected / 1000000).toFixed(1)}M
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Pending</span>
-                <span className="font-semibold text-yellow-600">
-                  ₹{(financialReport.feeCollection.pending / 1000000).toFixed(1)}M
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Overdue</span>
-                <span className="font-semibold text-red-600">
-                  ₹{(financialReport.feeCollection.overdue / 1000000).toFixed(1)}M
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Revenue Sources</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {financialReport.universityWiseRevenue.map((university, index) => (
-                <div key={index} className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground truncate">{university.universityName}</span>
-                  <span className="font-semibold">₹{(university.amount / 1000000).toFixed(1)}M</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   )
 }

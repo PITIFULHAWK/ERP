@@ -4,10 +4,8 @@ model Subject {
     code       String   @unique // e.g., "CS101"
     credits    Int
     semester   Semester @relation("SemesterSubjects", fields: [semesterId], references: [id])
-    semesterId String   @unique
-
+    semesterId String
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-
     Grade Grade[]
 }

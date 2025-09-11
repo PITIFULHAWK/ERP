@@ -6,12 +6,20 @@ import { ApiResponse } from "../types";
 // Get all notices
 export const getAllNotices = asyncHandler(
     async (req: Request, res: Response) => {
-        const { universityId } = req.query;
+        const { universityId, type, priority, audience, search } = req.query;
 
         // Build where clause based on query parameters
-        const whereClause = universityId
-            ? { universityId: universityId as string }
-            : {};
+        const whereClause: any = {};
+        if (universityId) whereClause.universityId = universityId as string;
+        if (type) whereClause.type = type as string;
+        if (priority) whereClause.priority = priority as string;
+        if (audience) whereClause.targetAudience = audience as string;
+        if (search) {
+            whereClause.OR = [
+                { title: { contains: search as string, mode: "insensitive" } },
+                { content: { contains: search as string, mode: "insensitive" } },
+            ];
+        }
 
         const notices = await prisma.notice.findMany({
             where: whereClause,
@@ -85,7 +93,7 @@ export const getNoticeById = asyncHandler(
 // Create new notice (Admin only)
 export const createNotice = asyncHandler(
     async (req: Request, res: Response) => {
-        const { title, content, universityId } = req.body;
+        const { title, content, universityId, type, priority, targetAudience } = req.body;
 
         if (!title || !content || !universityId) {
             const response: ApiResponse = {
@@ -115,6 +123,9 @@ export const createNotice = asyncHandler(
                 title,
                 content,
                 universityId,
+                type,
+                priority,
+                targetAudience,
             },
             include: {
                 university: {
@@ -141,7 +152,7 @@ export const createNotice = asyncHandler(
 export const updateNotice = asyncHandler(
     async (req: Request, res: Response) => {
         const { id } = req.params;
-        const { title, content } = req.body;
+        const { title, content, type, priority, targetAudience } = req.body;
 
         if (!id) {
             const response: ApiResponse = {
@@ -167,8 +178,11 @@ export const updateNotice = asyncHandler(
         }
 
         const updateData: any = {};
-        if (title) updateData.title = title;
-        if (content) updateData.content = content;
+        if (title !== undefined) updateData.title = title;
+        if (content !== undefined) updateData.content = content;
+        if (type !== undefined) updateData.type = type;
+        if (priority !== undefined) updateData.priority = priority;
+        if (targetAudience !== undefined) updateData.targetAudience = targetAudience;
 
         const notice = await prisma.notice.update({
             where: { id },

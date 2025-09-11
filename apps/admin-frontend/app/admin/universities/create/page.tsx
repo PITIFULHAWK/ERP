@@ -6,6 +6,7 @@ import { CreateUniversityForm } from "@/components/universities/create-universit
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import type { CreateUniversityRequest } from "@/types/university"
+import { apiClient } from "@/lib/api-client"
 
 export default function CreateUniversityPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -14,11 +15,7 @@ export default function CreateUniversityPage() {
   const handleCreateUniversity = async (data: CreateUniversityRequest) => {
     try {
       setIsLoading(true)
-      // In a real app: await apiClient.onboardUniversity(data)
-      console.log("Creating university:", data)
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      await apiClient.onboardUniversity(data as any)
 
       // Redirect to universities list
       router.push("/admin/universities")

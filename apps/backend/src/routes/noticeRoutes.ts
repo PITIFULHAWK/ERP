@@ -43,6 +43,9 @@ router.post(
         body("universityId")
             .isUUID()
             .withMessage("Valid university ID is required"),
+        body("type").optional().isIn(["GENERAL","URGENT","ACADEMIC","HOSTEL","EXAM"]).withMessage("Invalid notice type"),
+        body("priority").optional().isIn(["LOW","MEDIUM","HIGH"]).withMessage("Invalid priority"),
+        body("targetAudience").optional().isIn(["ALL","STUDENTS","FACULTY","STAFF"]).withMessage("Invalid target audience"),
     ],
     createNotice
 );
@@ -50,6 +53,7 @@ router.post(
 // PUT /api/v1/notices/:id - Update notice (Admin only)
 router.put(
     "/:id",
+    requireAuth,
     requireAdmin,
     [
         param("id").isUUID().withMessage("Invalid notice ID format"),
@@ -63,6 +67,9 @@ router.put(
             .trim()
             .isLength({ min: 10 })
             .withMessage("Content must be at least 10 characters"),
+        body("type").optional().isIn(["GENERAL","URGENT","ACADEMIC","HOSTEL","EXAM"]).withMessage("Invalid notice type"),
+        body("priority").optional().isIn(["LOW","MEDIUM","HIGH"]).withMessage("Invalid priority"),
+        body("targetAudience").optional().isIn(["ALL","STUDENTS","FACULTY","STAFF"]).withMessage("Invalid target audience"),
     ],
     updateNotice
 );
@@ -70,6 +77,7 @@ router.put(
 // DELETE /api/v1/notices/:id - Delete notice (Admin only)
 router.delete(
     "/:id",
+    requireAuth,
     requireAdmin,
     [param("id").isUUID().withMessage("Invalid notice ID format")],
     deleteNotice

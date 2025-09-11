@@ -187,14 +187,20 @@ export interface ExamResultFilters {
 export interface CreateNoticeRequest {
     title: string;
     content: string;
-    publishedAt: string;
     universityId: string;
+    type?: "GENERAL" | "URGENT" | "ACADEMIC" | "HOSTEL" | "EXAM";
+    priority?: "LOW" | "MEDIUM" | "HIGH";
+    targetAudience?: "ALL" | "STUDENTS" | "FACULTY" | "STAFF";
+    publishedAt?: string;
 }
 
 export interface UpdateNoticeRequest {
     title?: string;
     content?: string;
     publishedAt?: string;
+    type?: "GENERAL" | "URGENT" | "ACADEMIC" | "HOSTEL" | "EXAM";
+    priority?: "LOW" | "MEDIUM" | "HIGH";
+    targetAudience?: "ALL" | "STUDENTS" | "FACULTY" | "STAFF";
 }
 
 export interface NoticeFilters {

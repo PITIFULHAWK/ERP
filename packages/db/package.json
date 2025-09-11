@@ -9,6 +9,10 @@
 		"build": "tsc -b",
 		"db:generate": "prisma generate",
 		"db:push": "prisma db push",
+		"db:seed": "node scripts/seed.js",
+		"db:seed:semesters": "node scripts/seed-semesters.js",
+		"db:seed:subjects-exams": "node scripts/seed-subjects-exams.js",
+		"db:seed:applications": "node scripts/seed-applications.js",
 		"db:studio": "prisma studio"
 	},
 	"exports": {
