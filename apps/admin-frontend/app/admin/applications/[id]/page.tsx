@@ -30,7 +30,8 @@ export default function ApplicationDetailPage() {
       try {
         setLoading(true)
         const response = await apiClient.getApplication(params.id as string)
-        setApplication(((response as any)?.data ?? response) as Application)
+        const apiResponse = response as { success?: boolean; data?: Application } | Application
+        setApplication(('data' in apiResponse && apiResponse.data) ? apiResponse.data : apiResponse as Application)
         setLoading(false)
       } catch (error) {
         console.error("Failed to fetch application:", error)
@@ -84,7 +85,7 @@ export default function ApplicationDetailPage() {
     }
   }
 
-  const handleDocumentVerification = async (documentId: string, isVerified: boolean, notes?: string) => {
+  const handleDocumentVerification = async (documentId: string, isVerified: boolean) => {
     if (!application) return
 
     try {
@@ -97,7 +98,7 @@ export default function ApplicationDetailPage() {
               ...doc,
               isVerified,
               verifiedAt: isVerified ? new Date().toISOString() : undefined,
-              verifiedBy: isVerified ? { id: "admin-1", name: "Current Admin" } : undefined,
+              verifiedBy: isVerified ? { id: "admin-1", name: "Current Admin", email: "admin@example.com" } : undefined,
             }
           : doc,
       )

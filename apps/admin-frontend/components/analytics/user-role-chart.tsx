@@ -23,7 +23,7 @@ export function UserRoleChart({ data }: UserRoleChartProps) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="role" />
             <YAxis />
-            <Tooltip formatter={(value, name) => [value, "Count"]} />
+            <Tooltip formatter={(value) => [value, "Count"]} />
             <Bar dataKey="count" fill="#164e63" />
           </BarChart>
         </ResponsiveContainer>

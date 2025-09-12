@@ -25,8 +25,8 @@ export function ApplicationsTable({
   onBulkAction,
   isLoading = false,
 }: ApplicationsTableProps) {
-  const [sortField, setSortField] = useState<keyof Application>("createdAt")
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
+  const [sortField] = useState<keyof Application>("createdAt")
+  const [sortDirection] = useState<"asc" | "desc">("desc")
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {

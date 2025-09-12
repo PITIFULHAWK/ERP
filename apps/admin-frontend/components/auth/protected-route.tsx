@@ -9,7 +9,7 @@ import { Loader2 } from "lucide-react"
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  allowedRoles?: Array<"USER" | "STUDENT" | "PROFESSOR" | "ADMIN" | "VERIFIER">
+  allowedRoles?: Array<"USER" | "STUDENT" | "PROFESSOR" | "ADMIN" | "VERIFIER" | "STAFF">
   redirectTo?: string
 }
 
@@ -25,18 +25,6 @@ export function ProtectedRoute({
     if (!isLoading) {
       if (!isAuthenticated) {
         router.push(redirectTo)
-        return
-      }
-
-      if (user && allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-        // Redirect based on user role
-        if (user.role === "STUDENT") {
-          router.push("/student")
-        } else if (user.role === "PROFESSOR") {
-          router.push("/professor")
-        } else {
-          router.push("/unauthorized")
-        }
         return
       }
     }

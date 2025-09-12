@@ -31,14 +31,6 @@ import type { ApiResponse } from "@/types/api"
 
 type UserRole = "STUDENT" | "PROFESSOR" | "VERIFIER" | "ADMIN"
 
-interface ApplicationDocument {
-  id: string
-  type: string
-  url: string
-  isVerified?: boolean
-  createdAt: string
-}
-
 export default function UserDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -441,7 +433,7 @@ export default function UserDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {user.application.documents.map((document: ApplicationDocument) => (
+                  {user.application.documents.map((document) => (
                     <div key={document.id} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-3">

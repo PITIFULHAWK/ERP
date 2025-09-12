@@ -12,7 +12,7 @@ export default function UnauthorizedPage() {
             <AlertTriangle className="w-6 h-6 text-destructive" />
           </div>
           <CardTitle className="text-2xl font-playfair">Access Denied</CardTitle>
-          <CardDescription>You don't have permission to access this resource.</CardDescription>
+          <CardDescription>You don`&apos;`t have permission to access this resource.</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-6">

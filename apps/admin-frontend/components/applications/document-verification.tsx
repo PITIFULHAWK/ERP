@@ -24,7 +24,7 @@ interface DocumentVerificationProps {
 }
 
 export function DocumentVerification({ documents, onVerifyDocument }: DocumentVerificationProps) {
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null)
+  const [selectedDocument, setSelectedDocument] = useState<ApplicationDocument | null>(null)
   const [verificationNotes, setVerificationNotes] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 

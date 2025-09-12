@@ -11,7 +11,6 @@ import { Select, SelectContent, SelectItem,SelectTrigger, SelectValue } from "@/
 import { Bell, Plus, Search, Calendar, Edit, Trash2} from "lucide-react"
 import { apiClient } from "@/lib/api-client"
 import { toast } from "@/hooks/use-toast"
-import { useAuth } from "@/contexts/auth-context"
 import type { CreateNoticeRequest, UpdateNoticeRequest } from "@/types"
 
 interface Notice {
@@ -25,7 +24,6 @@ interface Notice {
 }
 
 export default function NoticesPage() {
-  const { user } = useAuth()
   const [notices, setNotices] = useState<Notice[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")

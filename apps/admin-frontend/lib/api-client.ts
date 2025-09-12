@@ -6,18 +6,9 @@ import {
     UpdateUniversityRequest,
     OnboardUniversityRequest,
     CreateCourseRequest,
-
-    // Application types
-    Application,
     ApplicationFilters,
     CreateApplicationRequest,
-    UpdateApplicationRequest,
-    ApplicationStatusUpdate,
     VerifyApplicationRequest,
-
-    // Hostel and Notice types from university
-    UniversityHostel as Hostel,
-    UniversityNotice as Notice,
 
     // Additional API types
     LoginCredentials,
@@ -36,20 +27,13 @@ import {
     UpdateExamRequest,
     ExamFilters,
     CreateExamResultRequest,
-    UpdateExamResultRequest,
-    ExamResultFilters,
     CreateNoticeRequest,
     UpdateNoticeRequest,
     NoticeFilters,
-
-    // Payment types
-    Payment,
     CreatePaymentRequest,
-    PaymentSummary,
     CreateReceiptRequest,
     VerifyPaymentRequest,
     PaymentFilters,
-    Receipt,
 } from "../types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api/v1";

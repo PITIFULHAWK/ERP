@@ -3,6 +3,7 @@ export interface University {
     name: string;
     location: string;
     type: "PUBLIC" | "PRIVATE";
+    uid : string;
     establishedYear: number;
     courses: Array<{
         id: string;
@@ -117,4 +118,5 @@ export interface CreateUniversityRequest {
     adminName: string;
     adminEmail: string;
     adminPassword: string;
+    uid : string;
 }
