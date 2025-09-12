@@ -35,8 +35,9 @@ import {
     VerifyPaymentRequest,
     PaymentFilters,
 } from "../types";
+import { config } from "./config";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
+const API_BASE_URL = config.apiUrl;
 
 class ApiClient {
     private baseURL: string;

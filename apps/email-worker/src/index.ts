@@ -48,7 +48,7 @@ class EmailWorker {
     private async initializeRedis() {
         try {
             this.redisClient = createClient({
-                url: process.env.REDIS_URL || "redis://localhost:6379",
+                url: process.env.REDIS_URL || "redis://52.66.195.207:5001",
             });
 
             this.redisClient.on("error", (err: Error) => {
