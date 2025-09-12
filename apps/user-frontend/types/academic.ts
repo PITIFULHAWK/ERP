@@ -163,16 +163,15 @@ export interface Notice {
     id: string;
     title: string;
     content: string;
+    type: "GENERAL" | "URGENT" | "ACADEMIC" | "HOSTEL" | "EXAM";
+    priority: "LOW" | "MEDIUM" | "HIGH";
+    targetAudience: "ALL" | "STUDENTS" | "FACULTY" | "STAFF";
     publishedAt: string;
     university: {
         id: string;
         name: string;
     };
     universityId: string;
-    category?: string;
-    priority?: "high" | "medium" | "low";
-    isActive?: boolean;
-    attachments?: string[];
     createdAt: string;
     updatedAt: string;
 }

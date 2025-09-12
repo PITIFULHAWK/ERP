@@ -1,19 +1,19 @@
 model Course {
-    id              String        @id @default(uuid())
-    name            String
-    code            String        @unique
-    credits         Int
-    totalSemester   Int
-    totalFees       Float
-    currentStudents Int           @default(0)
-    university      University    @relation(fields: [universityId], references: [id])
-    universityId    String
-    users           User[]        @relation("UserCourses")
-    applications    Application[]
-    semester        Semester[]    @relation("SemesterCourse")
-    payments        Payment[]
-    createdAt       DateTime      @default(now())
-    updatedAt       DateTime      @updatedAt
+  id              String        @id @default(uuid())
+  name            String
+  code            String        @unique
+  credits         Int
+  totalSemester   Int
+  totalFees       Float
+  currentStudents Int           @default(0)
+  universityId    String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  semester        Semester[]    @relation("SemesterCourse")
+  applications    Application[]
+  university      University    @relation(fields: [universityId], references: [id])
+  payments        Payment[]
+  users           User[]        @relation("UserCourses")
 
-    @@map("courses")
+  @@map("courses")
 }

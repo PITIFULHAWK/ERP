@@ -57,7 +57,10 @@ export class ApiClient {
     private defaultRetries = 3;
     private defaultRetryDelay = 1000;
 
-    constructor(baseURL = "http://localhost:5000/api/v1") {
+    constructor(
+        baseURL = process.env.NEXT_PUBLIC_API_URL ||
+            "http://localhost:5000/api/v1"
+    ) {
         this.baseURL = baseURL;
     }
 
@@ -418,11 +421,15 @@ export class ApiClient {
     }
 
     // PAYMENT METHODS
-    async createPayment(data: CreatePaymentRequest): Promise<ApiResponse<Payment>> {
+    async createPayment(
+        data: CreatePaymentRequest
+    ): Promise<ApiResponse<Payment>> {
         return this.post<Payment>("/payments", data);
     }
 
-    async getPaymentSummary(userId: string): Promise<ApiResponse<PaymentSummary>> {
+    async getPaymentSummary(
+        userId: string
+    ): Promise<ApiResponse<PaymentSummary>> {
         return this.get<PaymentSummary>(`/payments/summary/${userId}`);
     }
 
@@ -441,7 +448,9 @@ export class ApiClient {
         return this.get<Payment[]>(`/payments?${queryParams.toString()}`);
     }
 
-    async uploadReceipt(data: CreateReceiptRequest): Promise<ApiResponse<Receipt>> {
+    async uploadReceipt(
+        data: CreateReceiptRequest
+    ): Promise<ApiResponse<Receipt>> {
         return this.post<Receipt>(`/payments/${data.paymentId}/receipts`, data);
     }
 
