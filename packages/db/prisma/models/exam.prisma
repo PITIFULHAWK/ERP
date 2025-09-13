@@ -1,69 +1,59 @@
-enum ExamType {
-    MID_TERM
-    FINAL_EXAM
-    QUIZ
-    PRACTICAL
-}
-
-enum ResultStatus {
-    PASS
-    FAIL
-    PENDING
-    WITHHELD
-}
-
 model Exam {
-    id       String   @id @default(uuid())
-    name     String
-    type     ExamType
-    examDate DateTime
-    maxMarks Float    @default(100)
+  id         String      @id @default(uuid())
+  name       String
+  type       ExamType
+  examDate   DateTime
+  maxMarks   Float       @default(100)
+  semesterId String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  results    ExamResult?
+  semester   Semester    @relation(fields: [semesterId], references: [id])
 
-    semester   Semester @relation(fields: [semesterId], references: [id])
-    semesterId String
-
-    results ExamResult[]
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    @@map("exams")
+  @@map("exams")
 }
 
 model ExamResult {
-    id                 String       @id @default(uuid())
-    totalMarksObtained Float?
-    percentage         Float?
-    status             ResultStatus
-    remarks            String?
-    grade              Float?
+  id                 String       @id @default(uuid())
+  totalMarksObtained Float?
+  percentage         Float?
+  status             ResultStatus
+  remarks            String?
+  grade              Float?
+  studentId          String       @unique
+  examId             String       @unique
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  exam               Exam         @relation(fields: [examId], references: [id])
+  student            User         @relation(fields: [studentId], references: [id])
+  grades             Grade?
 
-    student   User   @relation(fields: [studentId], references: [id])
-    studentId String @unique
-
-    exam   Exam   @relation(fields: [examId], references: [id])
-    examId String @unique
-
-    grades Grade[]
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    @@map("exam_results")
+  @@map("exam_results")
 }
 
 model Grade {
-    id            String @id @default(uuid())
-    marksObtained Float
+  id            String     @id @default(uuid())
+  marksObtained Float
+  examResultId  String     @unique
+  subjectId     String     @unique
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  examResult    ExamResult @relation(fields: [examResultId], references: [id])
+  subject       Subject    @relation(fields: [subjectId], references: [id])
 
-    examResult   ExamResult @relation(fields: [examResultId], references: [id])
-    examResultId String     @unique
+  @@map("grades")
+}
 
-    subject   Subject @relation(fields: [subjectId], references: [id])
-    subjectId String  @unique
+enum ExamType {
+  MID_TERM
+  FINAL_EXAM
+  QUIZ
+  PRACTICAL
+}
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    @@map("grades")
+enum ResultStatus {
+  PASS
+  FAIL
+  PENDING
+  WITHHELD
 }

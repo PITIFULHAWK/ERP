@@ -1,59 +1,55 @@
 model Application {
-    id                   String   @id @default(uuid())
-    firstName            String
-    lastName             String
-    dateOfBirth          DateTime
-    gender               Gender
-    nationality          String
-    phoneNumber          String
-    alternatePhoneNumber String?
-    address              String
-    city                 String
-    state                String
-    pincode              String
+  id                   String            @id @default(uuid())
+  firstName            String
+  lastName             String
+  dateOfBirth          DateTime
+  gender               Gender
+  nationality          String
+  phoneNumber          String
+  alternatePhoneNumber String?
+  address              String
+  city                 String
+  state                String
+  pincode              String
+  class10Percentage    Float
+  class10Board         String
+  class10YearOfPassing Int
+  class12Percentage    Float
+  class12Board         String
+  class12YearOfPassing Int
+  class12Stream        String
+  hasJeeMainsScore     Boolean           @default(false)
+  jeeMainsScore        Int?
+  jeeMainsRank         Int?
+  jeeMainsYear         Int?
+  preferredCourseId    String
+  status               ApplicationStatus @default(PENDING)
+  verifiedById         String?
+  verifiedAt           DateTime?
+  verificationNotes    String?
+  rejectionReason      String?
+  userId               String            @unique
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  preferredCourse      Course            @relation(fields: [preferredCourseId], references: [id])
+  user                 User              @relation(fields: [userId], references: [id])
+  verifiedBy           User?             @relation("VerifiedApplications", fields: [verifiedById], references: [id])
+  documents            Document[]
+  User                 User[]            @relation("userApplication")
 
-    class10Percentage    Float
-    class10Board         String
-    class10YearOfPassing Int
-    class12Percentage    Float
-    class12Board         String
-    class12YearOfPassing Int
-    class12Stream        String // Science, Commerce, Arts
-
-    // JEE Information (optional)
-    hasJeeMainsScore  Boolean           @default(false)
-    jeeMainsScore     Int?
-    jeeMainsRank      Int?
-    jeeMainsYear      Int?
-    preferredCourse   Course            @relation(fields: [preferredCourseId], references: [id])
-    preferredCourseId String            
-    documents         Document[]
-    status            ApplicationStatus @default(PENDING)
-    verifiedBy        User?             @relation("VerifiedApplications", fields: [verifiedById], references: [id])
-    verifiedById      String?           
-    verifiedAt        DateTime?
-    verificationNotes String?
-    rejectionReason   String?
-    user              User              @relation(fields: [userId], references: [id])
-    userId            String            @unique
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-    User      User[]   @relation("userApplication")
-
-    @@map("applications")
+  @@map("applications")
 }
 
 enum Gender {
-    MALE
-    FEMALE
-    OTHER
+  MALE
+  FEMALE
+  OTHER
 }
 
 enum ApplicationStatus {
-    PENDING // Just submitted, waiting for review
-    UNDER_REVIEW // Being reviewed by verifier
-    VERIFIED // Approved by verifier
-    REJECTED // Rejected by verifier
-    INCOMPLETE // Missing documents or information
+  PENDING
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+  INCOMPLETE
 }

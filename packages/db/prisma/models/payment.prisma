@@ -29,37 +29,37 @@ model Payment {
     updatedAt         DateTime       @updatedAt
     @@map("payments")
 }
+
+model Receipt {
+  id           String   @id @default(uuid())
+  paymentId    String
+  mediaUrl     String
+  mediaType    String
+  uploadedById String
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  payment      Payment  @relation(fields: [paymentId], references: [id])
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+
+  @@map("receipts")
+}
+
 enum PaymentType {
     COURSE
     HOSTEL
 }
+
 enum PaymentStatus {
     PENDING
     VERIFIED
     REJECTED
     FAILED
 }
+
 enum PaymentMethod {
     MANUAL
     RAZORPAY
     CARD
     UPI
 }
-
-
-model Receipt {
-    id           String    @id @default(uuid())
-    payment      Payment   @relation(fields: [paymentId], references: [id])
-    paymentId    String
-    mediaUrl     String
-    mediaType    String    // image/jpeg, image/png, pdf, etc.
-    uploadedBy   User      @relation(fields: [uploadedById], references: [id])
-    uploadedById String
-    notes        String?
-    createdAt    DateTime  @default(now())
-    updatedAt    DateTime  @updatedAt
-
-    @@map("receipts")
-}
-
-

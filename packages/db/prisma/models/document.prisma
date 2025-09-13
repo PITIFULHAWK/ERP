@@ -1,30 +1,29 @@
 model Document {
-    id            String       @id @default(uuid())
-    type          DocumentType
-    fileName      String
-    fileUrl       String // URL to the uploaded document
-    fileSize      Int // File size in bytes
-    mimeType      String
-    application   Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-    applicationId String       
-    isVerified    Boolean      @default(false)
-    verifiedBy    User?        @relation("VerifiedDocuments", fields: [verifiedById], references: [id])
-    verifiedById  String?      
-    verifiedAt    DateTime?
+  id            String       @id @default(uuid())
+  type          DocumentType
+  fileName      String
+  fileUrl       String
+  fileSize      Int
+  mimeType      String
+  applicationId String
+  isVerified    Boolean      @default(false)
+  verifiedById  String?
+  verifiedAt    DateTime?
+  uploadedAt    DateTime     @default(now())
+  application   Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  verifiedBy    User?        @relation("VerifiedDocuments", fields: [verifiedById], references: [id])
 
-    uploadedAt DateTime @default(now())
-
-    @@map("documents")
+  @@map("documents")
 }
 
 enum DocumentType {
-    CLASS_10_MARKSHEET
-    CLASS_12_MARKSHEET
-    JEE_MAINS_SCORECARD
-    PHOTO
-    SIGNATURE
-    IDENTITY_PROOF
-    ADDRESS_PROOF
-    CATEGORY_CERTIFICATE
-    INCOME_CERTIFICATE
+  CLASS_10_MARKSHEET
+  CLASS_12_MARKSHEET
+  JEE_MAINS_SCORECARD
+  PHOTO
+  SIGNATURE
+  IDENTITY_PROOF
+  ADDRESS_PROOF
+  CATEGORY_CERTIFICATE
+  INCOME_CERTIFICATE
 }

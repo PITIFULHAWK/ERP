@@ -1,42 +1,42 @@
+model Notice {
+  id             String         @id @default(uuid())
+  title          String
+  content        String
+  publishedAt    DateTime       @default(now())
+  universityId   String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  priority       NoticePriority @default(LOW)
+  targetAudience NoticeAudience @default(ALL)
+  type           NoticeType     @default(GENERAL)
+  university     University     @relation(fields: [universityId], references: [id])
+
+  @@map("notices")
+}
+
 enum NoticeType {
-    GENERAL
-    URGENT
-    ACADEMIC
-    HOSTEL
-    EXAM
+  GENERAL
+  URGENT
+  ACADEMIC
+  HOSTEL
+  EXAM
 }
 
 enum NoticePriority {
-    LOW
-    MEDIUM
-    HIGH
+  LOW
+  MEDIUM
+  HIGH
 }
 
 enum NoticeAudience {
-    ALL
-    STUDENTS
-    FACULTY
-    STAFF
+  ALL
+  STUDENTS
+  FACULTY
+  STAFF
 }
 
 enum NoticeStatus {
-    DRAFT
-    PUBLISHED
-    EXPIRED
-}
-
-model Notice {
-    id              String          @id @default(uuid())
-    title           String
-    content         String
-    type            NoticeType      @default(GENERAL)
-    priority        NoticePriority  @default(LOW)
-    targetAudience  NoticeAudience  @default(ALL)
-    publishedAt     DateTime        @default(now())
-    university      University      @relation(fields: [universityId], references: [id])
-    universityId    String
-    createdAt       DateTime        @default(now())
-    updatedAt       DateTime        @updatedAt
-
-    @@map("notices")
+  DRAFT
+  PUBLISHED
+  EXPIRED
 }

@@ -1,54 +1,52 @@
 model User {
-    id              String              @id @default(uuid())
-    name            String
-    email           String              @unique
-    password        String
-    role            UserRole            @default(USER)
-    joinedAt        DateTime            @default(now())
-    coursesOpted    Course[]            @relation("UserCourses")
-    hostelOpted     Hostel?             @relation("UserHostel", fields: [hostelId], references: [id])
-    hostelId        String?
-    coursePayStatus CoursePaymentStatus @default(NOT_VERIFIED)
-    hostelPayStatus HostelPaymentStatus @default(NOT_VERIFIED)
-    userStatus      UserStatus          @default(NOT_VERIFIED)
-    university      University          @relation(fields: [universityId], references: [id])
-    universityId    String
-    application     Application?        @relation("userApplication", fields: [applicationId], references: [id])
-    applicationId   String?
+  id                   String              @id @default(uuid())
+  name                 String
+  email                String              @unique
+  role                 UserRole            @default(USER)
+  joinedAt             DateTime            @default(now())
+  hostelId             String?
+  coursePayStatus      CoursePaymentStatus @default(NOT_VERIFIED)
+  hostelPayStatus      HostelPaymentStatus @default(NOT_VERIFIED)
+  userStatus           UserStatus          @default(NOT_VERIFIED)
+  universityId         String
+  applicationId        String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  password             String
+  Application          Application?
+  verifiedApplications Application[]       @relation("VerifiedApplications")
+  verifiedDocuments    Document[]          @relation("VerifiedDocuments")
+  verifiedPayments     Payment[]           @relation("VerifiedPayments")
+  ExamResult           ExamResult?
+  payments             Payment[]
+  receipts             Receipt[]
+  application          Application?        @relation("userApplication", fields: [applicationId], references: [id])
+  hostelOpted          Hostel?             @relation("UserHostel", fields: [hostelId], references: [id])
+  university           University          @relation(fields: [universityId], references: [id])
+  coursesOpted         Course[]            @relation("UserCourses")
 
-    verifiedApplications Application[] @relation("VerifiedApplications")
-    verifiedDocuments    Document[]    @relation("VerifiedDocuments")
-    verifiedPayments     Payment[]     @relation("VerifiedPayments")
-
-    createdAt   DateTime     @default(now())
-    updatedAt   DateTime     @updatedAt
-    Application Application?
-    ExamResult  ExamResult[]
-    payments    Payment[]
-    receipts    Receipt[]
-
-    @@map("users")
+  @@map("users")
 }
 
 enum UserRole {
-    USER
-    STUDENT
-    PROFESSOR
-    ADMIN
-    VERIFIER // New role for manual verification
+  USER
+  STUDENT
+  PROFESSOR
+  ADMIN
+  VERIFIER
 }
 
 enum CoursePaymentStatus {
-    VERIFIED
-    NOT_VERIFIED
+  VERIFIED
+  NOT_VERIFIED
 }
 
 enum HostelPaymentStatus {
-    VERIFIED
-    NOT_VERIFIED
+  VERIFIED
+  NOT_VERIFIED
 }
 
 enum UserStatus {
-    VERIFIED
-    NOT_VERIFIED
+  VERIFIED
+  NOT_VERIFIED
 }

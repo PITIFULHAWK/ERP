@@ -1,11 +1,11 @@
 model Subject {
-    id         String   @id @default(uuid())
-    name       String
-    code       String   @unique // e.g., "CS101"
-    credits    Int
-    semester   Semester @relation("SemesterSubjects", fields: [semesterId], references: [id])
-    semesterId String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-    Grade Grade[]
+  id         String   @id @default(uuid())
+  name       String
+  code       String   @unique
+  credits    Int
+  semesterId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  semester   Semester @relation("SemesterSubjects", fields: [semesterId], references: [id])
+  Grade      Grade?
 }
