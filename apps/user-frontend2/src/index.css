@@ -1,0 +1,139 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* AcademiaOS Design System - Modern University Portal */
+
+@layer base {
+    :root {
+        /* Base colors */
+        --background: 220 14% 96%;
+        --foreground: 224 71% 4%;
+
+        /* Card colors */
+        --card: 0 0% 100%;
+        --card-foreground: 224 71% 4%;
+
+        /* Popover colors */
+        --popover: 0 0% 100%;
+        --popover-foreground: 224 71% 4%;
+
+        /* Primary - Sky Blue Accent */
+        --primary: 199 89% 48%;
+        --primary-foreground: 0 0% 100%;
+        --primary-hover: 199 89% 42%;
+
+        /* Secondary */
+        --secondary: 220 14% 96%;
+        --secondary-foreground: 224 71% 4%;
+
+        /* Muted */
+        --muted: 220 14% 96%;
+        --muted-foreground: 220 9% 46%;
+
+        /* Accent */
+        --accent: 220 14% 96%;
+        --accent-foreground: 224 71% 4%;
+
+        /* Destructive - Red for alerts */
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 210 40% 98%;
+
+        /* Success - Emerald Green */
+        --success: 160 84% 39%;
+        --success-foreground: 0 0% 100%;
+
+        /* Warning - Amber */
+        --warning: 43 96% 56%;
+        --warning-foreground: 0 0% 100%;
+
+        /* Sidebar - Dark Charcoal */
+        --sidebar-background: 217 32% 17%;
+        --sidebar-foreground: 220 9% 75%;
+        --sidebar-primary: 199 89% 48%;
+        --sidebar-primary-foreground: 0 0% 100%;
+        --sidebar-accent: 217 32% 22%;
+        --sidebar-accent-foreground: 220 9% 85%;
+
+        /* Borders and inputs */
+        --border: 220 13% 91%;
+        --input: 220 13% 91%;
+        --ring: 199 89% 48%;
+
+        /* Border radius */
+        --radius: 0.75rem;
+
+        /* Shadows */
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md:
+            0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --shadow-lg:
+            0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+        /* Typography */
+        --font-family: "Inter", system-ui, -apple-system, sans-serif;
+
+        --sidebar-background: 0 0% 98%;
+
+        --sidebar-foreground: 240 5.3% 26.1%;
+
+        --sidebar-primary: 240 5.9% 10%;
+
+        --sidebar-primary-foreground: 0 0% 98%;
+
+        --sidebar-accent: 240 4.8% 95.9%;
+
+        --sidebar-accent-foreground: 240 5.9% 10%;
+
+        --sidebar-border: 220 13% 91%;
+
+        --sidebar-ring: 217.2 91.2% 59.8%;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+
+    body {
+        @apply bg-background text-foreground font-inter;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        @apply font-semibold tracking-tight;
+    }
+}
+
+@layer utilities {
+    .font-inter {
+        font-family: var(--font-family);
+    }
+
+    .shadow-soft {
+        box-shadow: var(--shadow-md);
+    }
+
+    .shadow-card {
+        box-shadow: var(--shadow-lg);
+    }
+
+    .progress-success {
+        @apply bg-emerald-500;
+    }
+
+    .progress-warning {
+        @apply bg-amber-500;
+    }
+
+    .progress-danger {
+        @apply bg-red-500;
+    }
+}
