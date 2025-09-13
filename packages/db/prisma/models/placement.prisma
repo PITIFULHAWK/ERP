@@ -1,0 +1,27 @@
+model Placement {
+  id               String            @id @default(uuid())
+  title            String
+  description      String
+  companyName      String
+  position         String
+  packageOffered   String?           // e.g., "10-15 LPA"
+  cgpaCriteria     Float?            // Minimum CGPA required
+  location         String?
+  applicationDeadline DateTime?
+  status           PlacementStatus   @default(ACTIVE)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  createdById      String            // Admin who created this placement
+  emailsSent       Int               @default(0) // Track how many emails were sent
+  
+  // Relations
+  createdBy        User              @relation("CreatedPlacements", fields: [createdById], references: [id])
+
+  @@map("placements")
+}
+
+enum PlacementStatus {
+  ACTIVE
+  CLOSED
+  DRAFT
+}

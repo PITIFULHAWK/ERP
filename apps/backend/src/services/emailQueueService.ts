@@ -359,6 +359,85 @@ class EmailQueueService {
 
         await this.queueEmail(emailJob);
     }
+
+    // Placement notification email
+    async queuePlacementNotificationEmail(
+        userEmail: string,
+        userName: string,
+        userCgpa: number | null,
+        placement: any
+    ): Promise<void> {
+        const emailJob: EmailJob = {
+            id: `placement_notification_${placement.id}_${Date.now()}`,
+            to: userEmail,
+            subject: `New Placement Opportunity: ${placement.title} at ${placement.companyName}`,
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #2563eb;">New Placement Opportunity</h2>
+                    
+                    <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h3 style="color: #1e40af; margin-top: 0;">${placement.title}</h3>
+                        <p><strong>Company:</strong> ${placement.companyName}</p>
+                        <p><strong>Position:</strong> ${placement.position}</p>
+                        ${placement.packageOffered ? `<p><strong>Package:</strong> ${placement.packageOffered}</p>` : ""}
+                        ${placement.location ? `<p><strong>Location:</strong> ${placement.location}</p>` : ""}
+                        ${placement.applicationDeadline ? `<p><strong>Application Deadline:</strong> ${new Date(placement.applicationDeadline).toLocaleDateString()}</p>` : ""}
+                    </div>
+                    
+                    <div style="margin: 20px 0;">
+                        <h4>Description:</h4>
+                        <p style="line-height: 1.6;">${placement.description}</p>
+                    </div>
+                    
+                    ${
+                        placement.cgpaCriteria
+                            ? `
+                    <div style="background-color: #ecfdf5; padding: 15px; border-radius: 8px; border-left: 4px solid #10b981;">
+                        <p style="margin: 0; color: #059669;">
+                            <strong>Eligibility:</strong> Minimum CGPA requirement: ${placement.cgpaCriteria}
+                            ${userCgpa ? ` (Your CGPA: ${userCgpa})` : ""}
+                        </p>
+                    </div>
+                    `
+                            : ""
+                    }
+                    
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 14px;">
+                        <p>Dear ${userName},</p>
+                        <p>This is an automated notification from the ERP Placement System.</p>
+                        <p>For any queries, please contact the placement office.</p>
+                    </div>
+                </div>
+            `,
+            text: `
+                New Placement Opportunity: ${placement.title}
+                
+                Dear ${userName},
+                
+                Company: ${placement.companyName}
+                Position: ${placement.position}
+                ${placement.packageOffered ? `Package: ${placement.packageOffered}\n` : ""}
+                ${placement.location ? `Location: ${placement.location}\n` : ""}
+                ${placement.applicationDeadline ? `Deadline: ${new Date(placement.applicationDeadline).toLocaleDateString()}\n` : ""}
+                
+                Description: ${placement.description}
+                
+                ${placement.cgpaCriteria ? `Minimum CGPA: ${placement.cgpaCriteria}${userCgpa ? ` (Your CGPA: ${userCgpa})` : ""}\n` : ""}
+                
+                This is an automated notification from the ERP Placement System.
+                For any queries, please contact the placement office.
+            `,
+            priority: "normal" as const,
+            metadata: {
+                type: "placement_notification",
+                placementId: placement.id,
+                userId: userEmail,
+                cgpaCriteria: placement.cgpaCriteria,
+            },
+        };
+
+        await this.queueEmail(emailJob);
+    }
 }
 
 export const emailQueueService = new EmailQueueService();

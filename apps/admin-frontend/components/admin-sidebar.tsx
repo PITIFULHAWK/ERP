@@ -20,6 +20,7 @@ import {
   ChevronRight,
   BarChart3,
   CreditCard,
+  Briefcase,
 } from "lucide-react"
 
 const navigation = [
@@ -37,6 +38,11 @@ const navigation = [
     name: "Payments",
     href: "/admin/payments",
     icon: CreditCard,
+  },
+  {
+    name: "Placements",
+    href: "/admin/placements",
+    icon: Briefcase,
   },
   {
     name: "Users",

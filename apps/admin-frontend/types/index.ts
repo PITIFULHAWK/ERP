@@ -30,6 +30,14 @@ export type {
     UpdateApplicationRequest,
     ApplicationStatusUpdate,
 } from "./application";
+export type {
+    Placement,
+    CreatePlacementRequest,
+    UpdatePlacementRequest,
+    PlacementStats,
+    EligibleUsersInfo,
+    NotificationResult,
+} from "./placement";
 
 // Re-export university specific types with prefixes to avoid conflicts
 export type {

@@ -13,6 +13,7 @@ model User {
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
   password             String
+  cgpa                 Float?              // Optional CGPA field for placement criteria
   Application          Application?
   verifiedApplications Application[]       @relation("VerifiedApplications")
   verifiedDocuments    Document[]          @relation("VerifiedDocuments")
@@ -24,6 +25,7 @@ model User {
   hostelOpted          Hostel?             @relation("UserHostel", fields: [hostelId], references: [id])
   university           University          @relation(fields: [universityId], references: [id])
   coursesOpted         Course[]            @relation("UserCourses")
+  createdPlacements    Placement[]         @relation("CreatedPlacements")
 
   @@map("users")
 }

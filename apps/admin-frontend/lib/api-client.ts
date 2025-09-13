@@ -35,6 +35,14 @@ import {
     VerifyPaymentRequest,
     PaymentFilters,
 } from "../types";
+import {
+    Placement,
+    CreatePlacementRequest,
+    UpdatePlacementRequest,
+    PlacementStats,
+    EligibleUsersInfo,
+    NotificationResult,
+} from "../types/placement";
 import { config } from "./config";
 
 const API_BASE_URL = config.apiUrl;
@@ -544,6 +552,139 @@ class ApiClient {
         return this.request(`/payments/${receiptData.paymentId}/receipts`, {
             method: "POST",
             body: JSON.stringify(receiptData),
+        });
+    }
+
+    // ====== PLACEMENT MANAGEMENT ======
+
+    // Get all placements with filtering and pagination
+    async getPlacements(params?: {
+        status?: string;
+        page?: number;
+        limit?: number;
+    }): Promise<{
+        success: boolean;
+        data: {
+            placements: Placement[];
+            pagination: {
+                total: number;
+                page: number;
+                limit: number;
+                totalPages: number;
+            };
+        };
+        message?: string;
+    }> {
+        const queryParams = new URLSearchParams();
+        if (params?.status && params.status !== "all") {
+            queryParams.append("status", params.status);
+        }
+        if (params?.page) {
+            queryParams.append("page", params.page.toString());
+        }
+        if (params?.limit) {
+            queryParams.append("limit", params.limit.toString());
+        }
+
+        const queryString = queryParams.toString();
+        const endpoint = `/placements${queryString ? `?${queryString}` : ""}`;
+
+        return this.request(endpoint);
+    }
+
+    // Get placement by ID
+    async getPlacementById(id: string): Promise<{
+        success: boolean;
+        data: Placement;
+        message?: string;
+    }> {
+        return this.request(`/placements/${id}`);
+    }
+
+    // Create new placement
+    async createPlacement(placementData: CreatePlacementRequest): Promise<{
+        success: boolean;
+        data: Placement;
+        message?: string;
+    }> {
+        return this.request("/placements", {
+            method: "POST",
+            body: JSON.stringify(placementData),
+        });
+    }
+
+    // Update placement
+    async updatePlacement(
+        id: string,
+        updateData: UpdatePlacementRequest
+    ): Promise<{
+        success: boolean;
+        data: Placement;
+        message?: string;
+    }> {
+        return this.request(`/placements/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(updateData),
+        });
+    }
+
+    // Delete placement
+    async deletePlacement(id: string): Promise<{
+        success: boolean;
+        message?: string;
+    }> {
+        console.log("API Client: Attempting to delete placement with ID:", id);
+        const endpoint = `/placements/${id}`;
+        console.log("API Client: DELETE endpoint:", endpoint);
+        console.log("API Client: Base URL:", this.baseURL);
+        console.log("API Client: Full URL:", `${this.baseURL}${endpoint}`);
+        console.log("API Client: Auth headers:", this.getAuthHeaders());
+
+        try {
+            const result = await this.request<{
+                success: boolean;
+                message?: string;
+            }>(endpoint, {
+                method: "DELETE",
+            });
+            console.log("API Client: Delete request successful:", result);
+            return result;
+        } catch (error) {
+            console.error("API Client: Delete request failed:", error);
+            if (error instanceof Error) {
+                console.error("API Client: Error message:", error.message);
+                console.error("API Client: Error stack:", error.stack);
+            }
+            throw error;
+        }
+    }
+
+    // Get placement statistics
+    async getPlacementStats(): Promise<{
+        success: boolean;
+        data: PlacementStats;
+        message?: string;
+    }> {
+        return this.request("/placements/stats");
+    }
+
+    // Get eligible users count for a placement
+    async getEligibleUsersCount(placementId: string): Promise<{
+        success: boolean;
+        data: EligibleUsersInfo;
+        message?: string;
+    }> {
+        return this.request(`/placements/${placementId}/eligible-count`);
+    }
+
+    // Send placement notification emails
+    async sendPlacementNotifications(placementId: string): Promise<{
+        success: boolean;
+        data: NotificationResult;
+        message?: string;
+    }> {
+        return this.request(`/placements/${placementId}/notify`, {
+            method: "POST",
         });
     }
 

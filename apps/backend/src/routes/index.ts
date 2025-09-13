@@ -9,6 +9,7 @@ import noticeRoutes from "./noticeRoutes";
 import examRoutes from "./examRoutes";
 import subjectRoutes from "./subjectRoutes";
 import paymentRoutes from "./paymentRoutes";
+import placementRoutes from "./placementRoutes";
 
 const router: Router = Router();
 
@@ -23,6 +24,7 @@ router.use("/notice", noticeRoutes);
 router.use("/exams", examRoutes);
 router.use("/subjects", subjectRoutes);
 router.use("/payments", paymentRoutes);
+router.use("/placements", placementRoutes);
 
 // Health check
 router.get("/health", (req, res) => {

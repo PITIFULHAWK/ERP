@@ -4,6 +4,7 @@ export interface User {
     email: string;
     role: "USER" | "STUDENT" | "PROFESSOR" | "ADMIN" | "VERIFIER" | "STAFF";
     userStatus: "VERIFIED" | "NOT_VERIFIED";
+    cgpa?: number; // Optional CGPA field for placement criteria
     university: {
         id: string;
         name: string;
