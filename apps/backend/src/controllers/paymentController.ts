@@ -79,13 +79,6 @@ export const getPayments = asyncHandler(async (req: Request, res: Response) => {
                     },
                 },
             },
-            verifiedBy: {
-                select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                },
-            },
         },
         orderBy: {
             createdAt: "desc",
@@ -132,13 +125,6 @@ export const getPaymentById = asyncHandler(
                                 email: true,
                             },
                         },
-                    },
-                },
-                verifiedBy: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
                     },
                 },
             },
@@ -483,12 +469,6 @@ export const verifyPayment = asyncHandler(
                     },
                     course: true,
                     hostel: true,
-                    verifiedBy: {
-                        select: {
-                            name: true,
-                            email: true,
-                        },
-                    },
                 },
             });
 

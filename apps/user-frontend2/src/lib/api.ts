@@ -84,22 +84,34 @@ export interface Course {
 export interface Application {
     id: string;
     userId: string;
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string;
+    gender: "MALE" | "FEMALE" | "OTHER";
+    nationality: string;
+    phoneNumber: string;
+    alternatePhoneNumber?: string;
+    address: string;
+    city: string;
+    state: string;
+    pincode: string;
+    class10Percentage: number;
+    class10Board: string;
+    class10YearOfPassing: number;
+    class12Percentage: number;
+    class12Board: string;
+    class12YearOfPassing: number;
+    class12Stream: string;
+    hasJeeMainsScore: boolean;
+    jeeMainsScore?: number;
+    jeeMainsRank?: number;
+    jeeMainsYear?: number;
     preferredCourseId: string;
-    status: "PENDING" | "VERIFIED" | "REJECTED";
-    personalInfo: {
-        fullName: string;
-        dateOfBirth: string;
-        gender: string;
-        phoneNumber: string;
-        address: string;
-        emergencyContact: string;
-    };
-    academicInfo: {
-        previousEducation: string;
-        marks: number;
-        passingYear: number;
-        board: string;
-    };
+    status: "PENDING" | "UNDER_REVIEW" | "VERIFIED" | "REJECTED" | "INCOMPLETE";
+    verifiedById?: string;
+    verifiedAt?: string;
+    verificationNotes?: string;
+    rejectionReason?: string;
     documents: Document[];
     preferredCourse?: Course;
     createdAt: string;
@@ -117,21 +129,29 @@ export interface Document {
 }
 
 export interface CreateApplicationRequest {
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string;
+    gender: "MALE" | "FEMALE" | "OTHER";
+    nationality: string;
+    phoneNumber: string;
+    alternatePhoneNumber?: string;
+    address: string;
+    city: string;
+    state: string;
+    pincode: string;
+    class10Percentage: number;
+    class10Board: string;
+    class10YearOfPassing: number;
+    class12Percentage: number;
+    class12Board: string;
+    class12YearOfPassing: number;
+    class12Stream: string;
+    hasJeeMainsScore?: boolean;
+    jeeMainsScore?: number;
+    jeeMainsRank?: number;
+    jeeMainsYear?: number;
     preferredCourseId: string;
-    personalInfo: {
-        fullName: string;
-        dateOfBirth: string;
-        gender: string;
-        phoneNumber: string;
-        address: string;
-        emergencyContact: string;
-    };
-    academicInfo: {
-        previousEducation: string;
-        marks: number;
-        passingYear: number;
-        board: string;
-    };
 }
 
 // API Service Class
