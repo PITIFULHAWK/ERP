@@ -48,6 +48,9 @@ model Receipt {
 enum PaymentType {
     COURSE
     HOSTEL
+    LIBRARY
+    MISC
+    SUMMERQUARTER
 }
 
 enum PaymentStatus {

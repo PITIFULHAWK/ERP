@@ -13,7 +13,7 @@ interface ApiResponse {
 
 interface CreatePaymentRequest {
     userId: string;
-    type: "COURSE" | "HOSTEL";
+    type: "COURSE" | "HOSTEL" | "LIBRARY" | "MISC" | "SUMMERQUARTER";
     courseId?: string;
     hostelId?: string;
     amount: number;
@@ -166,12 +166,74 @@ export const getPaymentById = asyncHandler(
 // Create payment (User submits payment)
 export const createPayment = asyncHandler(
     async (req: Request, res: Response) => {
+        console.log("=== Payment Creation Debug ===");
+        console.log("Request method:", req.method);
+        console.log("Request URL:", req.url);
+        console.log("Request headers:", req.headers);
+        console.log("Request body type:", typeof req.body);
+        console.log("Request body:", req.body);
+        console.log("Request body stringified:", JSON.stringify(req.body));
+        console.log("================================");
+
         const paymentData: CreatePaymentRequest = req.body;
 
-        if (paymentData.amount <= 0) {
+        // Check if request body exists and has required fields
+        if (!paymentData || typeof paymentData !== "object") {
+            console.log("❌ Request body validation failed:");
+            console.log("- paymentData exists:", !!paymentData);
+            console.log("- paymentData type:", typeof paymentData);
+            console.log("- paymentData value:", paymentData);
+
             const response: ApiResponse = {
                 success: false,
-                message: "Amount must be greater than zero",
+                message:
+                    "Invalid request body - body is missing or not an object",
+                error: "Bad Request",
+            };
+            return res.status(400).json(response);
+        }
+
+        // Check if amount exists and is valid
+        if (
+            !paymentData.amount ||
+            typeof paymentData.amount !== "number" ||
+            paymentData.amount <= 0
+        ) {
+            console.log("❌ Amount validation failed:");
+            console.log("- amount exists:", !!paymentData.amount);
+            console.log("- amount type:", typeof paymentData.amount);
+            console.log("- amount value:", paymentData.amount);
+
+            const response: ApiResponse = {
+                success: false,
+                message: "Amount must be a valid number greater than zero",
+                error: "Bad Request",
+            };
+            return res.status(400).json(response);
+        }
+
+        // Check if userId exists
+        if (!paymentData.userId || typeof paymentData.userId !== "string") {
+            const response: ApiResponse = {
+                success: false,
+                message: "UserId is required and must be a string",
+                error: "Bad Request",
+            };
+            return res.status(400).json(response);
+        }
+
+        // Check if type exists and is valid
+        const validTypes = [
+            "COURSE",
+            "HOSTEL",
+            "LIBRARY",
+            "MISC",
+            "SUMMERQUARTER",
+        ];
+        if (!paymentData.type || !validTypes.includes(paymentData.type)) {
+            const response: ApiResponse = {
+                success: false,
+                message: `Type must be one of: ${validTypes.join(", ")}`,
                 error: "Bad Request",
             };
             return res.status(400).json(response);
