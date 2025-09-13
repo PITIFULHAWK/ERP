@@ -6,9 +6,12 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import RoleProtectedRoute from "@/components/RoleProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Courses from "./pages/Courses";
 import Notices from "./pages/Notices";
+import Payments from "./pages/Payments";
+import Application from "./pages/Application";
 import Timetable from "./pages/Timetable";
 import Attendance from "./pages/Attendance";
 import Results from "./pages/Results";
@@ -45,9 +48,18 @@ const App = () => (
                             path="/courses"
                             element={
                                 <ProtectedRoute>
-                                    <Layout>
-                                        <Courses />
-                                    </Layout>
+                                    <RoleProtectedRoute
+                                        allowedRoles={[
+                                            "STUDENT",
+                                            "PROFESSOR",
+                                            "VERIFIER",
+                                            "ADMIN",
+                                        ]}
+                                    >
+                                        <Layout>
+                                            <Courses />
+                                        </Layout>
+                                    </RoleProtectedRoute>
                                 </ProtectedRoute>
                             }
                         />
@@ -62,12 +74,50 @@ const App = () => (
                             }
                         />
                         <Route
-                            path="/timetable"
+                            path="/application"
                             element={
                                 <ProtectedRoute>
                                     <Layout>
-                                        <Timetable />
+                                        <Application />
                                     </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/payments"
+                            element={
+                                <ProtectedRoute>
+                                    <RoleProtectedRoute
+                                        allowedRoles={[
+                                            "STUDENT",
+                                            "PROFESSOR",
+                                            "VERIFIER",
+                                            "ADMIN",
+                                        ]}
+                                    >
+                                        <Layout>
+                                            <Payments />
+                                        </Layout>
+                                    </RoleProtectedRoute>
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/timetable"
+                            element={
+                                <ProtectedRoute>
+                                    <RoleProtectedRoute
+                                        allowedRoles={[
+                                            "STUDENT",
+                                            "PROFESSOR",
+                                            "VERIFIER",
+                                            "ADMIN",
+                                        ]}
+                                    >
+                                        <Layout>
+                                            <Timetable />
+                                        </Layout>
+                                    </RoleProtectedRoute>
                                 </ProtectedRoute>
                             }
                         />
@@ -75,9 +125,18 @@ const App = () => (
                             path="/attendance"
                             element={
                                 <ProtectedRoute>
-                                    <Layout>
-                                        <Attendance />
-                                    </Layout>
+                                    <RoleProtectedRoute
+                                        allowedRoles={[
+                                            "STUDENT",
+                                            "PROFESSOR",
+                                            "VERIFIER",
+                                            "ADMIN",
+                                        ]}
+                                    >
+                                        <Layout>
+                                            <Attendance />
+                                        </Layout>
+                                    </RoleProtectedRoute>
                                 </ProtectedRoute>
                             }
                         />
@@ -85,9 +144,18 @@ const App = () => (
                             path="/results"
                             element={
                                 <ProtectedRoute>
-                                    <Layout>
-                                        <Results />
-                                    </Layout>
+                                    <RoleProtectedRoute
+                                        allowedRoles={[
+                                            "STUDENT",
+                                            "PROFESSOR",
+                                            "VERIFIER",
+                                            "ADMIN",
+                                        ]}
+                                    >
+                                        <Layout>
+                                            <Results />
+                                        </Layout>
+                                    </RoleProtectedRoute>
                                 </ProtectedRoute>
                             }
                         />

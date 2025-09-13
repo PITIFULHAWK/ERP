@@ -9,7 +9,10 @@ import {
     Settings,
     User,
     Clock,
+    CreditCard,
+    FileText,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
     Sidebar,
     SidebarContent,
@@ -22,10 +25,19 @@ import {
     useSidebar,
 } from "@/components/ui/sidebar";
 
-const navigation = [
+// Navigation items for USER role (unverified users)
+const userNavigation = [
+    { title: "Dashboard", url: "/", icon: Home },
+    { title: "Notices", url: "/notices", icon: Bell },
+    { title: "Apply for Course", url: "/application", icon: FileText },
+];
+
+// Navigation items for STUDENT role (verified users)
+const studentNavigation = [
     { title: "Dashboard", url: "/", icon: Home },
     { title: "Browse Courses", url: "/courses", icon: BookOpen },
     { title: "Notices", url: "/notices", icon: Bell },
+    { title: "Payments", url: "/payments", icon: CreditCard },
     { title: "Timetable", url: "/timetable", icon: Clock },
     { title: "My Attendance", url: "/attendance", icon: Calendar },
     { title: "My Results", url: "/results", icon: Trophy },
@@ -38,11 +50,27 @@ const bottomNavigation = [
 
 export function AppSidebar() {
     const { state } = useSidebar();
+    const { user } = useAuth();
     const collapsed = state === "collapsed";
     const location = useLocation();
     const currentPath = location.pathname;
 
     const isActive = (path: string) => currentPath === path;
+
+    // Determine navigation based on user role
+    const getNavigation = () => {
+        if (!user) return userNavigation;
+
+        // USER role gets limited navigation
+        if (user.role === "USER") {
+            return userNavigation;
+        }
+
+        // STUDENT and higher roles get full navigation
+        return studentNavigation;
+    };
+
+    const navigation = getNavigation();
 
     const getNavClasses = (path: string) => {
         const baseClasses =
