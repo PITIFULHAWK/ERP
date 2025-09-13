@@ -13,7 +13,8 @@ export interface User {
     id: string;
     name: string;
     email: string;
-    role: "STUDENT" | "PROFESSOR" | "VERIFIER" | "ADMIN";
+    role: "USER" | "STUDENT" | "PROFESSOR" | "VERIFIER" | "ADMIN";
+    userStatus?: "VERIFIED" | "NOT_VERIFIED";
     universityId: string;
     university?: University;
 }
@@ -38,6 +39,99 @@ export interface SignupRequest {
     email: string;
     password: string;
     universityId: string;
+}
+
+export interface CreatePaymentRequest {
+    userId: string;
+    type: "COURSE" | "HOSTEL";
+    courseId?: string;
+    hostelId?: string;
+    amount: number;
+    currency?: string;
+    method?: "MANUAL" | "RAZORPAY" | "CARD" | "UPI";
+    reference?: string;
+    notes?: string;
+}
+
+export interface Payment {
+    id: string;
+    userId: string;
+    type: "COURSE" | "HOSTEL";
+    courseId?: string;
+    hostelId?: string;
+    amount: number;
+    currency: string;
+    method: "MANUAL" | "RAZORPAY" | "CARD" | "UPI";
+    status: "PENDING" | "VERIFIED" | "REJECTED" | "FAILED";
+    reference?: string;
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
+    course?: any;
+    hostel?: any;
+}
+
+export interface Course {
+    id: string;
+    name: string;
+    code: string;
+    description?: string;
+    duration: number;
+    totalFees: number;
+    universityId: string;
+}
+
+export interface Application {
+    id: string;
+    userId: string;
+    preferredCourseId: string;
+    status: "PENDING" | "VERIFIED" | "REJECTED";
+    personalInfo: {
+        fullName: string;
+        dateOfBirth: string;
+        gender: string;
+        phoneNumber: string;
+        address: string;
+        emergencyContact: string;
+    };
+    academicInfo: {
+        previousEducation: string;
+        marks: number;
+        passingYear: number;
+        board: string;
+    };
+    documents: Document[];
+    preferredCourse?: Course;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface Document {
+    id: string;
+    applicationId: string;
+    type: string;
+    fileName: string;
+    fileUrl: string;
+    isVerified: boolean;
+    uploadedAt: string;
+}
+
+export interface CreateApplicationRequest {
+    preferredCourseId: string;
+    personalInfo: {
+        fullName: string;
+        dateOfBirth: string;
+        gender: string;
+        phoneNumber: string;
+        address: string;
+        emergencyContact: string;
+    };
+    academicInfo: {
+        previousEducation: string;
+        marks: number;
+        passingYear: number;
+        board: string;
+    };
 }
 
 // API Service Class
@@ -134,6 +228,96 @@ class ApiService {
     // Courses endpoint
     async getCourses(): Promise<ApiResponse<any[]>> {
         return this.request<any[]>("/courses");
+    }
+
+    // Hostels endpoint
+    async getHostels(): Promise<ApiResponse<any[]>> {
+        return this.request<any[]>("/hostels");
+    }
+
+    // Payment endpoints
+    async getPayments(params?: {
+        userId?: string;
+        type?: "COURSE" | "HOSTEL";
+        status?: string;
+    }): Promise<ApiResponse<Payment[]>> {
+        const queryParams = new URLSearchParams();
+        if (params) {
+            Object.entries(params).forEach(([key, value]) => {
+                if (value) queryParams.append(key, value);
+            });
+        }
+        const query = queryParams.toString();
+        return this.request<Payment[]>(`/payments${query ? `?${query}` : ""}`);
+    }
+
+    async createPayment(
+        paymentData: CreatePaymentRequest
+    ): Promise<ApiResponse<Payment>> {
+        return this.request<Payment>("/payments", {
+            method: "POST",
+            body: JSON.stringify(paymentData),
+        });
+    }
+
+    async getPaymentSummary(): Promise<ApiResponse<any>> {
+        return this.request<any>("/payments/summary");
+    }
+
+    // Application endpoints
+    async getApplications(params?: {
+        userId?: string;
+    }): Promise<ApiResponse<Application[]>> {
+        const queryParams = new URLSearchParams();
+        if (params) {
+            Object.entries(params).forEach(([key, value]) => {
+                if (value) queryParams.append(key, value);
+            });
+        }
+        const query = queryParams.toString();
+        return this.request<Application[]>(
+            `/applications${query ? `?${query}` : ""}`
+        );
+    }
+
+    async getApplicationById(id: string): Promise<ApiResponse<Application>> {
+        return this.request<Application>(`/applications/${id}`);
+    }
+
+    async createApplication(
+        applicationData: CreateApplicationRequest
+    ): Promise<ApiResponse<Application>> {
+        return this.request<Application>("/applications", {
+            method: "POST",
+            body: JSON.stringify(applicationData),
+        });
+    }
+
+    async uploadDocument(
+        applicationId: string,
+        file: File,
+        documentType: string
+    ): Promise<ApiResponse<Document>> {
+        const formData = new FormData();
+        formData.append("document", file);
+        formData.append("applicationId", applicationId);
+        formData.append("type", documentType);
+
+        return this.request<Document>("/applications/documents", {
+            method: "POST",
+            body: formData,
+            headers: {
+                // Remove Content-Type header to let browser set it with boundary for FormData
+            },
+        });
+    }
+
+    async checkApplicationExists(): Promise<
+        ApiResponse<{ exists: boolean; application?: Application }>
+    > {
+        return this.request<{ exists: boolean; application?: Application }>(
+            `/applications/check`
+        );
     }
 }
 

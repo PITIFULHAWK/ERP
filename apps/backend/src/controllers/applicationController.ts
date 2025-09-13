@@ -10,20 +10,42 @@ import { asyncHandler } from "../middleware";
 import emailQueueService from "../services/emailQueueService";
 import { uploadToCloudinary, deleteFromCloudinary } from "../config/cloudinary";
 
+// Extend the Express Request type to include the user property
+interface AuthRequest extends Request {
+    user?: {
+        id: string;
+        role: string;
+    };
+}
+
 // Get all applications
 export const getApplications = asyncHandler(
-    async (req: Request, res: Response) => {
+    async (req: AuthRequest, res: Response) => {
         const { status, universityId } = req.query;
+        const userId = req.user?.id;
+        const userRole = req.user?.role;
+
+        // For regular users, only show their own applications
+        // For staff/admin, show all applications with optional filters
+        const whereClause: any = {
+            ...(status && { status: status as any }),
+            ...(universityId && {
+                user: {
+                    universityId: universityId as string,
+                },
+            }),
+        };
+
+        // If user is not staff, only show their own applications
+        if (
+            userRole &&
+            !["ADMIN", "PROFESSOR", "VERIFIER"].includes(userRole)
+        ) {
+            whereClause.userId = userId;
+        }
 
         const applications = await prisma.application.findMany({
-            where: {
-                ...(status && { status: status as any }),
-                ...(universityId && {
-                    user: {
-                        universityId: universityId as string,
-                    },
-                }),
-            },
+            where: whereClause,
             include: {
                 user: {
                     include: {
@@ -150,12 +172,22 @@ export const getApplicationById = asyncHandler(
 
 // Create application (User fills the form)
 export const createApplication = asyncHandler(
-    async (req: Request, res: Response) => {
+    async (req: AuthRequest, res: Response) => {
         const applicationData: CreateApplicationRequest = req.body;
+        const userId = req.user?.id;
+
+        if (!userId) {
+            const response: ApiResponse = {
+                success: false,
+                message: "User authentication required",
+                error: "Unauthorized",
+            };
+            return res.status(401).json(response);
+        }
 
         // Check if user already has an application
         const existingApplication = await prisma.application.findUnique({
-            where: { userId: applicationData.userId },
+            where: { userId },
         });
 
         if (existingApplication) {
@@ -170,6 +202,7 @@ export const createApplication = asyncHandler(
         const application = await prisma.application.create({
             data: {
                 ...applicationData,
+                userId, // Use the authenticated user's ID
                 dateOfBirth: new Date(applicationData.dateOfBirth),
             },
             include: {
@@ -549,22 +582,25 @@ export const deleteDocument = asyncHandler(
     }
 );
 
-// Check if application exists (Debug endpoint)
+// Check if user has an application
 export const checkApplicationExists = asyncHandler(
-    async (req: Request, res: Response) => {
-        const { id } = req.params;
+    async (req: AuthRequest, res: Response) => {
+        const userId = req.user?.id;
 
-        console.log("Checking application existence for ID:", id);
+        if (!userId) {
+            const response: ApiResponse = {
+                success: false,
+                message: "User authentication required",
+                error: "Unauthorized",
+            };
+            return res.status(401).json(response);
+        }
 
         const application = await prisma.application.findUnique({
-            where: { id },
-            select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                status: true,
-                userId: true,
-                createdAt: true,
+            where: { userId },
+            include: {
+                preferredCourse: true,
+                documents: true,
             },
         });
 
@@ -572,11 +608,10 @@ export const checkApplicationExists = asyncHandler(
             success: true,
             message: application
                 ? "Application found"
-                : "Application not found",
+                : "No application found for user",
             data: {
                 exists: !!application,
                 application: application,
-                searchedId: id,
             },
         };
 
