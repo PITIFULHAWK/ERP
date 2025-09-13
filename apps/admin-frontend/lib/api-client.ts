@@ -63,8 +63,11 @@ class ApiClient {
         const url = `${this.baseURL}${endpoint}`;
 
         const config: RequestInit = {
-            headers: this.getAuthHeaders(),
             ...options,
+            headers: {
+                ...this.getAuthHeaders(),
+                ...options.headers,
+            },
         };
 
         try {
@@ -525,7 +528,10 @@ class ApiClient {
 
     async verifyPayment(id: string, verificationData: VerifyPaymentRequest) {
         return this.request(`/payments/${id}/verify`, {
-            method: "POST",
+            method: "PATCH",
+            headers: {
+                "x-verifier-id": "acdd294a-4bec-4598-b41b-0bbc02aea394", // Admin user ID
+            },
             body: JSON.stringify(verificationData),
         });
     }

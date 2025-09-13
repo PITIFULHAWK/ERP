@@ -8,6 +8,7 @@ import {
 } from "../types";
 import { asyncHandler } from "../middleware";
 import emailQueueService from "../services/emailQueueService";
+import { uploadToCloudinary, deleteFromCloudinary } from "../config/cloudinary";
 
 // Get all applications
 export const getApplications = asyncHandler(
@@ -42,6 +43,63 @@ export const getApplications = asyncHandler(
             success: true,
             message: "Applications retrieved successfully",
             data: applications,
+        };
+
+        res.json(response);
+    }
+);
+
+// Get all documents with application details (Admin view)
+export const getAllDocuments = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { applicationId, documentType, isVerified } = req.query;
+
+        const documents = await prisma.document.findMany({
+            where: {
+                ...(applicationId && {
+                    applicationId: applicationId as string,
+                }),
+                ...(documentType && { type: documentType as any }),
+                ...(isVerified !== undefined && {
+                    isVerified: isVerified === "true",
+                }),
+            },
+            include: {
+                application: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        status: true,
+                        user: {
+                            select: {
+                                email: true,
+                                university: {
+                                    select: {
+                                        name: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+                verifiedBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+            },
+            orderBy: {
+                uploadedAt: "desc",
+            },
+        });
+
+        const response: ApiResponse = {
+            success: true,
+            message: "Documents retrieved successfully",
+            data: documents,
         };
 
         res.json(response);
@@ -251,19 +309,108 @@ export const verifyApplication = asyncHandler(
 
 // Add document to application
 export const addDocument = asyncHandler(async (req: Request, res: Response) => {
-    const documentData: CreateDocumentRequest = req.body;
+    const { type, applicationId } = req.body;
+    const file = req.file;
 
-    const document = await prisma.document.create({
-        data: documentData,
-    });
+    if (!file) {
+        const response: ApiResponse = {
+            success: false,
+            message: "No file uploaded",
+            error: "Bad Request",
+        };
+        return res.status(400).json(response);
+    }
 
-    const response: ApiResponse = {
-        success: true,
-        message: "Document added successfully",
-        data: document,
-    };
+    if (!type || !applicationId) {
+        const response: ApiResponse = {
+            success: false,
+            message: "Document type and application ID are required",
+            error: "Bad Request",
+        };
+        return res.status(400).json(response);
+    }
 
-    res.status(201).json(response);
+    try {
+        // Check if application exists
+        console.log("Searching for application with ID:", applicationId);
+
+        const application = await prisma.application.findUnique({
+            where: { id: applicationId },
+        });
+
+        console.log("Application found:", application ? "Yes" : "No");
+
+        if (!application) {
+            console.log("Application not found for ID:", applicationId);
+            const response: ApiResponse = {
+                success: false,
+                message: `Application not found with ID: ${applicationId}`,
+                error: "Not Found",
+            };
+            return res.status(404).json(response);
+        }
+
+        // Get user details separately if needed
+        const userDetails = await prisma.user.findUnique({
+            where: { id: application.userId },
+        });
+
+        console.log("User details found:", userDetails ? "Yes" : "No");
+
+        // Upload file to Cloudinary
+        const originalFileName = file.originalname;
+        const cleanFileName = originalFileName.replace(/[^a-zA-Z0-9.-]/g, "_");
+        const uploadResult = await uploadToCloudinary(
+            file.buffer,
+            cleanFileName,
+            `erp-documents/${applicationId}`
+        );
+
+        // Create document record in database
+        const document = await prisma.document.create({
+            data: {
+                type: type as any,
+                fileName: originalFileName,
+                fileUrl: uploadResult.secure_url,
+                fileSize: uploadResult.bytes,
+                mimeType: file.mimetype,
+                applicationId,
+            },
+            include: {
+                application: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        user: {
+                            select: {
+                                email: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        const response: ApiResponse = {
+            success: true,
+            message: "Document uploaded successfully",
+            data: {
+                ...document,
+                cloudinaryPublicId: uploadResult.public_id,
+            },
+        };
+
+        res.status(201).json(response);
+    } catch (error) {
+        console.error("Error uploading document:", error);
+        const response: ApiResponse = {
+            success: false,
+            message: "Failed to upload document",
+            error: error instanceof Error ? error.message : "Upload failed",
+        };
+        res.status(500).json(response);
+    }
 });
 
 // Verify document
@@ -336,6 +483,101 @@ export const deleteApplication = asyncHandler(
         const response: ApiResponse = {
             success: true,
             message: "Application deleted successfully",
+        };
+
+        res.json(response);
+    }
+);
+
+// Delete document
+export const deleteDocument = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { id } = req.params;
+
+        try {
+            // Get document details first
+            const document = await prisma.document.findUnique({
+                where: { id },
+            });
+
+            if (!document) {
+                const response: ApiResponse = {
+                    success: false,
+                    message: "Document not found",
+                    error: "Not Found",
+                };
+                return res.status(404).json(response);
+            }
+
+            // Extract public_id from Cloudinary URL
+            const urlParts = document.fileUrl.split("/");
+            const fileNameWithExtension = urlParts[urlParts.length - 1];
+            const fileName = fileNameWithExtension.split(".")[0];
+            const publicId = `erp-documents/${document.applicationId}/${fileName}`;
+
+            // Delete from Cloudinary
+            try {
+                await deleteFromCloudinary(publicId);
+            } catch (cloudinaryError) {
+                console.error(
+                    "Error deleting from Cloudinary:",
+                    cloudinaryError
+                );
+                // Continue with database deletion even if Cloudinary deletion fails
+            }
+
+            // Delete from database
+            await prisma.document.delete({
+                where: { id },
+            });
+
+            const response: ApiResponse = {
+                success: true,
+                message: "Document deleted successfully",
+            };
+
+            res.json(response);
+        } catch (error) {
+            console.error("Error deleting document:", error);
+            const response: ApiResponse = {
+                success: false,
+                message: "Failed to delete document",
+                error: error instanceof Error ? error.message : "Delete failed",
+            };
+            res.status(500).json(response);
+        }
+    }
+);
+
+// Check if application exists (Debug endpoint)
+export const checkApplicationExists = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { id } = req.params;
+
+        console.log("Checking application existence for ID:", id);
+
+        const application = await prisma.application.findUnique({
+            where: { id },
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                status: true,
+                userId: true,
+                createdAt: true,
+            },
+        });
+
+        const response: ApiResponse = {
+            success: true,
+            message: application
+                ? "Application found"
+                : "Application not found",
+            data: {
+                exists: !!application,
+                application: application,
+                searchedId: id,
+            },
         };
 
         res.json(response);

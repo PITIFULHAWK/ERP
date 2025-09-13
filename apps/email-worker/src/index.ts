@@ -48,7 +48,7 @@ class EmailWorker {
     private async initializeRedis() {
         try {
             this.redisClient = createClient({
-                url: process.env.REDIS_URL || "redis://52.66.195.207:5001",
+                url: process.env.REDIS_URL || "redis://localhost:6379",
             });
 
             this.redisClient.on("error", (err: Error) => {
@@ -72,8 +72,8 @@ class EmailWorker {
             port: parseInt(process.env.SMTP_PORT || "587"),
             secure: process.env.SMTP_SECURE === "true",
             auth: {
-                user: process.env.SMTP_USER || "",
-                pass: process.env.SMTP_PASS || "",
+                user: process.env.SMTP_USER || "rkrkr365@gmail.com",
+                pass: process.env.SMTP_PASS || "kqmmpgetjhdiisil",
             },
         };
 

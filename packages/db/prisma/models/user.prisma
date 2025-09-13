@@ -18,6 +18,7 @@ model User {
 
     verifiedApplications Application[] @relation("VerifiedApplications")
     verifiedDocuments    Document[]    @relation("VerifiedDocuments")
+    verifiedPayments     Payment[]     @relation("VerifiedPayments")
 
     createdAt   DateTime     @default(now())
     updatedAt   DateTime     @updatedAt

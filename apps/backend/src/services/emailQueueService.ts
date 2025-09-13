@@ -195,6 +195,170 @@ class EmailQueueService {
             await this.redisClient.disconnect();
         }
     }
+
+    // Payment submitted email
+    async queuePaymentSubmittedEmail(
+        userEmail: string,
+        userName: string,
+        paymentId: string,
+        amount: number,
+        currency: string,
+        type: string
+    ): Promise<void> {
+        const emailJob: EmailJob = {
+            id: `payment_submitted_${paymentId}_${Date.now()}`,
+            to: userEmail,
+            subject: "Payment Submitted Successfully",
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #007bff;">Payment Submitted Successfully</h2>
+                    <p>Dear ${userName},</p>
+                    <p>We have received your payment submission. Your payment is now pending verification by our admin team.</p>
+                    <div style="background-color: #d1ecf1; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <strong>Payment ID:</strong> ${paymentId}<br>
+                        <strong>Amount:</strong> ${currency} ${amount}<br>
+                        <strong>Type:</strong> ${type}<br>
+                        <strong>Status:</strong> Pending Verification<br>
+                        <strong>Submitted On:</strong> ${new Date().toLocaleDateString()}
+                    </div>
+                    <p><strong>What's Next?</strong></p>
+                    <ul>
+                        <li>Upload your payment receipt/proof of payment</li>
+                        <li>Our admin team will review and verify your payment</li>
+                        <li>You'll receive a confirmation email once verified</li>
+                    </ul>
+                    <p><strong>Important:</strong> Please ensure you upload a clear and valid payment receipt to expedite the verification process.</p>
+                    <p>You can track your payment status in your dashboard.</p>
+                    <p>Thank you!</p>
+                    <hr style="margin: 30px 0;">
+                    <p style="color: #666; font-size: 12px;">This is an automated email. Please do not reply.</p>
+                </div>
+            `,
+            priority: "normal",
+            metadata: {
+                type: "payment_submitted",
+                paymentId,
+                amount,
+                currency,
+                paymentType: type,
+                userId: userEmail,
+            },
+        };
+
+        await this.queueEmail(emailJob);
+    }
+
+    // Receipt uploaded email
+    async queueReceiptUploadedEmail(
+        userEmail: string,
+        userName: string,
+        paymentId: string,
+        receiptId: string
+    ): Promise<void> {
+        const emailJob: EmailJob = {
+            id: `receipt_uploaded_${receiptId}_${Date.now()}`,
+            to: userEmail,
+            subject: "Payment Receipt Uploaded Successfully",
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #28a745;">Receipt Uploaded Successfully</h2>
+                    <p>Dear ${userName},</p>
+                    <p>Your payment receipt has been uploaded successfully and is now under review.</p>
+                    <div style="background-color: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <strong>Payment ID:</strong> ${paymentId}<br>
+                        <strong>Receipt ID:</strong> ${receiptId}<br>
+                        <strong>Uploaded On:</strong> ${new Date().toLocaleDateString()}
+                    </div>
+                    <p>Our verification team will review your receipt and update the payment status accordingly. This usually takes 1-2 business days.</p>
+                    <p>You'll receive another email notification once your payment has been verified.</p>
+                    <p>Thank you for your patience!</p>
+                    <hr style="margin: 30px 0;">
+                    <p style="color: #666; font-size: 12px;">This is an automated email. Please do not reply.</p>
+                </div>
+            `,
+            priority: "normal",
+            metadata: {
+                type: "receipt_uploaded",
+                paymentId,
+                receiptId,
+                userId: userEmail,
+            },
+        };
+
+        await this.queueEmail(emailJob);
+    }
+
+    // Payment verified email
+    async queuePaymentVerifiedEmail(
+        userEmail: string,
+        userName: string,
+        paymentId: string,
+        status: string,
+        amount: number,
+        currency: string,
+        type: string,
+        notes?: string
+    ): Promise<void> {
+        const isVerified = status === "VERIFIED";
+        const emailJob: EmailJob = {
+            id: `payment_${status.toLowerCase()}_${paymentId}_${Date.now()}`,
+            to: userEmail,
+            subject: isVerified
+                ? "Payment Verified Successfully"
+                : "Payment Verification Update",
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: ${isVerified ? "#28a745" : "#dc3545"};">
+                        Payment ${isVerified ? "Verified Successfully" : "Verification Update"}
+                    </h2>
+                    <p>Dear ${userName},</p>
+                    <p>We have an important update regarding your payment verification.</p>
+                    <div style="background-color: ${isVerified ? "#d4edda" : "#f8d7da"}; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <strong>Payment ID:</strong> ${paymentId}<br>
+                        <strong>Amount:</strong> ${currency} ${amount}<br>
+                        <strong>Type:</strong> ${type}<br>
+                        <strong>Status:</strong> ${status}<br>
+                        <strong>Verified On:</strong> ${new Date().toLocaleDateString()}
+                        ${notes ? `<br><strong>Admin Notes:</strong> ${notes}` : ""}
+                    </div>
+                    ${
+                        isVerified
+                            ? `<p>🎉 Great news! Your payment has been successfully verified and processed.</p>
+                         <p><strong>What This Means:</strong></p>
+                         <ul>
+                             <li>Your payment is now confirmed in our system</li>
+                             <li>Your ${type.toLowerCase()} enrollment is secured</li>
+                             <li>You can proceed with the next steps of your enrollment</li>
+                         </ul>
+                         <p>Thank you for choosing us!</p>`
+                            : `<p>Unfortunately, there was an issue with your payment verification. Please check the admin notes above for more details.</p>
+                         <p><strong>Next Steps:</strong></p>
+                         <ul>
+                             <li>Review the admin feedback</li>
+                             <li>Submit a new payment if required</li>
+                             <li>Contact support if you need assistance</li>
+                         </ul>`
+                    }
+                    <p>You can view the complete details in your dashboard.</p>
+                    <p>If you have any questions, please contact our support team.</p>
+                    <hr style="margin: 30px 0;">
+                    <p style="color: #666; font-size: 12px;">This is an automated email. Please do not reply.</p>
+                </div>
+            `,
+            priority: isVerified ? "high" : "normal",
+            metadata: {
+                type: "payment_verification",
+                paymentId,
+                status,
+                amount,
+                currency,
+                paymentType: type,
+                userId: userEmail,
+            },
+        };
+
+        await this.queueEmail(emailJob);
+    }
 }
 
 export const emailQueueService = new EmailQueueService();

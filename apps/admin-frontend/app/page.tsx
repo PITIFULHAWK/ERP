@@ -1,6 +1,7 @@
-import { redirect } from "next/navigation"
+import LandingPage from "@/components/LandingPage"
 
 export default function HomePage() {
-  // Redirect to admin dashboard
-  redirect("/admin")
+  return (
+    <LandingPage />
+  )
 }

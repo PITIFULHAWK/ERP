@@ -16,6 +16,14 @@ model Payment {
     gatewayPaymentId  String?
     gatewaySignature  String?
     notes             String?
+    
+    // Verification fields
+    verifiedBy        User?          @relation("VerifiedPayments", fields: [verifiedById], references: [id])
+    verifiedById      String?
+    verifiedAt        DateTime?
+    verificationNotes String?
+    rejectionReason   String?
+    
     receipts          Receipt[]
     createdAt         DateTime       @default(now())
     updatedAt         DateTime       @updatedAt
@@ -27,7 +35,8 @@ enum PaymentType {
 }
 enum PaymentStatus {
     PENDING
-    SUCCESS
+    VERIFIED
+    REJECTED
     FAILED
 }
 enum PaymentMethod {
