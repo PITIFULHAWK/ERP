@@ -37,10 +37,12 @@ export function PaymentsTable({ payments, onPaymentUpdate }: PaymentsTableProps)
   const getStatusColor = (status: string) => {
     switch (status) {
       case "SUCCESS":
+      case "VERIFIED":
         return "default"
       case "PENDING":
         return "secondary"
       case "FAILED":
+      case "REJECTED":
         return "destructive"
       default:
         return "outline"
@@ -50,10 +52,12 @@ export function PaymentsTable({ payments, onPaymentUpdate }: PaymentsTableProps)
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "SUCCESS":
+      case "VERIFIED":
         return <CheckCircle className="h-4 w-4" />
       case "PENDING":
         return <Clock className="h-4 w-4" />
       case "FAILED":
+      case "REJECTED":
         return <XCircle className="h-4 w-4" />
       default:
         return <Clock className="h-4 w-4" />
@@ -85,8 +89,9 @@ export function PaymentsTable({ payments, onPaymentUpdate }: PaymentsTableProps)
     setIsVerifying(true)
     try {
       const response = await apiClient.verifyPayment(paymentId, {
-        verifiedById: "admin-user-id", // This should be the current admin user ID
-        verificationNotes: verified ? verificationNotes : `Payment ${verified ? "verified" : "rejected"}`,
+        status: verified ? "VERIFIED" : "REJECTED",
+        verificationNotes: verificationNotes || undefined,
+        rejectionReason: verified ? undefined : (verificationNotes || "Payment rejected by admin"),
       }) as ApiResponse<Payment>
 
       if (response.success) {
@@ -245,7 +250,11 @@ export function PaymentsTable({ payments, onPaymentUpdate }: PaymentsTableProps)
                                         Uploaded by {receipt.uploadedBy.name}
                                       </p>
                                     </div>
-                                    <Button size="sm" variant="outline">
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      onClick={() => window.open(receipt.mediaUrl, '_blank')}
+                                    >
                                       View Receipt
                                     </Button>
                                   </div>

@@ -103,7 +103,7 @@ export interface Payment {
     amount: number;
     currency: string;
     method: "MANUAL" | "RAZORPAY" | "CARD" | "UPI";
-    status: "PENDING" | "SUCCESS" | "FAILED";
+    status: "PENDING" | "SUCCESS" | "FAILED" | "VERIFIED" | "REJECTED";
     reference?: string;
     gatewayOrderId?: string;
     gatewayPaymentId?: string;
@@ -166,8 +166,9 @@ export interface CreateReceiptRequest {
 }
 
 export interface VerifyPaymentRequest {
-    verifiedById: string;
+    status: "VERIFIED" | "REJECTED";
     verificationNotes?: string;
+    rejectionReason?: string;
 }
 
 export interface PaymentSummary {
@@ -186,7 +187,7 @@ export interface PaymentSummary {
 export interface PaymentFilters {
     userId?: string;
     type?: "COURSE" | "HOSTEL";
-    status?: "PENDING" | "SUCCESS" | "FAILED";
+    status?: "PENDING" | "SUCCESS" | "FAILED" | "VERIFIED" | "REJECTED";
     method?: "MANUAL" | "RAZORPAY" | "CARD" | "UPI";
     courseId?: string;
     hostelId?: string;

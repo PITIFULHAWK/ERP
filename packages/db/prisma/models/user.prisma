@@ -16,6 +16,7 @@ model User {
   Application          Application?
   verifiedApplications Application[]       @relation("VerifiedApplications")
   verifiedDocuments    Document[]          @relation("VerifiedDocuments")
+  verifiedPayments     Payment[]           @relation("VerifiedPayments")
   ExamResult           ExamResult?
   payments             Payment[]
   receipts             Receipt[]
