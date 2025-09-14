@@ -1,4 +1,5 @@
 import { createClient } from "redis";
+import { simplePdfService, PaymentReceiptData } from "./simplePdfService";
 
 interface EmailJob {
     id: string;
@@ -7,6 +8,11 @@ interface EmailJob {
     subject: string;
     html?: string;
     text?: string;
+    attachments?: Array<{
+        filename: string;
+        content: Buffer | string;
+        contentType?: string;
+    }>;
     priority?: "low" | "normal" | "high";
     metadata?: Record<string, any>;
 }
@@ -297,14 +303,61 @@ class EmailQueueService {
         amount: number,
         currency: string,
         type: string,
-        notes?: string
+        notes?: string,
+        additionalData?: {
+            courseName?: string;
+            hostelName?: string;
+            paymentMethod?: string;
+            reference?: string;
+            verifiedBy?: string;
+            verifiedAt?: string;
+            universityName?: string;
+        }
     ): Promise<void> {
         const isVerified = status === "VERIFIED";
+
+        // Generate PDF receipt for verified payments
+        let pdfAttachment = null;
+        if (isVerified && additionalData) {
+            try {
+                const receiptData: PaymentReceiptData = {
+                    paymentId,
+                    studentName: userName,
+                    studentEmail: userEmail,
+                    amount,
+                    currency,
+                    paymentType: type,
+                    courseName: additionalData.courseName,
+                    hostelName: additionalData.hostelName,
+                    paymentMethod: additionalData.paymentMethod || "MANUAL",
+                    reference: additionalData.reference || "",
+                    verifiedAt:
+                        additionalData.verifiedAt || new Date().toISOString(),
+                    verifiedBy: additionalData.verifiedBy || "Admin",
+                    verificationNotes: notes,
+                    universityName:
+                        additionalData.universityName || "University",
+                };
+
+                const pdfBuffer =
+                    await simplePdfService.generateReceipt(receiptData);
+                pdfAttachment = {
+                    filename: `Payment_Receipt_${paymentId}.pdf`,
+                    content: pdfBuffer.toString("base64"),
+                    contentType: "application/pdf",
+                    encoding: "base64",
+                };
+            } catch (error) {
+                console.error("Failed to generate PDF receipt:", error);
+                // Continue without PDF attachment if generation fails
+            }
+        }
+
         const emailJob: EmailJob = {
             id: `payment_${status.toLowerCase()}_${paymentId}_${Date.now()}`,
             to: userEmail,
             subject: isVerified
-                ? "Payment Verified Successfully"
+                ? "Payment Verified Successfully - Receipt Attached"
                 : "Payment Verification Update",
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -330,6 +383,7 @@ class EmailQueueService {
                              <li>Your ${type.toLowerCase()} enrollment is secured</li>
                              <li>You can proceed with the next steps of your enrollment</li>
                          </ul>
+                         ${pdfAttachment ? "<p><strong>📄 Payment Receipt:</strong> Please find your official payment receipt attached to this email.</p>" : ""}
                          <p>Thank you for choosing us!</p>`
                             : `<p>Unfortunately, there was an issue with your payment verification. Please check the admin notes above for more details.</p>
                          <p><strong>Next Steps:</strong></p>
@@ -345,6 +399,7 @@ class EmailQueueService {
                     <p style="color: #666; font-size: 12px;">This is an automated email. Please do not reply.</p>
                 </div>
             `,
+            attachments: pdfAttachment ? [pdfAttachment] : undefined,
             priority: isVerified ? "high" : "normal",
             metadata: {
                 type: "payment_verification",

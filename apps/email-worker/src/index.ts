@@ -80,7 +80,7 @@ class EmailWorker {
         this.transporter = nodemailer.createTransport(emailConfig);
 
         // Verify connection configuration
-        this.transporter.verify((error : any, success) => {
+        this.transporter.verify((error: any, success) => {
             if (error) {
                 console.error("❌ SMTP configuration error:", error);
             } else {
@@ -171,6 +171,22 @@ class EmailWorker {
             );
             console.log(`📧 Subject: ${emailJob.subject}`);
 
+            // Process attachments to handle base64 encoded content
+            const processedAttachments = emailJob.attachments?.map(
+                (attachment) => {
+                    if (
+                        typeof attachment.content === "string" &&
+                        (attachment as any).encoding === "base64"
+                    ) {
+                        return {
+                            ...attachment,
+                            content: Buffer.from(attachment.content, "base64"),
+                        };
+                    }
+                    return attachment;
+                }
+            );
+
             // Prepare email options
             const mailOptions = {
                 from:
@@ -181,7 +197,7 @@ class EmailWorker {
                 subject: emailJob.subject,
                 html: emailJob.html,
                 text: emailJob.text,
-                attachments: emailJob.attachments,
+                attachments: processedAttachments,
             };
 
             // Send email
