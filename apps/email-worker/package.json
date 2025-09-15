@@ -28,12 +28,12 @@
   "type": "commonjs",
   "dependencies": {
     "@repo/db": "workspace:*",
+    "nodemailer": "^6.10.1",
     "redis": "^5.8.2",
-    "nodemailer": "^6.9.7",
-    "tsx": "^4.7.0"
+    "tsx": "^4.20.5"
   },
   "devDependencies": {
-    "@types/nodemailer": "^6.4.14",
-    "typescript": "^5.3.3"
+    "@types/nodemailer": "^6.4.19",
+    "typescript": "^5.9.2"
   }
 }

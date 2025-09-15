@@ -9,12 +9,17 @@
         }
     ],
     "compilerOptions": {
-        "baseUrl": ".",
+        // "baseUrl": ".",
         "paths": {
             "@/*": [
                 "./src/*"
             ]
         },
+        "jsx": "react-jsx", // ✅ required for React 17+ / 18+
+        "types": [
+            "react",
+            "react-dom"
+        ],
         "noImplicitAny": false,
         "noUnusedParameters": false,
         "skipLibCheck": true,
