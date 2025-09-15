@@ -36,6 +36,11 @@ model User {
   
   // Live class relationships
   instructorLiveClasses LiveClass[]        @relation("InstructorLiveClasses")
+  
+  // Section relationships
+  sectionEnrollments    SectionEnrollment[] @relation("StudentSectionEnrollments")
+  professorSectionAssignments ProfessorSectionAssignment[] @relation("ProfessorSectionAssignments")
+  uploadedSectionResources SectionResource[] @relation("UploadedSectionResources")
 
   @@map("users")
 }

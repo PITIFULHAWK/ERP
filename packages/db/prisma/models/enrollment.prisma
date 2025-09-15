@@ -23,6 +23,9 @@ model StudentEnrollment {
   attendances       Attendance[]
   attendanceSummaries AttendanceSummary[]
   
+  // Section enrollment
+  sectionEnrollments SectionEnrollment[] @relation("SectionEnrollments")
+  
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 

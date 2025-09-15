@@ -1,0 +1,164 @@
+model Section {
+  id              String              @id @default(uuid())
+  
+  // Basic section info
+  name            String              // "Section A", "Section B", "Morning Batch", etc.
+  code            String              // "A", "B", "M1", "E1", etc.
+  description     String?
+  
+  // Academic context
+  courseId        String
+  semesterId      String
+  academicYearId  String
+  
+  // Capacity and scheduling
+  maxStudents     Int                 @default(60)
+  currentStudents Int                 @default(0)
+  
+  // Section timing (optional)
+  startTime       DateTime?           // Daily start time for this section
+  endTime         DateTime?           // Daily end time for this section
+  
+  // Section status
+  isActive        Boolean             @default(true)
+  
+  // Relationships
+  course          Course              @relation("CourseSections", fields: [courseId], references: [id], onDelete: Cascade)
+  semester        Semester            @relation("SemesterSections", fields: [semesterId], references: [id], onDelete: Cascade)
+  academicYear    AcademicYear        @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  
+  // Section enrollments and assignments
+  sectionEnrollments     SectionEnrollment[]
+  professorAssignments   ProfessorSectionAssignment[]
+  
+  // Section-specific resources and activities
+  sectionResources       SectionResource[]
+  sectionAttendances     Attendance[]        @relation("SectionAttendances")
+  sectionLiveClasses     LiveClass[]         @relation("SectionLiveClasses")
+  
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@unique([courseId, semesterId, academicYearId, code])
+  @@map("sections")
+}
+
+model SectionEnrollment {
+  id              String              @id @default(uuid())
+  
+  // Student and section info
+  studentId       String
+  sectionId       String
+  enrollmentId    String              // Reference to main StudentEnrollment
+  
+  // Enrollment details
+  enrollmentDate  DateTime            @default(now())
+  status          SectionEnrollmentStatus @default(ACTIVE)
+  
+  // Relationships
+  student         User                @relation("StudentSectionEnrollments", fields: [studentId], references: [id], onDelete: Cascade)
+  section         Section             @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  enrollment      StudentEnrollment   @relation("SectionEnrollments", fields: [enrollmentId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@unique([studentId, sectionId])
+  @@map("section_enrollments")
+}
+
+model ProfessorSectionAssignment {
+  id              String              @id @default(uuid())
+  
+  // Professor and section info
+  professorId     String
+  sectionId       String
+  subjectId       String?             // Optional: specific subject assignment
+  
+  // Assignment details
+  assignmentType  AssignmentType      @default(INSTRUCTOR)
+  startDate       DateTime            @default(now())
+  endDate         DateTime?
+  isActive        Boolean             @default(true)
+  
+  // Responsibilities
+  canMarkAttendance Boolean           @default(true)
+  canCreateResources Boolean          @default(true)
+  canConductLiveClasses Boolean       @default(true)
+  
+  // Relationships
+  professor       User                @relation("ProfessorSectionAssignments", fields: [professorId], references: [id], onDelete: Cascade)
+  section         Section             @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subject         Subject?            @relation("SubjectSectionAssignments", fields: [subjectId], references: [id], onDelete: SetNull)
+  
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@unique([professorId, sectionId, subjectId])
+  @@map("professor_section_assignments")
+}
+
+model SectionResource {
+  id              String              @id @default(uuid())
+  
+  // Resource info
+  title           String
+  description     String?
+  resourceType    SectionResourceType @default(NOTES)
+  
+  // File/content details
+  fileUrl         String?             // URL to uploaded file
+  fileName        String?
+  fileSize        Int?                // File size in bytes
+  mimeType        String?
+  content         String?             // Text content for notes
+  
+  // Section and subject context
+  sectionId       String
+  subjectId       String?             // Optional: subject-specific resource
+  uploadedBy      String              // Professor/Admin who uploaded
+  
+  // Visibility and access
+  isVisible       Boolean             @default(true)
+  isPinned        Boolean             @default(false)
+  downloadCount   Int                 @default(0)
+  
+  // Relationships
+  section         Section             @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subject         Subject?            @relation("SubjectSectionResources", fields: [subjectId], references: [id], onDelete: SetNull)
+  uploader        User                @relation("UploadedSectionResources", fields: [uploadedBy], references: [id], onDelete: Restrict)
+  
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@map("section_resources")
+}
+
+enum SectionEnrollmentStatus {
+  ACTIVE
+  INACTIVE
+  TRANSFERRED
+  DROPPED
+}
+
+enum AssignmentType {
+  INSTRUCTOR       // Main instructor for the section
+  ASSISTANT        // Teaching assistant
+  LAB_INSTRUCTOR   // Lab/practical instructor
+  GUEST_LECTURER   // Guest lecturer
+  SUBSTITUTE       // Substitute teacher
+}
+
+enum SectionResourceType {
+  NOTES            // Class notes
+  ASSIGNMENT       // Assignment documents
+  SLIDES           // Presentation slides
+  HANDOUT          // Handouts and worksheets
+  REFERENCE        // Reference materials
+  VIDEO            // Video lectures/recordings
+  AUDIO            // Audio recordings
+  LINK             // External links
+  ANNOUNCEMENT     // Section announcements
+  SYLLABUS         // Section-specific syllabus
+  OTHER            // Other resources
+}

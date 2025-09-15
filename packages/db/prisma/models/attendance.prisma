@@ -7,6 +7,7 @@ model Attendance {
   
   // Subject and class info
   subjectId         String
+  sectionId         String?           // Optional: section-specific attendance
   date              DateTime          @default(now())
   classType         ClassType         @default(REGULAR)
   
@@ -22,6 +23,7 @@ model Attendance {
   student           User              @relation("StudentAttendances", fields: [studentId], references: [id], onDelete: Cascade)
   enrollment        StudentEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
   subject           Subject           @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  section           Section?          @relation("SectionAttendances", fields: [sectionId], references: [id], onDelete: SetNull)
   markedByUser      User              @relation("MarkedAttendances", fields: [markedBy], references: [id], onDelete: Restrict)
   academicYear      AcademicYear      @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
   

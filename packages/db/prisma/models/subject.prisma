@@ -13,4 +13,8 @@ model Subject {
   attendances       Attendance[]
   attendanceSummaries AttendanceSummary[] @relation("SubjectAttendanceSummaries")
   liveClasses       LiveClass[]
+  
+  // Section relationships
+  sectionAssignments ProfessorSectionAssignment[] @relation("SubjectSectionAssignments")
+  sectionResources   SectionResource[]   @relation("SubjectSectionResources")
 }

@@ -11,4 +11,5 @@ model Semester {
   enrollments    StudentEnrollment[] @relation("SemesterEnrollments")
   liveClasses    LiveClass[]
   academicCalendars AcademicCalendar[]
+  sections       Section[]           @relation("SemesterSections")
 }

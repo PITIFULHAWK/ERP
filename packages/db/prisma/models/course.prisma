@@ -18,6 +18,7 @@ model Course {
   // New relationships for attendance and academic management
   enrollments     StudentEnrollment[] @relation("CourseEnrollments")
   academicCalendars AcademicCalendar[]
+  sections        Section[]           @relation("CourseSections")
 
   @@map("courses")
 }

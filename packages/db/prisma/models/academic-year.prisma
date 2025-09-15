@@ -15,6 +15,7 @@ model AcademicYear {
   liveClasses     LiveClass[]
   attendances     Attendance[]
   attendanceSummaries AttendanceSummary[]
+  sections        Section[]
   
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
