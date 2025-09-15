@@ -1,0 +1,100 @@
+model Complaint {
+  id               String           @id @default(uuid())
+  
+  // Basic complaint info
+  title            String           // Brief title of the complaint
+  description      String           // Detailed description of the issue
+  category         ComplaintCategory @default(OTHER)
+  priority         ComplaintPriority @default(MEDIUM)
+  
+  // Student who raised the complaint
+  studentId        String
+  
+  // Status and resolution
+  status           ComplaintStatus   @default(OPEN)
+  resolvedAt       DateTime?
+  resolvedBy       String?          // Admin who resolved the complaint
+  resolutionNote   String?          // Admin's note about the resolution
+  
+  // Additional context
+  location         String?          // Where the issue occurred (hostel room, classroom, etc.)
+  urgency          Boolean          @default(false) // Is this urgent?
+  
+  // File attachments (optional - for evidence)
+  attachmentUrls   String[]         // Array of file URLs if student uploads images/documents
+  
+  // Admin response and tracking
+  adminNotes       String?          // Internal admin notes
+  assignedTo       String?          // Which admin is handling this
+  followUpRequired Boolean          @default(false)
+  
+  // Timestamps
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  
+  // Relationships
+  student          User             @relation("StudentComplaints", fields: [studentId], references: [id], onDelete: Cascade)
+  resolver         User?            @relation("ResolvedComplaints", fields: [resolvedBy], references: [id], onDelete: SetNull)
+  assignedAdmin    User?            @relation("AssignedComplaints", fields: [assignedTo], references: [id], onDelete: SetNull)
+  
+  // Complaint updates/comments for tracking conversation
+  updates          ComplaintUpdate[]
+
+  @@map("complaints")
+}
+
+model ComplaintUpdate {
+  id           String        @id @default(uuid())
+  complaintId  String
+  updatedBy    String        // Who made this update (student or admin)
+  updateType   UpdateType    @default(COMMENT)
+  message      String        // Update message or comment
+  isInternal   Boolean       @default(false) // Internal admin notes vs visible to student
+  
+  createdAt    DateTime      @default(now())
+  
+  // Relationships
+  complaint    Complaint     @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  updater      User          @relation("ComplaintUpdates", fields: [updatedBy], references: [id], onDelete: Cascade)
+
+  @@map("complaint_updates")
+}
+
+enum ComplaintCategory {
+  HOSTEL          // Hostel-related issues
+  ACADEMIC        // Academic/course issues
+  INFRASTRUCTURE  // Building, facilities, equipment
+  FOOD            // Mess/cafeteria issues
+  TRANSPORT       // Bus/transport related
+  LIBRARY         // Library issues
+  MEDICAL         // Health center issues
+  FINANCIAL       // Fee/payment issues
+  ADMINISTRATIVE  // Documentation, certificates, etc.
+  DISCIPLINARY    // Student conduct issues
+  TECHNICAL       // IT/computer/network issues
+  OTHER           // Other miscellaneous issues
+}
+
+enum ComplaintStatus {
+  OPEN            // Newly raised, not yet reviewed
+  IN_PROGRESS     // Being worked on
+  PENDING_INFO    // Waiting for more info from student
+  RESOLVED        // Issue has been resolved
+  CLOSED          // Complaint closed (resolved or dismissed)
+  ESCALATED       // Escalated to higher authority
+}
+
+enum ComplaintPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum UpdateType {
+  COMMENT         // General comment/update
+  STATUS_CHANGE   // Status was changed
+  ASSIGNMENT      // Complaint was assigned to someone
+  RESOLUTION      // Resolution was provided
+  ESCALATION      // Complaint was escalated
+}

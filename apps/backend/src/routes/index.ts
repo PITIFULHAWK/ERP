@@ -10,6 +10,11 @@ import examRoutes from "./examRoutes";
 import subjectRoutes from "./subjectRoutes";
 import paymentRoutes from "./paymentRoutes";
 import placementRoutes from "./placementRoutes";
+import sectionRoutes from "./sectionRoutes";
+import attendanceRoutes from "./attendanceRoutes";
+import academicCalendarRoutes from "./academicCalendarRoutes";
+import resourceRoutes from "./resourceRoutes";
+import complaintRoutes from "./complaintRoutes";
 
 const router: Router = Router();
 
@@ -25,6 +30,15 @@ router.use("/exams", examRoutes);
 router.use("/subjects", subjectRoutes);
 router.use("/payments", paymentRoutes);
 router.use("/placements", placementRoutes);
+
+// New academic management routes
+router.use("/sections", sectionRoutes);
+router.use("/attendance", attendanceRoutes);
+router.use("/academic-calendar", academicCalendarRoutes);
+router.use("/resources", resourceRoutes);
+
+// Complaint management
+router.use("/complaints", complaintRoutes);
 
 // Health check
 router.get("/health", (req, res) => {

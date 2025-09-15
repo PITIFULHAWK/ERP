@@ -1,14 +1,14 @@
 model Exam {
-  id         String      @id @default(uuid())
+  id         String       @id @default(uuid())
   name       String
   type       ExamType
   examDate   DateTime
-  maxMarks   Float       @default(100)
+  maxMarks   Float        @default(100)
   semesterId String
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  results    ExamResult?
-  semester   Semester    @relation(fields: [semesterId], references: [id])
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  results    ExamResult[]
+  semester   Semester     @relation(fields: [semesterId], references: [id])
 
   @@map("exams")
 }
@@ -20,14 +20,15 @@ model ExamResult {
   status             ResultStatus
   remarks            String?
   grade              Float?
-  studentId          String       @unique
-  examId             String       @unique
+  studentId          String
+  examId             String
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   exam               Exam         @relation(fields: [examId], references: [id])
-  student            User         @relation(fields: [studentId], references: [id])
+  student            User         @relation("examResults", fields: [studentId], references: [id])
   grades             Grade?
 
+  @@unique([studentId, examId])
   @@map("exam_results")
 }
 

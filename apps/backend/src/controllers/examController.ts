@@ -29,24 +29,17 @@ export const getExams = asyncHandler(async (req: Request, res: Response) => {
                     },
                 },
             },
-            _count: {
-                select: {
-                    results: true,
-                },
-            },
         },
         orderBy: {
             examDate: "asc",
         },
     });
 
-    const response: ApiResponse = {
+    res.json({
         success: true,
         message: "Exams retrieved successfully",
         data: exams,
-    };
-
-    res.json(response);
+    });
 });
 
 // Get exam by ID
@@ -85,20 +78,17 @@ export const getExamById = asyncHandler(async (req: Request, res: Response) => {
     });
 
     if (!exam) {
-        const response: ApiResponse = {
+        return res.status(404).json({
             success: false,
             message: "Exam not found",
-        };
-        return res.status(404).json(response);
+        });
     }
 
-    const response: ApiResponse = {
+    res.json({
         success: true,
         message: "Exam retrieved successfully",
         data: exam,
-    };
-
-    res.json(response);
+    });
 });
 
 // Create exam
@@ -111,11 +101,10 @@ export const createExam = asyncHandler(async (req: Request, res: Response) => {
     });
 
     if (!semester) {
-        const response: ApiResponse = {
+        return res.status(404).json({
             success: false,
             message: "Semester not found",
-        };
-        return res.status(404).json(response);
+        });
     }
 
     // Check if exam already exists for this semester
@@ -128,12 +117,11 @@ export const createExam = asyncHandler(async (req: Request, res: Response) => {
     });
 
     if (existingExam) {
-        const response: ApiResponse = {
+        return res.status(400).json({
             success: false,
             message:
                 "Exam with this name and type already exists for this semester",
-        };
-        return res.status(400).json(response);
+        });
     }
 
     const exam = await prisma.exam.create({
@@ -153,13 +141,11 @@ export const createExam = asyncHandler(async (req: Request, res: Response) => {
         },
     });
 
-    const response: ApiResponse = {
+    res.status(201).json({
         success: true,
         message: "Exam created successfully",
         data: exam,
-    };
-
-    res.status(201).json(response);
+    });
 });
 
 // Update exam
@@ -172,11 +158,10 @@ export const updateExam = asyncHandler(async (req: Request, res: Response) => {
     });
 
     if (!existingExam) {
-        const response: ApiResponse = {
+        return res.status(404).json({
             success: false,
             message: "Exam not found",
-        };
-        return res.status(404).json(response);
+        });
     }
 
     const exam = await prisma.exam.update({
@@ -197,13 +182,11 @@ export const updateExam = asyncHandler(async (req: Request, res: Response) => {
         },
     });
 
-    const response: ApiResponse = {
+    res.json({
         success: true,
         message: "Exam updated successfully",
         data: exam,
-    };
-
-    res.json(response);
+    });
 });
 
 // Delete exam
@@ -218,32 +201,28 @@ export const deleteExam = asyncHandler(async (req: Request, res: Response) => {
     });
 
     if (!existingExam) {
-        const response: ApiResponse = {
+        return res.status(404).json({
             success: false,
             message: "Exam not found",
-        };
-        return res.status(404).json(response);
+        });
     }
 
-    // Check if exam has results
-    if (existingExam.results.length > 0) {
-        const response: ApiResponse = {
+    // Check if exam has results (temporary fix until Prisma client is regenerated)
+    if (existingExam.results) {
+        return res.status(400).json({
             success: false,
             message: "Cannot delete exam with existing results",
-        };
-        return res.status(400).json(response);
+        });
     }
 
     await prisma.exam.delete({
         where: { id },
     });
 
-    const response: ApiResponse = {
+    res.json({
         success: true,
         message: "Exam deleted successfully",
-    };
-
-    res.json(response);
+    });
 });
 
 // Create exam result
@@ -265,11 +244,10 @@ export const createExamResult = asyncHandler(
         });
 
         if (!exam) {
-            const response: ApiResponse = {
+            return res.status(404).json({
                 success: false,
                 message: "Exam not found",
-            };
-            return res.status(404).json(response);
+            });
         }
 
         // Check if student exists
@@ -278,11 +256,10 @@ export const createExamResult = asyncHandler(
         });
 
         if (!student) {
-            const response: ApiResponse = {
+            return res.status(404).json({
                 success: false,
                 message: "Student not found",
-            };
-            return res.status(404).json(response);
+            });
         }
 
         // Check if result already exists
@@ -294,11 +271,10 @@ export const createExamResult = asyncHandler(
         });
 
         if (existingResult) {
-            const response: ApiResponse = {
+            return res.status(400).json({
                 success: false,
                 message: "Result already exists for this student and exam",
-            };
-            return res.status(400).json(response);
+            });
         }
 
         const result = await prisma.examResult.create({
@@ -327,13 +303,11 @@ export const createExamResult = asyncHandler(
             },
         });
 
-        const response: ApiResponse = {
+        res.status(201).json({
             success: true,
             message: "Exam result created successfully",
             data: result,
-        };
-
-        res.status(201).json(response);
+        });
     }
 );
 
@@ -365,12 +339,10 @@ export const getExamResults = asyncHandler(
             },
         });
 
-        const response: ApiResponse = {
+        res.json({
             success: true,
             message: "Exam results retrieved successfully",
             data: results,
-        };
-
-        res.json(response);
+        });
     }
 );

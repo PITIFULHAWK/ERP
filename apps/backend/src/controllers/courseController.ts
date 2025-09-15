@@ -13,7 +13,7 @@ export const getCourses = asyncHandler(async (req: Request, res: Response) => {
             university: true,
             _count: {
                 select: {
-                    users: true,
+                    enrollments: true,
                     applications: true,
                 },
             },
@@ -38,7 +38,20 @@ export const getCourseById = asyncHandler(
             where: { id },
             include: {
                 university: true,
-                users: true,
+                enrollments: {
+                    include: {
+                        student: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                                role: true,
+                            },
+                        },
+                        semester: true,
+                        academicYear: true,
+                    },
+                },
                 applications: {
                     include: {
                         user: true,
@@ -226,29 +239,81 @@ export const enrollStudentInCourse = asyncHandler(
         }
 
         // Use a transaction to ensure all database operations succeed or fail together
-        const [updatedUser, updatedCourse] = await prisma.$transaction([
-            prisma.user.update({
-                where: { id: userId },
-                data: {
-                    role: "STUDENT", // Promote user to STUDENT
-                    coursesOpted: {
-                        connect: { id: courseId }, // Enroll in the course
+        // Get the active academic year for the university
+        const activeAcademicYear = await prisma.academicYear.findFirst({
+            where: {
+                universityId: user.universityId,
+                isActive: true,
+            },
+        });
+
+        if (!activeAcademicYear) {
+            return res.status(400).json({
+                success: false,
+                message: "No active academic year found for the university",
+            });
+        }
+
+        // Get the first semester of the course
+        const firstSemester = await prisma.semester.findFirst({
+            where: {
+                courseId: courseId,
+                number: 1,
+            },
+        });
+
+        if (!firstSemester) {
+            return res.status(400).json({
+                success: false,
+                message: "No first semester found for this course",
+            });
+        }
+
+        const [updatedUser, updatedCourse, studentEnrollment] =
+            await prisma.$transaction([
+                // Promote user to STUDENT
+                prisma.user.update({
+                    where: { id: userId },
+                    data: {
+                        role: "STUDENT", // Promote user to STUDENT
                     },
-                },
-                include: {
-                    Application: true,
-                    coursesOpted: true,
-                },
-            }),
-            prisma.course.update({
-                where: { id: courseId },
-                data: {
-                    currentStudents: {
-                        increment: 1, // Increment the student count on the course
+                    include: {
+                        Application: true,
+                        enrollments: {
+                            include: {
+                                course: true,
+                                semester: true,
+                                academicYear: true,
+                            },
+                        },
                     },
-                },
-            }),
-        ]);
+                }),
+                // Update course student count
+                prisma.course.update({
+                    where: { id: courseId },
+                    data: {
+                        currentStudents: {
+                            increment: 1, // Increment the student count on the course
+                        },
+                    },
+                }),
+                // Create StudentEnrollment record
+                prisma.studentEnrollment.create({
+                    data: {
+                        studentId: userId,
+                        courseId: courseId,
+                        semesterId: firstSemester.id,
+                        academicYearId: activeAcademicYear.id,
+                        currentSemester: 1, // Starting with first semester
+                        status: "ACTIVE",
+                    },
+                    include: {
+                        course: true,
+                        semester: true,
+                        academicYear: true,
+                    },
+                }),
+            ]);
 
         const response: ApiResponse = {
             success: true,
@@ -256,8 +321,9 @@ export const enrollStudentInCourse = asyncHandler(
             data: {
                 user: updatedUser,
                 course: updatedCourse,
+                enrollment: studentEnrollment,
                 applicationId: updatedUser.Application?.id,
-                enrollmentDate: new Date().toISOString(),
+                enrollmentDate: studentEnrollment.enrollmentDate,
             },
         };
 
