@@ -1,0 +1,6 @@
+export { SemesterManagement } from "./semester-management";
+export { AttendanceManagement } from "./attendance-management";
+export { SectionManagement } from "./section-management";
+export { ResourceManagement } from "./resource-management";
+export { ComplaintManagement } from "./complaint-management";
+export { AcademicCalendarManagement } from "./academic-calendar-management";

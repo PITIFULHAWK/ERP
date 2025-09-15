@@ -34,6 +34,35 @@ import {
     CreateReceiptRequest,
     VerifyPaymentRequest,
     PaymentFilters,
+
+    // New types for missing functionalities
+    AttendanceStats,
+    CreateAttendanceRequest,
+    AttendanceFilters,
+    BulkAttendanceRequest,
+    Section,
+    Enrollment,
+    CreateSectionRequest,
+    UpdateSectionRequest,
+    SectionFilters,
+    CreateEnrollmentRequest,
+    UpdateEnrollmentRequest,
+    EnrollmentFilters,
+    Resource,
+    CreateResourceRequest,
+    UpdateResourceRequest,
+    ResourceFilters,
+    ResourceStats,
+    Complaint,
+    CreateComplaintRequest,
+    UpdateComplaintStatusRequest,
+    AddComplaintUpdateRequest,
+    ComplaintFilters,
+    ComplaintStats,
+    AcademicCalendar,
+    CreateAcademicCalendarRequest,
+    UpdateAcademicCalendarRequest,
+    AcademicCalendarFilters,
 } from "../types";
 import {
     Placement,
@@ -59,22 +88,33 @@ class ApiClient {
         return localStorage.getItem("auth_token");
     }
 
-    private getAuthHeaders(): HeadersInit {
+    private getAuthHeaders(isFormData: boolean = false): HeadersInit {
         const token = this.getAuthToken();
-        return {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-        };
+        const headers: HeadersInit = {};
+
+        if (!isFormData) {
+            headers["Content-Type"] = "application/json";
+        }
+
+        if (token) {
+            headers.Authorization = `Bearer ${token}`;
+        }
+
+        return headers;
     }
 
-    async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    async request<T>(
+        endpoint: string,
+        options: RequestInit & { isFormData?: boolean } = {}
+    ): Promise<T> {
         const url = `${this.baseURL}${endpoint}`;
+        const { isFormData, ...requestOptions } = options;
 
         const config: RequestInit = {
-            ...options,
+            ...requestOptions,
             headers: {
-                ...this.getAuthHeaders(),
-                ...options.headers,
+                ...this.getAuthHeaders(isFormData),
+                ...requestOptions.headers,
             },
         };
 
@@ -691,6 +731,291 @@ class ApiClient {
     // ====== HEALTH CHECK ======
     async healthCheck() {
         return this.request("/health");
+    }
+
+    // ====== ATTENDANCE MANAGEMENT ======
+    async getAttendance(filters?: AttendanceFilters) {
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/attendance${params}`);
+    }
+
+    async markAttendance(attendanceData: CreateAttendanceRequest) {
+        return this.request("/attendance", {
+            method: "POST",
+            body: JSON.stringify(attendanceData),
+        });
+    }
+
+    async markBulkAttendance(bulkData: BulkAttendanceRequest) {
+        return this.request("/attendance/bulk", {
+            method: "POST",
+            body: JSON.stringify(bulkData),
+        });
+    }
+
+    async getAttendanceStats(
+        enrollmentId: string,
+        subjectId?: string
+    ): Promise<{
+        success: boolean;
+        data: AttendanceStats;
+        message?: string;
+    }> {
+        const params = subjectId ? `?subjectId=${subjectId}` : "";
+        return this.request(`/attendance/stats/${enrollmentId}${params}`);
+    }
+
+    async deleteAttendance(id: string) {
+        return this.request(`/attendance/${id}`, {
+            method: "DELETE",
+        });
+    }
+
+    // ====== SECTION MANAGEMENT ======
+    async getSections(filters?: SectionFilters) {
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/sections${params}`);
+    }
+
+    async getSection(id: string): Promise<{
+        success: boolean;
+        data: Section;
+        message?: string;
+    }> {
+        return this.request(`/sections/${id}`);
+    }
+
+    async createSection(sectionData: CreateSectionRequest) {
+        return this.request("/sections", {
+            method: "POST",
+            body: JSON.stringify(sectionData),
+        });
+    }
+
+    async updateSection(id: string, sectionData: UpdateSectionRequest) {
+        return this.request(`/sections/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify(sectionData),
+        });
+    }
+
+    async deleteSection(id: string) {
+        return this.request(`/sections/${id}`, {
+            method: "DELETE",
+        });
+    }
+
+    // ====== ENROLLMENT MANAGEMENT ======
+    async getEnrollments(filters?: EnrollmentFilters) {
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/enrollments${params}`);
+    }
+
+    async getEnrollment(id: string): Promise<{
+        success: boolean;
+        data: Enrollment;
+        message?: string;
+    }> {
+        return this.request(`/enrollments/${id}`);
+    }
+
+    async createEnrollment(enrollmentData: CreateEnrollmentRequest) {
+        return this.request("/enrollments", {
+            method: "POST",
+            body: JSON.stringify(enrollmentData),
+        });
+    }
+
+    async updateEnrollment(
+        id: string,
+        enrollmentData: UpdateEnrollmentRequest
+    ) {
+        return this.request(`/enrollments/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify(enrollmentData),
+        });
+    }
+
+    async deleteEnrollment(id: string) {
+        return this.request(`/enrollments/${id}`, {
+            method: "DELETE",
+        });
+    }
+
+    // ====== RESOURCE MANAGEMENT ======
+    async getResources(filters?: ResourceFilters) {
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/resources${params}`);
+    }
+
+    async getResource(id: string): Promise<{
+        success: boolean;
+        data: Resource;
+        message?: string;
+    }> {
+        return this.request(`/resources/${id}`);
+    }
+
+    async createResource(resourceData: CreateResourceRequest) {
+        return this.request("/resources", {
+            method: "POST",
+            body: JSON.stringify(resourceData),
+        });
+    }
+
+    async uploadResourceFile(id: string, file: File) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        return this.request(`/resources/${id}/upload`, {
+            method: "POST",
+            body: formData,
+            isFormData: true,
+        });
+    }
+
+    async updateResource(id: string, resourceData: UpdateResourceRequest) {
+        return this.request(`/resources/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify(resourceData),
+        });
+    }
+
+    async deleteResource(id: string) {
+        return this.request(`/resources/${id}`, {
+            method: "DELETE",
+        });
+    }
+
+    async getResourceStats(): Promise<{
+        success: boolean;
+        data: ResourceStats;
+        message?: string;
+    }> {
+        return this.request("/resources/stats");
+    }
+
+    async downloadResource(id: string) {
+        return this.request(`/resources/${id}/download`);
+    }
+
+    // ====== COMPLAINT MANAGEMENT ======
+    async getComplaints(filters?: ComplaintFilters) {
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/complaints${params}`);
+    }
+
+    async getComplaint(id: string): Promise<{
+        success: boolean;
+        data: Complaint;
+        message?: string;
+    }> {
+        return this.request(`/complaints/${id}`);
+    }
+
+    async createComplaint(complaintData: CreateComplaintRequest) {
+        return this.request("/complaints", {
+            method: "POST",
+            body: JSON.stringify(complaintData),
+        });
+    }
+
+    async updateComplaintStatus(
+        id: string,
+        statusData: UpdateComplaintStatusRequest
+    ) {
+        return this.request(`/complaints/${id}/status`, {
+            method: "PATCH",
+            body: JSON.stringify(statusData),
+        });
+    }
+
+    async addComplaintUpdate(
+        id: string,
+        updateData: AddComplaintUpdateRequest
+    ) {
+        return this.request(`/complaints/${id}/updates`, {
+            method: "POST",
+            body: JSON.stringify(updateData),
+        });
+    }
+
+    async deleteComplaint(id: string) {
+        return this.request(`/complaints/${id}`, {
+            method: "DELETE",
+        });
+    }
+
+    async getComplaintStats(): Promise<{
+        success: boolean;
+        data: ComplaintStats;
+        message?: string;
+    }> {
+        return this.request("/complaints/stats");
+    }
+
+    // ====== ACADEMIC CALENDAR MANAGEMENT ======
+    async getAcademicCalendars(filters?: AcademicCalendarFilters) {
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/academic-calendar${params}`);
+    }
+
+    async getAcademicCalendar(id: string): Promise<{
+        success: boolean;
+        data: AcademicCalendar;
+        message?: string;
+    }> {
+        return this.request(`/academic-calendar/${id}`);
+    }
+
+    async createAcademicCalendar(calendarData: CreateAcademicCalendarRequest) {
+        return this.request("/academic-calendar", {
+            method: "POST",
+            body: JSON.stringify(calendarData),
+        });
+    }
+
+    async uploadAcademicCalendarPDF(id: string, file: File) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        return this.request(`/academic-calendar/${id}/upload`, {
+            method: "POST",
+            body: formData,
+            isFormData: true,
+        });
+    }
+
+    async updateAcademicCalendar(
+        id: string,
+        calendarData: UpdateAcademicCalendarRequest
+    ) {
+        return this.request(`/academic-calendar/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify(calendarData),
+        });
+    }
+
+    async deleteAcademicCalendar(id: string) {
+        return this.request(`/academic-calendar/${id}`, {
+            method: "DELETE",
+        });
+    }
+
+    async downloadAcademicCalendar(id: string) {
+        return this.request(`/academic-calendar/${id}/download`);
     }
 }
 

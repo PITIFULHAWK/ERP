@@ -21,6 +21,11 @@ import {
   BarChart3,
   CreditCard,
   Briefcase,
+  ClipboardCheck,
+  UserCheck,
+  Share2,
+  MessageSquareMore,
+  Calendar,
 } from "lucide-react"
 
 const navigation = [
@@ -58,6 +63,31 @@ const navigation = [
     name: "Courses",
     href: "/admin/courses",
     icon: GraduationCap,
+  },
+  {
+    name: "Sections",
+    href: "/admin/sections",
+    icon: UserCheck,
+  },
+  {
+    name: "Attendance",
+    href: "/admin/attendance",
+    icon: ClipboardCheck,
+  },
+  {
+    name: "Resources",
+    href: "/admin/resources",
+    icon: Share2,
+  },
+  {
+    name: "Complaints",
+    href: "/admin/complaints",
+    icon: MessageSquareMore,
+  },
+  {
+    name: "Academic Calendar",
+    href: "/admin/academic-calendar",
+    icon: Calendar,
   },
   {
     name: "Hostels",
