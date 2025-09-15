@@ -1,0 +1,39 @@
+model StudentEnrollment {
+  id                String        @id @default(uuid())
+  studentId         String
+  courseId          String
+  semesterId        String
+  academicYearId    String
+  
+  // Current semester info
+  currentSemester   Int           // Which semester the student is currently in
+  enrollmentDate    DateTime      @default(now())
+  status            EnrollmentStatus @default(ACTIVE)
+  
+  // Academic progress
+  totalCredits      Int           @default(0)
+  completedCredits  Int           @default(0)
+  cgpa              Float?
+  
+  // Relationships
+  student           User          @relation("StudentEnrollments", fields: [studentId], references: [id], onDelete: Cascade)
+  course            Course        @relation("CourseEnrollments", fields: [courseId], references: [id], onDelete: Cascade)
+  semester          Semester      @relation("SemesterEnrollments", fields: [semesterId], references: [id], onDelete: Cascade)
+  academicYear      AcademicYear  @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  attendances       Attendance[]
+  attendanceSummaries AttendanceSummary[]
+  
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@unique([studentId, courseId, academicYearId])
+  @@map("student_enrollments")
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  INACTIVE
+  GRADUATED
+  DROPPED
+  SUSPENDED
+}

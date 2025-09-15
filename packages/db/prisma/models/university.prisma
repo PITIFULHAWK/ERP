@@ -1,11 +1,14 @@
 model University {
-  id      String   @id @default(uuid())
-  name    String
-  uid     Int      @unique @default(autoincrement())
-  courses Course[]
-  hostels Hostel[]
-  notices Notice[]
-  users   User[]
+  id             String          @id @default(uuid())
+  name           String
+  uid            Int             @unique @default(autoincrement())
+  courses        Course[]
+  hostels        Hostel[]
+  notices        Notice[]
+  users          User[]
+  
+  // New relationships for academic year management
+  academicYears  AcademicYear[]
 
   @@map("universities")
 }

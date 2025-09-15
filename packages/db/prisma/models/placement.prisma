@@ -14,8 +14,6 @@ model Placement {
   createdById      String            // Admin who created this placement
   emailsSent       Int               @default(0) // Track how many emails were sent
   
-  // Relations
-  createdBy        User              @relation("CreatedPlacements", fields: [createdById], references: [id])
 
   @@map("placements")
 }

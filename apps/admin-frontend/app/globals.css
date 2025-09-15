@@ -154,7 +154,7 @@
   
   /* Elegant glass effect */
   .glass-effect {
-    backdrop-filter: blur(16px) saturate(180%);
+    --backdrop-filter: blur(16px) saturate(180%);
     background-color: hsl(var(--card) / 0.8);
     border: 1px solid hsl(var(--border) / 0.3);
   }

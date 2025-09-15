@@ -8,7 +8,7 @@ model Hostel {
   universityId         String
   createdAt            DateTime   @default(now())
   updatedAt            DateTime   @updatedAt
-  university           University @relation(fields: [universityId], references: [id])
+  university           University @relation(fields: [universityId], references: [id], onDelete: Cascade)
   payments             Payment[]
   users                User[]     @relation("UserHostel")
 

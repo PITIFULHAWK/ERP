@@ -11,9 +11,13 @@ model Course {
   updatedAt       DateTime      @updatedAt
   semester        Semester[]    @relation("SemesterCourse")
   applications    Application[]
-  university      University    @relation(fields: [universityId], references: [id])
+  university      University    @relation(fields: [universityId], references: [id], onDelete: Cascade)
   payments        Payment[]
   users           User[]        @relation("UserCourses")
+  
+  // New relationships for attendance and academic management
+  enrollments     StudentEnrollment[] @relation("CourseEnrollments")
+  academicCalendars AcademicCalendar[]
 
   @@map("courses")
 }

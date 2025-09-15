@@ -1,0 +1,108 @@
+model LiveClass {
+  id                String              @id @default(uuid())
+  
+  // Basic class info
+  title             String
+  description       String?
+  
+  // Academic context
+  subjectId         String
+  semesterId        String
+  academicYearId    String
+  
+  // Instructor info
+  instructorId      String
+  
+  // Scheduling
+  scheduledAt       DateTime
+  startTime         DateTime?
+  endTime           DateTime?
+  duration          Int                 // Duration in minutes
+  
+  // Class details
+  classType         LiveClassType       @default(LECTURE)
+  status            LiveClassStatus     @default(SCHEDULED)
+  
+  // Online meeting details
+  meetingUrl        String?
+  meetingId         String?
+  meetingPassword   String?
+  platform          MeetingPlatform?    // Teams, Google Meet, Google Classroom, Custom WebRTC, etc.
+  
+  // Google Classroom specific
+  classroomId       String?             // Google Classroom ID
+  classroomInviteCode String?           // Google Classroom invite code
+  
+  // Microsoft Teams specific
+  teamsThreadId     String?             // Teams thread/channel ID
+  teamsChannelId    String?             // Teams channel ID
+  
+  // Custom WebRTC/WebSocket implementation
+  webrtcConfig      String?             // JSON config for WebRTC settings
+  websocketEndpoint String?             // WebSocket server endpoint
+  streamingKey      String?             // Streaming key for custom implementation
+  customPlatformData String?            // Additional platform-specific data as JSON
+  
+  // Recording and resources
+  recordingUrl      String?
+  isRecorded        Boolean             @default(false)
+  
+  // Attendance tracking
+  attendanceEnabled Boolean             @default(true)
+  autoAttendance    Boolean             @default(false) // Auto mark attendance for joined students
+  
+  // Capacity and enrollment
+  maxStudents       Int?
+  
+  // Relationships
+  subject           Subject             @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  semester          Semester            @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  academicYear      AcademicYear        @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  instructor        User                @relation("InstructorLiveClasses", fields: [instructorId], references: [id], onDelete: Restrict)
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@map("live_classes")
+}
+
+enum LiveClassType {
+  LECTURE
+  PRACTICAL
+  TUTORIAL
+  SEMINAR
+  WORKSHOP
+  EXAM
+  REVIEW
+  OTHER
+}
+
+enum LiveClassStatus {
+  SCHEDULED
+  LIVE
+  COMPLETED
+  CANCELLED
+  POSTPONED
+}
+
+enum MeetingPlatform {
+  ZOOM
+  GOOGLE_MEET
+  GOOGLE_CLASSROOM
+  MICROSOFT_TEAMS
+  WEBEX
+  CUSTOM_WEBRTC
+  CUSTOM_WEBSOCKET
+  HYBRID           // Combination of multiple platforms
+  OTHER
+}
+
+enum ResourceType {
+  PRESENTATION
+  DOCUMENT
+  VIDEO
+  AUDIO
+  LINK
+  ASSIGNMENT
+  OTHER
+}

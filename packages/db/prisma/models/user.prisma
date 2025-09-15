@@ -21,11 +21,21 @@ model User {
   ExamResult           ExamResult?
   payments             Payment[]
   receipts             Receipt[]
-  application          Application?        @relation("userApplication", fields: [applicationId], references: [id])
-  hostelOpted          Hostel?             @relation("UserHostel", fields: [hostelId], references: [id])
-  university           University          @relation(fields: [universityId], references: [id])
+  application          Application?        @relation("userApplication", fields: [applicationId], references: [id], onDelete: SetNull)
+  hostelOpted          Hostel?             @relation("UserHostel", fields: [hostelId], references: [id], onDelete: SetNull)
+  university           University          @relation(fields: [universityId], references: [id], onDelete: Restrict)
   coursesOpted         Course[]            @relation("UserCourses")
-  createdPlacements    Placement[]         @relation("CreatedPlacements")
+  
+  // New relationships for enrollment and attendance
+  enrollments          StudentEnrollment[] @relation("StudentEnrollments")
+  
+  // Attendance relationships
+  attendances          Attendance[]        @relation("StudentAttendances")
+  markedAttendances    Attendance[]        @relation("MarkedAttendances")
+  attendanceSummaries  AttendanceSummary[] @relation("StudentAttendanceSummaries")
+  
+  // Live class relationships
+  instructorLiveClasses LiveClass[]        @relation("InstructorLiveClasses")
 
   @@map("users")
 }

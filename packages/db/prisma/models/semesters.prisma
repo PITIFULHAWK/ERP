@@ -1,9 +1,14 @@
 model Semester {
-  id       String    @id @default(uuid())
-  number   Int
-  code     String    @unique
-  courseId String
-  course   Course    @relation("SemesterCourse", fields: [courseId], references: [id])
-  subjects Subject[] @relation("SemesterSubjects")
-  exams    Exam[]
+  id             String              @id @default(uuid())
+  number         Int
+  code           String              @unique
+  courseId       String
+  course         Course              @relation("SemesterCourse", fields: [courseId], references: [id], onDelete: Cascade)
+  subjects       Subject[]           @relation("SemesterSubjects")
+  exams          Exam[]
+  
+  // New relationships for enrollment and live classes
+  enrollments    StudentEnrollment[] @relation("SemesterEnrollments")
+  liveClasses    LiveClass[]
+  academicCalendars AcademicCalendar[]
 }

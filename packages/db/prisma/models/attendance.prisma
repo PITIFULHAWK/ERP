@@ -1,0 +1,77 @@
+model Attendance {
+  id                String            @id @default(uuid())
+  
+  // Student and enrollment info
+  studentId         String
+  enrollmentId      String
+  
+  // Subject and class info
+  subjectId         String
+  date              DateTime          @default(now())
+  classType         ClassType         @default(REGULAR)
+  
+  // Attendance status
+  status            AttendanceStatus  @default(PRESENT)
+  markedAt          DateTime          @default(now())
+  markedBy          String            // Professor/Admin who marked attendance
+
+  remarks           String?
+  academicYearId    String
+  
+  // Relationships
+  student           User              @relation("StudentAttendances", fields: [studentId], references: [id], onDelete: Cascade)
+  enrollment        StudentEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  subject           Subject           @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  markedByUser      User              @relation("MarkedAttendances", fields: [markedBy], references: [id], onDelete: Restrict)
+  academicYear      AcademicYear      @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@unique([studentId, subjectId, date])
+  @@map("attendances")
+}
+
+model AttendanceSummary {
+  id                String            @id @default(uuid())
+  studentId         String
+  enrollmentId      String
+  subjectId         String
+  academicYearId    String
+  
+  // Summary statistics
+  totalClasses      Int               @default(0)
+  presentClasses    Int               @default(0)
+  absentClasses     Int               @default(0)
+  attendancePercentage Float          @default(0.0)
+  
+  // Date range for this summary
+  fromDate          DateTime
+  toDate            DateTime
+  student           User              @relation("StudentAttendanceSummaries", fields: [studentId], references: [id], onDelete: Cascade)
+  enrollment        StudentEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  subject           Subject           @relation("SubjectAttendanceSummaries", fields: [subjectId], references: [id], onDelete: Cascade)
+  academicYear      AcademicYear      @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@unique([studentId, subjectId, academicYearId])
+  @@map("attendance_summaries")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum ClassType {
+  REGULAR
+  PRACTICAL
+  TUTORIAL
+  SEMINAR
+  EXAM
+  OTHER
+}
