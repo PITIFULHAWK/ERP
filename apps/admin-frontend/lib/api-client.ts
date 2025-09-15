@@ -538,7 +538,7 @@ class ApiClient {
         return this.request(`/payments/${id}/verify`, {
             method: "PATCH",
             headers: {
-                "x-verifier-id": "acdd294a-4bec-4598-b41b-0bbc02aea394", // Admin user ID
+                "x-verifier-id": "dae33f6b-6aab-428c-8454-353a8ef9e30e", // Admin user ID
             },
             body: JSON.stringify(verificationData),
         });

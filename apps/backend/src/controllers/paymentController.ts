@@ -527,6 +527,11 @@ export const verifyPayment = asyncHandler(
                             id: true,
                             name: true,
                             email: true,
+                            university: {
+                                select: {
+                                    name: true,
+                                },
+                            },
                         },
                     },
                     course: true,
@@ -561,7 +566,16 @@ export const verifyPayment = asyncHandler(
                     payment.amount,
                     payment.currency,
                     payment.type,
-                    verificationNotes
+                    verificationNotes,
+                    {
+                        courseName: payment.course?.name,
+                        hostelName: payment.hostel?.name,
+                        paymentMethod: payment.method,
+                        reference: payment.reference || "",
+                        verifiedBy: verifier.name,
+                        verifiedAt: payment.verifiedAt?.toISOString(),
+                        universityName: payment.user.university?.name || "University"
+                    }
                 );
             } catch (emailError) {
                 console.error(

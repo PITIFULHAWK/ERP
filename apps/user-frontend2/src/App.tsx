@@ -15,6 +15,8 @@ import Application from "./pages/Application";
 import Timetable from "./pages/Timetable";
 import Attendance from "./pages/Attendance";
 import Results from "./pages/Results";
+import Holidays from "./pages/Holidays";
+
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
@@ -73,6 +75,17 @@ const App = () => (
                                 </ProtectedRoute>
                             }
                         />
+                        <Route
+                            path="/holidays"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <Holidays />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+
                         <Route
                             path="/application"
                             element={
