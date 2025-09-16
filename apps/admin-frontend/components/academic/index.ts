@@ -4,3 +4,6 @@ export { SectionManagement } from "./section-management";
 export { ResourceManagement } from "./resource-management";
 export { ComplaintManagement } from "./complaint-management";
 export { AcademicCalendarManagement } from "./academic-calendar-management";
+export { GradeManagement } from "./grade-management";
+export { ProfessorDashboard } from "./professor-dashboard";
+export { TimetableManagement } from "./timetable-management";

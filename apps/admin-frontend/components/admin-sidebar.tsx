@@ -122,6 +122,11 @@ const navigationGroups: NavigationGroup[] = [
         icon: ClipboardCheck,
       },
       {
+        name: "Timetables",
+        href: "/admin/timetables",
+        icon: Calendar,
+      },
+      {
         name: "Resources",
         href: "/admin/resources",
         icon: Share2,

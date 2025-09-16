@@ -16,6 +16,8 @@ import academicCalendarRoutes from "./academicCalendarRoutes";
 import academicYearRoutes from "./academicYearRoutes";
 import resourceRoutes from "./resourceRoutes";
 import complaintRoutes from "./complaintRoutes";
+import gradeRoutes from "./gradeRoutes";
+import timetableRoutes from "./timetableRoutes";
 
 const router: Router = Router();
 
@@ -38,6 +40,8 @@ router.use("/attendance", attendanceRoutes);
 router.use("/academic-calendar", academicCalendarRoutes);
 router.use("/academic-years", academicYearRoutes);
 router.use("/resources", resourceRoutes);
+router.use("/grades", gradeRoutes);
+router.use("/timetables", timetableRoutes);
 
 // Complaint management
 router.use("/complaints", complaintRoutes);

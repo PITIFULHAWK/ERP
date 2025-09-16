@@ -74,3 +74,18 @@ export const requireStaff = asyncHandler(
         next();
     }
 );
+
+export const requireProfessor = asyncHandler(
+    async (req: AuthRequest, res: Response, next: NextFunction) => {
+        const allowedRoles = ["ADMIN", "PROFESSOR"];
+
+        if (!req.user || !allowedRoles.includes(req.user.role)) {
+            return res.status(403).json({
+                success: false,
+                message: "Forbidden: Professor access required.",
+                error: "Forbidden",
+            });
+        }
+        next();
+    }
+);

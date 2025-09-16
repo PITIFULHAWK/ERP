@@ -160,5 +160,6 @@ enum SectionResourceType {
   LINK             // External links
   ANNOUNCEMENT     // Section announcements
   SYLLABUS         // Section-specific syllabus
+  TIMETABLE
   OTHER            // Other resources
 }

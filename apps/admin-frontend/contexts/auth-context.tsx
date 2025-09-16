@@ -105,8 +105,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setToken(authToken)
         setUser(fullUser)
         
-        // Redirect to admin dashboard
-        router.push("/admin")
+        // Redirect based on user role
+        if (userData.role === "PROFESSOR") {
+          router.push("/professor")
+        } else {
+          router.push("/admin")
+        }
       } else {
         throw new Error(response.message || "Login failed")
       }

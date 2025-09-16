@@ -48,6 +48,16 @@ export type {
     BulkAttendanceRequest,
 } from "./attendance";
 
+// Grade management types
+export type {
+    Grade as ProfessorGrade,
+    CreateGradeRequest,
+    ProfessorAssignment,
+    StudentForGrading,
+    ProfessorExam,
+    GradeFilters,
+} from "./grade";
+
 // Section and Enrollment types
 export type {
     Section,

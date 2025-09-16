@@ -1129,6 +1129,102 @@ class ApiClient {
             method: "PATCH",
         });
     }
+
+    // ====== GRADE MANAGEMENT ======
+    async getProfessorGrades(
+        professorId: string,
+        filters?: {
+            sectionId?: string;
+            subjectId?: string;
+            examId?: string;
+        }
+    ) {
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/grades/professor/${professorId}${params}`);
+    }
+
+    async getProfessorStudentsForGrading(
+        professorId: string,
+        sectionId: string,
+        subjectId: string,
+        examId: string
+    ) {
+        const params = new URLSearchParams({
+            sectionId,
+            subjectId,
+            examId,
+        }).toString();
+        return this.request(
+            `/grades/professor/${professorId}/students?${params}`
+        );
+    }
+
+    async getProfessorExams(
+        professorId: string,
+        filters?: {
+            sectionId?: string;
+            subjectId?: string;
+        }
+    ) {
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/grades/professor/${professorId}/exams${params}`);
+    }
+
+    async createOrUpdateGrade(gradeData: {
+        professorId: string;
+        examResultId: string;
+        subjectId: string;
+        marksObtained: number;
+    }) {
+        return this.request("/grades", {
+            method: "POST",
+            body: JSON.stringify(gradeData),
+        });
+    }
+
+    async deleteGrade(gradeId: string, professorId: string) {
+        return this.request(`/grades/${gradeId}`, {
+            method: "DELETE",
+            body: JSON.stringify({ professorId }),
+        });
+    }
+
+    // Timetable Management APIs
+    async getAllTimetables() {
+        return this.request("/timetables");
+    }
+
+    async getSectionTimetable(sectionId: string) {
+        return this.request(`/timetables/${sectionId}`);
+    }
+
+    async uploadTimetable(
+        sectionId: string,
+        file: File,
+        academicYearId?: string,
+        description?: string
+    ) {
+        const formData = new FormData();
+        formData.append("timetable", file);
+        if (academicYearId) formData.append("academicYearId", academicYearId);
+        if (description) formData.append("description", description);
+
+        return this.request(`/timetables/${sectionId}`, {
+            method: "POST",
+            body: formData,
+            isFormData: true,
+        });
+    }
+
+    async deleteTimetable(sectionId: string) {
+        return this.request(`/timetables/${sectionId}`, {
+            method: "DELETE",
+        });
+    }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);
