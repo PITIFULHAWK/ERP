@@ -3,6 +3,543 @@ import prisma from "@repo/db";
 import { asyncHandler } from "../middleware/index";
 import { ApiResponse } from "../types";
 
+// Type mapping between frontend and backend
+const frontendToBackendTypeMap: Record<string, string> = {
+    PDF: "NOTES",
+    VIDEO: "VIDEO",
+    AUDIO: "AUDIO",
+    IMAGE: "REFERENCE",
+    DOCUMENT: "NOTES",
+    LINK: "LINK",
+    OTHER: "OTHER",
+};
+
+const backendToFrontendTypeMap: Record<string, string> = {
+    NOTES: "PDF",
+    ASSIGNMENT: "DOCUMENT",
+    SLIDES: "PDF",
+    HANDOUT: "DOCUMENT",
+    REFERENCE: "PDF",
+    VIDEO: "VIDEO",
+    AUDIO: "AUDIO",
+    LINK: "LINK",
+    ANNOUNCEMENT: "DOCUMENT",
+    SYLLABUS: "DOCUMENT",
+    OTHER: "OTHER",
+};
+
+// ===============================
+// ADMIN RESOURCE MANAGEMENT (for testing/general resources)
+// ===============================
+
+// Get all resources (Admin view)
+export const getResources = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { type, sectionId, subjectId, isPublic, search } = req.query;
+
+        let whereClause: any = {};
+
+        if (type && type !== "all") {
+            // Map frontend type to backend type for filtering
+            const backendType = frontendToBackendTypeMap[type as string];
+            if (backendType) {
+                whereClause.resourceType = backendType;
+            }
+        }
+        if (isPublic && isPublic !== "all")
+            whereClause.isVisible = isPublic === "true";
+        if (search) {
+            whereClause.OR = [
+                { title: { contains: search as string, mode: "insensitive" } },
+                {
+                    description: {
+                        contains: search as string,
+                        mode: "insensitive",
+                    },
+                },
+            ];
+        }
+
+        // Add filters for section/subject if provided
+        if (sectionId && sectionId !== "all") {
+            whereClause.sectionId = sectionId as string;
+        }
+
+        if (subjectId && subjectId !== "all") {
+            whereClause.subjectId = subjectId as string;
+        }
+
+        const resources = await prisma.sectionResource.findMany({
+            where: whereClause,
+            include: {
+                section: {
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true,
+                        course: {
+                            select: {
+                                id: true,
+                                name: true,
+                                code: true,
+                            },
+                        },
+                        semester: {
+                            select: {
+                                id: true,
+                                number: true,
+                                code: true,
+                            },
+                        },
+                    },
+                },
+                subject: {
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true,
+                    },
+                },
+                uploader: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+            },
+            orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
+        });
+
+        // Map to frontend format
+        const mappedResources = resources.map((resource) => ({
+            id: resource.id,
+            title: resource.title,
+            description: resource.description || "",
+            type:
+                backendToFrontendTypeMap[resource.resourceType] ||
+                resource.resourceType,
+            fileUrl: resource.fileUrl,
+            externalUrl: resource.fileUrl, // For compatibility
+            fileSize: resource.fileSize,
+            mimeType: resource.mimeType,
+            isPublic: resource.isVisible,
+            uploadedBy: {
+                id: resource.uploader.id,
+                firstName:
+                    resource.uploader.name.split(" ")[0] ||
+                    resource.uploader.name,
+                lastName:
+                    resource.uploader.name.split(" ").slice(1).join(" ") || "",
+                role: "ADMIN", // Since this is admin-created
+            },
+            subject: resource.subject,
+            section: resource.section
+                ? {
+                      id: resource.section.id,
+                      name: resource.section.name,
+                      code: resource.section.code,
+                  }
+                : undefined,
+            semester: resource.section?.semester,
+            course: resource.section?.course,
+            downloads: resource.downloadCount,
+            views: 0, // Not tracked in current schema
+            createdAt: resource.createdAt.toISOString(),
+            updatedAt: resource.updatedAt.toISOString(),
+        }));
+
+        res.json({
+            success: true,
+            message: "Resources retrieved successfully",
+            data: mappedResources,
+        });
+    }
+);
+
+// Get single resource (Admin view)
+export const getResource = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const resource = await prisma.sectionResource.findUnique({
+        where: { id },
+        include: {
+            section: {
+                include: {
+                    course: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    semester: {
+                        select: {
+                            id: true,
+                            number: true,
+                            code: true,
+                        },
+                    },
+                },
+            },
+            subject: {
+                select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                },
+            },
+            uploader: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                },
+            },
+        },
+    });
+
+    if (!resource) {
+        return res.status(404).json({
+            success: false,
+            message: "Resource not found",
+        });
+    }
+
+    // Map to frontend format
+    const mappedResource = {
+        id: resource.id,
+        title: resource.title,
+        description: resource.description || "",
+        type:
+            backendToFrontendTypeMap[resource.resourceType] ||
+            resource.resourceType,
+        fileUrl: resource.fileUrl,
+        externalUrl: resource.fileUrl, // For compatibility
+        fileSize: resource.fileSize,
+        mimeType: resource.mimeType,
+        isPublic: resource.isVisible,
+        uploadedBy: {
+            id: resource.uploader.id,
+            firstName:
+                resource.uploader.name.split(" ")[0] || resource.uploader.name,
+            lastName:
+                resource.uploader.name.split(" ").slice(1).join(" ") || "",
+            role: "ADMIN",
+        },
+        subject: resource.subject,
+        semester: resource.section?.semester,
+        course: resource.section?.course,
+        downloads: resource.downloadCount,
+        views: 0,
+        createdAt: resource.createdAt.toISOString(),
+        updatedAt: resource.updatedAt.toISOString(),
+    };
+
+    res.json({
+        success: true,
+        message: "Resource retrieved successfully",
+        data: mappedResource,
+    });
+});
+
+// Create resource (Admin - for testing)
+export const createResource = asyncHandler(
+    async (req: Request, res: Response) => {
+        const {
+            title,
+            description,
+            type,
+            externalUrl,
+            isPublic = true,
+            subjectId,
+            semesterId,
+            courseId,
+            sectionId: providedSectionId,
+            adminId = "admin-id", // For testing, should come from auth
+        } = req.body;
+
+        if (!title || !description) {
+            return res.status(400).json({
+                success: false,
+                message: "Title and description are required",
+            });
+        }
+
+        // For admin resources, we need a section
+        let sectionId: string;
+
+        if (providedSectionId) {
+            // Use the provided section ID if available
+            const section = await prisma.section.findUnique({
+                where: { id: providedSectionId },
+            });
+            if (!section) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Section not found",
+                });
+            }
+            sectionId = providedSectionId;
+        } else if (courseId && semesterId) {
+            const section = await prisma.section.findFirst({
+                where: {
+                    courseId,
+                    semesterId,
+                },
+            });
+            if (section) {
+                sectionId = section.id;
+            } else {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "No section found for the specified course and semester",
+                });
+            }
+        } else {
+            // Get any section for testing purposes
+            const section = await prisma.section.findFirst();
+            if (!section) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "No sections available. Please create a section first.",
+                });
+            }
+            sectionId = section.id;
+        }
+
+        // Create the resource
+        const resource = await prisma.sectionResource.create({
+            data: {
+                title,
+                description,
+                resourceType:
+                    frontendToBackendTypeMap[type] || ("OTHER" as any),
+                fileUrl: externalUrl, // For now, use externalUrl as fileUrl
+                isVisible: isPublic,
+                sectionId,
+                subjectId: subjectId || null,
+                uploadedBy: adminId,
+                isPinned: false,
+                downloadCount: 0,
+            },
+            include: {
+                section: {
+                    include: {
+                        course: true,
+                        semester: true,
+                    },
+                },
+                subject: {
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true,
+                    },
+                },
+                uploader: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+            },
+        });
+
+        res.status(201).json({
+            success: true,
+            message: "Resource created successfully",
+            data: { id: resource.id },
+        });
+    }
+);
+
+// Update resource (Admin)
+export const updateResourceAdmin = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const {
+            title,
+            description,
+            type,
+            externalUrl,
+            isPublic,
+            sectionId,
+            subjectId,
+        } = req.body;
+
+        const resource = await prisma.sectionResource.findUnique({
+            where: { id },
+        });
+
+        if (!resource) {
+            return res.status(404).json({
+                success: false,
+                message: "Resource not found",
+            });
+        }
+
+        // If sectionId is provided, verify it exists
+        if (sectionId && sectionId !== resource.sectionId) {
+            const section = await prisma.section.findUnique({
+                where: { id: sectionId },
+            });
+            if (!section) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Section not found",
+                });
+            }
+        }
+
+        const updatedResource = await prisma.sectionResource.update({
+            where: { id },
+            data: {
+                ...(title && { title }),
+                ...(description !== undefined && { description }),
+                ...(type && {
+                    resourceType:
+                        frontendToBackendTypeMap[type] || ("OTHER" as any),
+                }),
+                ...(externalUrl !== undefined && { fileUrl: externalUrl }),
+                ...(isPublic !== undefined && { isVisible: isPublic }),
+                ...(sectionId && { sectionId }),
+                ...(subjectId !== undefined && {
+                    subjectId: subjectId || null,
+                }),
+            },
+        });
+
+        res.json({
+            success: true,
+            message: "Resource updated successfully",
+            data: updatedResource,
+        });
+    }
+);
+
+// Delete resource (Admin)
+export const deleteResourceAdmin = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { id } = req.params;
+
+        const resource = await prisma.sectionResource.findUnique({
+            where: { id },
+        });
+
+        if (!resource) {
+            return res.status(404).json({
+                success: false,
+                message: "Resource not found",
+            });
+        }
+
+        await prisma.sectionResource.delete({
+            where: { id },
+        });
+
+        res.json({
+            success: true,
+            message: "Resource deleted successfully",
+        });
+    }
+);
+
+// Get resource statistics (Admin)
+export const getResourceStatsAdmin = asyncHandler(
+    async (req: Request, res: Response) => {
+        const totalResources = await prisma.sectionResource.count();
+
+        const totalDownloads = await prisma.sectionResource.aggregate({
+            _sum: {
+                downloadCount: true,
+            },
+        });
+
+        const resourcesByType = await prisma.sectionResource.groupBy({
+            by: ["resourceType"],
+            _count: {
+                _all: true,
+            },
+        });
+
+        const stats = {
+            totalResources,
+            totalDownloads: totalDownloads._sum.downloadCount || 0,
+            totalViews: 0, // Not tracked in current schema
+            resourcesByType: resourcesByType.map((item) => ({
+                type:
+                    backendToFrontendTypeMap[item.resourceType] ||
+                    item.resourceType,
+                count: item._count._all,
+            })),
+        };
+
+        res.json({
+            success: true,
+            message: "Resource statistics retrieved successfully",
+            data: stats,
+        });
+    }
+);
+
+// Upload resource file (Admin)
+export const uploadResourceFile = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { id } = req.params;
+        // This would handle file upload logic
+        // For now, return success
+        res.json({
+            success: true,
+            message: "File upload functionality to be implemented",
+            data: { fileUrl: "placeholder-url" },
+        });
+    }
+);
+
+// Download resource (Admin)
+export const downloadResourceAdmin = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { id } = req.params;
+
+        const resource = await prisma.sectionResource.findUnique({
+            where: { id },
+        });
+
+        if (!resource) {
+            return res.status(404).json({
+                success: false,
+                message: "Resource not found",
+            });
+        }
+
+        // Increment download count
+        await prisma.sectionResource.update({
+            where: { id },
+            data: {
+                downloadCount: {
+                    increment: 1,
+                },
+            },
+        });
+
+        res.json({
+            success: true,
+            message: "Download link retrieved successfully",
+            data: {
+                downloadUrl: resource.fileUrl || "placeholder-download-url",
+            },
+        });
+    }
+);
+
+// ===============================
+// PROFESSOR RESOURCE MANAGEMENT (existing functionality)
+// ===============================
+
 // Share a resource with students in a section
 export const shareResource = asyncHandler(
     async (req: Request, res: Response) => {

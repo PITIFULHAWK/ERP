@@ -3,6 +3,11 @@
 ## Overview
 This document provides comprehensive documentation for all API endpoints in the ERP system, including academic management, user management, applications, payments, and administrative features.
 
+### Recent Updates
+- **Enhanced Resource Management**: Added comprehensive admin endpoints for resource management with section-based organization
+- **Section-Based Filtering**: Resources can now be filtered and organized by sections instead of individual course/semester combinations
+- **Improved Resource Types**: Updated resource type mapping between frontend and backend for better consistency
+
 ## Base URL
 ```
 /api
@@ -213,71 +218,43 @@ GET /api/academic-calendar/
 GET /api/academic-calendar/student/:studentId
 ```
 
-### Resource Sharing
+### Resource Management
 
-#### Share Resource (Professor)
+#### Admin Resource Endpoints
 ```
-POST /api/resources/share
-```
-**Body:** (multipart/form-data)
-```
-professorId: "professor-uuid"
-sectionId: "section-uuid"
-subjectId: "subject-uuid"
-title: "Resource Title"
-description: "Resource Description"
-resourceType: "NOTES"
-file: <uploaded file>
+GET /api/resources                    # Get all resources (with filters)
+POST /api/resources                   # Create resource
+GET /api/resources/:id                # Get specific resource
+PATCH /api/resources/:id              # Update resource
+DELETE /api/resources/:id             # Delete resource
+GET /api/resources/stats              # Get resource statistics
+POST /api/resources/:id/upload        # Upload file
+GET /api/resources/:id/download       # Download resource
 ```
 
-#### Get Resources for Professor
+#### Professor Resource Endpoints
 ```
-GET /api/resources/professor/:professorId
-```
-**Query Parameters:**
-- `sectionId` (optional)
-- `subjectId` (optional)
-
-#### Get Resource Statistics
-```
-GET /api/resources/professor/:professorId/stats
+POST /api/resources/share             # Share resource with section
+GET /api/resources/professor/:id      # Get professor's resources
+GET /api/resources/professor/:id/stats # Get professor's statistics
+PATCH /api/resources/:resourceId      # Update shared resource
+DELETE /api/resources/:resourceId     # Delete shared resource
 ```
 
-#### Get Resources for Student
+#### Student Resource Endpoints
 ```
-GET /api/resources/student/:studentId
-```
-**Query Parameters:**
-- `subjectId` (optional)
-- `sectionId` (optional)
-
-#### Update Resource
-```
-PUT /api/resources/:resourceId
-```
-**Body:**
-```json
-{
-  "title": "Updated Title",
-  "description": "Updated Description",
-  "isVisible": true
-}
+GET /api/resources/student/:id        # Get student's accessible resources
+POST /api/resources/:id/download      # Track resource download
 ```
 
-#### Delete Resource
-```
-DELETE /api/resources/:resourceId
-```
+**Resource Types:** PDF, VIDEO, AUDIO, IMAGE, DOCUMENT, LINK, OTHER
 
-#### Track Resource Download
-```
-POST /api/resources/:resourceId/download
-```
-**Body:**
-```json
-{
-  "studentId": "student-uuid"
-}
+**Query Parameters for Filtering:**
+- `type` - Resource type filter
+- `sectionId` - Filter by section
+- `subjectId` - Filter by subject  
+- `isPublic` - Visibility filter
+- `search` - Text search in title/description
 ```
 
 ---
@@ -941,9 +918,74 @@ DELETE /api/semesters/:id
 GET /api/placements
 ```
 
+**Query Parameters:**
+- `status` (optional): Filter by placement status (`ACTIVE`, `CLOSED`, `DRAFT`)
+- `page` (optional): Page number for pagination (default: 1)
+- `limit` (optional): Number of items per page (default: 10)
+
+**Authentication:** Required (Bearer token)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "placements": [
+      {
+        "id": "placement-uuid",
+        "title": "Software Engineer",
+        "description": "Join our development team...",
+        "companyName": "Tech Corp",
+        "position": "Software Developer",
+        "packageOffered": "8-12 LPA",
+        "cgpaCriteria": 7.5,
+        "location": "Bangalore",
+        "applicationDeadline": "2025-12-31T23:59:59.000Z",
+        "status": "ACTIVE",
+        "createdAt": "2025-09-16T10:00:00.000Z",
+        "updatedAt": "2025-09-16T10:00:00.000Z",
+        "createdById": "admin-user-uuid",
+        "emailsSent": 25
+      }
+    ],
+    "pagination": {
+      "total": 50,
+      "page": 1,
+      "limit": 10,
+      "totalPages": 5
+    }
+  }
+}
+```
+
 #### Get Placement by ID
 ```
 GET /api/placements/:id
+```
+
+**Authentication:** Required (Bearer token)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "placement-uuid",
+    "title": "Software Engineer",
+    "description": "Join our development team...",
+    "companyName": "Tech Corp",
+    "position": "Software Developer",
+    "packageOffered": "8-12 LPA",
+    "cgpaCriteria": 7.5,
+    "location": "Bangalore",
+    "applicationDeadline": "2025-12-31T23:59:59.000Z",
+    "status": "ACTIVE",
+    "createdAt": "2025-09-16T10:00:00.000Z",
+    "updatedAt": "2025-09-16T10:00:00.000Z",
+    "createdById": "admin-user-uuid",
+    "emailsSent": 25
+  }
+}
 ```
 
 #### Create Placement (Admin)
@@ -951,15 +993,217 @@ GET /api/placements/:id
 POST /api/placements
 ```
 
+**Authentication:** Required (Bearer token) + Admin role
+
+**Request Body:**
+```json
+{
+  "title": "Software Engineer",
+  "description": "Join our development team as a software engineer...",
+  "companyName": "Tech Corp",
+  "position": "Software Developer",
+  "packageOffered": "8-12 LPA",
+  "cgpaCriteria": 7.5,
+  "location": "Bangalore",
+  "applicationDeadline": "2025-12-31T23:59:59.000Z"
+}
+```
+
+**Required Fields:**
+- `title` (string)
+- `description` (string) 
+- `companyName` (string)
+- `position` (string)
+
+**Optional Fields:**
+- `packageOffered` (string)
+- `cgpaCriteria` (number)
+- `location` (string)
+- `applicationDeadline` (ISO date string)
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Placement created successfully",
+  "data": {
+    "id": "new-placement-uuid",
+    "title": "Software Engineer",
+    "description": "Join our development team...",
+    "companyName": "Tech Corp",
+    "position": "Software Developer",
+    "packageOffered": "8-12 LPA",
+    "cgpaCriteria": 7.5,
+    "location": "Bangalore",
+    "applicationDeadline": "2025-12-31T23:59:59.000Z",
+    "status": "DRAFT",
+    "createdAt": "2025-09-16T10:00:00.000Z",
+    "updatedAt": "2025-09-16T10:00:00.000Z",
+    "createdById": "admin-user-uuid",
+    "emailsSent": 0
+  }
+}
+```
+
 #### Update Placement (Admin)
 ```
 PUT /api/placements/:id
+```
+
+**Authentication:** Required (Bearer token) + Admin role
+
+**Request Body:** (All fields optional for partial updates)
+```json
+{
+  "title": "Senior Software Engineer",
+  "description": "Updated description...",
+  "companyName": "Tech Corp",
+  "position": "Senior Software Developer",
+  "packageOffered": "10-15 LPA",
+  "cgpaCriteria": 8.0,
+  "location": "Mumbai",
+  "applicationDeadline": "2025-12-31T23:59:59.000Z",
+  "status": "ACTIVE"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Placement updated successfully",
+  "data": {
+    "id": "placement-uuid",
+    "title": "Senior Software Engineer",
+    "description": "Updated description...",
+    "companyName": "Tech Corp",
+    "position": "Senior Software Developer",
+    "packageOffered": "10-15 LPA",
+    "cgpaCriteria": 8.0,
+    "location": "Mumbai",
+    "applicationDeadline": "2025-12-31T23:59:59.000Z",
+    "status": "ACTIVE",
+    "createdAt": "2025-09-16T10:00:00.000Z",
+    "updatedAt": "2025-09-16T11:00:00.000Z",
+    "createdById": "admin-user-uuid",
+    "emailsSent": 0
+  }
+}
 ```
 
 #### Delete Placement (Admin)
 ```
 DELETE /api/placements/:id
 ```
+
+**Authentication:** Required (Bearer token) + Admin role
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Placement deleted successfully"
+}
+```
+
+#### Get Eligible Users Count
+```
+GET /api/placements/:id/eligible-count
+```
+
+**Authentication:** Required (Bearer token)
+
+**Description:** Returns the count of students eligible for a placement based on CGPA criteria.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "placementId": "placement-uuid",
+    "placementTitle": "Software Engineer",
+    "cgpaCriteria": 7.5,
+    "eligibleUsersCount": 42
+  }
+}
+```
+
+#### Send Placement Notification (Admin)
+```
+POST /api/placements/:id/notify
+```
+
+**Authentication:** Required (Bearer token) + Admin role
+
+**Description:** Sends email notifications to all students eligible for the placement (based on CGPA criteria). Only works for placements with status "ACTIVE".
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Placement notification sent successfully",
+  "data": {
+    "placementTitle": "Software Engineer",
+    "eligibleUsersFound": 42,
+    "emailsSent": 42,
+    "cgpaCriteria": 7.5,
+    "recipients": [
+      {
+        "name": "John Doe",
+        "email": "john.doe@example.com",
+        "cgpa": 8.2
+      },
+      {
+        "name": "Jane Smith", 
+        "email": "jane.smith@example.com",
+        "cgpa": 7.8
+      }
+    ]
+  }
+}
+```
+
+#### Get Placement Statistics
+```
+GET /api/placements/stats
+```
+
+**Authentication:** Required (Bearer token)
+
+**Description:** Returns aggregated statistics about all placements in the system.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalPlacements": 25,
+    "activePlacements": 8,
+    "closedPlacements": 17,
+    "totalEmailsSent": 1250
+  }
+}
+```
+
+### Placement Data Model
+
+#### Placement Status
+- `ACTIVE` - Placement is currently accepting applications
+- `CLOSED` - Placement is closed for applications
+- `DRAFT` - Placement is in draft state (not visible to students)
+
+#### CGPA Filtering
+The system automatically filters eligible students based on the `cgpaCriteria` field:
+- If `cgpaCriteria` is set, only students with CGPA >= criteria are eligible
+- If `cgpaCriteria` is null or 0, all students are eligible
+- CGPA is retrieved from the student's latest enrollment record
+- Students without enrollment records or CGPA are excluded from CGPA-based filtering
+
+#### Email Notifications
+- Email notifications are queued using the email service
+- Only students with role "STUDENT" receive notifications
+- The system tracks the number of emails sent per placement
+- Emails include placement details and student's CGPA information
 
 ---
 
@@ -1095,7 +1339,165 @@ DELETE /api/placements/:id
 
 ## Resource Management
 
-The resource management system enables professors to share educational materials with their sections and allows students to access and download these resources.
+The resource management system enables both administrators and professors to manage educational resources. Administrators can create general resources for testing and management purposes, while professors can share educational materials with their assigned sections.
+
+### Admin Resource Management
+
+#### Get All Resources (Admin)
+```
+GET /api/resources
+```
+**Description:** Retrieve all resources in the system with filtering options.
+
+**Query Parameters:**
+- `type` (optional) - Filter by resource type (PDF, VIDEO, AUDIO, etc.)
+- `sectionId` (optional) - Filter by specific section
+- `subjectId` (optional) - Filter by specific subject
+- `isPublic` (optional) - Filter by visibility (true/false)
+- `search` (optional) - Search in title and description
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Resources retrieved successfully",
+  "data": [
+    {
+      "id": "resource-uuid",
+      "title": "General Study Guide",
+      "description": "Comprehensive study material",
+      "type": "PDF",
+      "fileUrl": "https://example.com/guide.pdf",
+      "fileSize": 2048576,
+      "isPublic": true,
+      "uploadedBy": {
+        "id": "admin-uuid",
+        "firstName": "Admin",
+        "lastName": "User",
+        "role": "ADMIN"
+      },
+      "section": {
+        "id": "section-uuid",
+        "name": "Section A",
+        "code": "A"
+      },
+      "subject": {
+        "id": "subject-uuid",
+        "name": "Mathematics",
+        "code": "MATH101"
+      },
+      "downloads": 45,
+      "views": 120,
+      "createdAt": "2024-09-15T10:00:00Z"
+    }
+  ]
+}
+```
+
+#### Create Resource (Admin)
+```
+POST /api/resources
+```
+**Description:** Create a new resource for testing or general purposes.
+
+**Body:**
+```json
+{
+  "title": "Study Guide",
+  "description": "Comprehensive study material for final exams",
+  "type": "PDF",
+  "externalUrl": "https://example.com/guide.pdf",
+  "sectionId": "section-uuid",
+  "subjectId": "subject-uuid"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Resource created successfully",
+  "data": {
+    "id": "resource-uuid"
+  }
+}
+```
+
+#### Update Resource (Admin)
+```
+PATCH /api/resources/:id
+```
+**Description:** Update resource information.
+
+**Body:**
+```json
+{
+  "title": "Updated Study Guide",
+  "description": "Updated comprehensive study material",
+  "type": "PDF",
+  "externalUrl": "https://example.com/updated-guide.pdf",
+  "sectionId": "new-section-uuid",
+  "subjectId": "new-subject-uuid"
+}
+```
+
+#### Delete Resource (Admin)
+```
+DELETE /api/resources/:id
+```
+**Description:** Delete a resource from the system.
+
+#### Get Resource Statistics (Admin)
+```
+GET /api/resources/stats
+```
+**Description:** Get system-wide resource statistics.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Resource statistics retrieved successfully",
+  "data": {
+    "totalResources": 150,
+    "totalDownloads": 2350,
+    "totalViews": 5680,
+    "resourcesByType": [
+      {
+        "type": "PDF",
+        "count": 85
+      },
+      {
+        "type": "VIDEO",
+        "count": 32
+      },
+      {
+        "type": "AUDIO",
+        "count": 15
+      }
+    ]
+  }
+}
+```
+
+#### Upload Resource File (Admin)
+```
+POST /api/resources/:id/upload
+```
+**Description:** Upload a file for a resource.
+
+**Body:** (multipart/form-data)
+```
+file: <uploaded file>
+```
+
+#### Download Resource (Admin)
+```
+GET /api/resources/:id/download
+```
+**Description:** Get download link for a resource.
+
+### Professor Resource Management
 
 #### Share Resource (Professor)
 ```
@@ -1115,32 +1517,7 @@ POST /api/resources/share
   "professorId": "professor-uuid",
   "sectionId": "section-uuid",
   "subjectId": "subject-uuid",
-  "isDownloadable": true,
-  "expiresAt": "2024-12-31T23:59:59Z"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Resource shared successfully",
-  "data": {
-    "id": "resource-uuid",
-    "title": "Week 1 Lecture Notes",
-    "resourceType": "NOTES",
-    "fileUrl": "https://example.com/week1-notes.pdf",
-    "fileName": "DBMS_Week1_Notes.pdf",
-    "sharedAt": "2024-09-15T10:00:00Z",
-    "professor": {
-      "name": "Dr. Smith",
-      "email": "smith@university.edu"
-    },
-    "section": {
-      "name": "Section A",
-      "code": "A"
-    }
-  }
+  "isPinned": false
 }
 ```
 
@@ -1155,47 +1532,21 @@ GET /api/resources/student/:studentId
 - `resourceType` (optional) - Filter by resource type
 - `sectionId` (optional) - Filter by specific section
 
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Student resources retrieved successfully",
-  "data": [
-    {
-      "id": "resource-uuid",
-      "title": "Week 1 Lecture Notes",
-      "description": "Introduction to Database Management Systems",
-      "resourceType": "NOTES",
-      "fileName": "DBMS_Week1_Notes.pdf",
-      "fileSize": 2048576,
-      "isDownloadable": true,
-      "downloadCount": 25,
-      "sharedAt": "2024-09-15T10:00:00Z",
-      "expiresAt": "2024-12-31T23:59:59Z",
-      "professor": {
-        "name": "Dr. Smith",
-        "email": "smith@university.edu"
-      },
-      "subject": {
-        "name": "Database Management Systems",
-        "code": "DBMS101"
-      }
-    }
-  ]
-}
-```
-
 #### Get Resources for Professor
 ```
 GET /api/resources/professor/:professorId
 ```
 **Description:** Professors can view resources they have shared.
 
+**Query Parameters:**
+- `sectionId` (optional) - Filter by specific section
+- `subjectId` (optional) - Filter by specific subject
+
 #### Update Resource (Professor)
 ```
-PUT /api/resources/:resourceId
+PATCH /api/resources/:resourceId
 ```
-**Description:** Update resource details like title, description, or expiry date.
+**Description:** Update resource details like title, description, or visibility.
 
 #### Delete Resource (Professor)
 ```
@@ -1215,37 +1566,26 @@ GET /api/resources/professor/:professorId/stats
 ```
 **Description:** Get download statistics and engagement metrics for shared resources.
 
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Resource statistics retrieved successfully",
-  "data": {
-    "totalResources": 15,
-    "totalDownloads": 450,
-    "mostDownloaded": {
-      "title": "Final Exam Study Guide",
-      "downloads": 75
-    },
-    "recentActivity": [
-      {
-        "resourceTitle": "Week 1 Lecture Notes",
-        "downloads": 25,
-        "lastDownload": "2024-09-15T14:30:00Z"
-      }
-    ]
-  }
-}
-```
+### Resource Types (Frontend)
+- `PDF` - PDF documents and study materials
+- `VIDEO` - Video lectures and tutorials
+- `AUDIO` - Audio recordings and podcasts
+- `IMAGE` - Images, diagrams, and charts
+- `DOCUMENT` - Word documents and text files
+- `LINK` - External links and web resources
+- `OTHER` - Other educational materials
 
-**Resource Types:**
+### Resource Types (Backend Mapping)
 - `NOTES` - Lecture notes and study materials
 - `ASSIGNMENT` - Assignment documents and instructions
+- `SLIDES` - Presentation slides
+- `HANDOUT` - Handout materials
 - `REFERENCE` - Reference materials and additional reading
 - `VIDEO` - Video lectures and tutorials
-- `PRESENTATION` - Slide presentations
-- `DATASET` - Data files for projects and assignments
-- `SOFTWARE` - Software tools and applications
+- `AUDIO` - Audio recordings
+- `LINK` - External links
+- `ANNOUNCEMENT` - Announcements and notices
+- `SYLLABUS` - Course syllabus
 - `OTHER` - Other educational materials
 
 ---

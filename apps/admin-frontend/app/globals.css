@@ -30,13 +30,13 @@
   --chart-4: oklch(0.744 0.196 85.873); /* #eab308 - Chart color 4 */
   --chart-5: oklch(0.548 0.24 305.463); /* #9333ea - Chart color 5 */
   --radius: 0.75rem; /* Slightly larger corner rounding for elegance */
-  --sidebar: oklch(0.2 0.02 258.338); /* #1e293b - Sophisticated dark sidebar */
-  --sidebar-foreground: oklch(0.94 0.008 264.436); /* #f8fafc - Sidebar text */
+  --sidebar: oklch(0.98 0.004 264.436); /* #f8fafc - Light sidebar background */
+  --sidebar-foreground: oklch(0.278 0.013 258.338); /* #374151 - Dark sidebar text */
   --sidebar-primary: oklch(0.4 0.12 264.052); /* #3b5faa - Sidebar primary color */
   --sidebar-primary-foreground: oklch(1 0 0); /* #ffffff - Sidebar primary text */
   --sidebar-accent: oklch(0.698 0.156 45.417); /* #d97706 - Sidebar accent */
   --sidebar-accent-foreground: oklch(1 0 0); /* #ffffff - Sidebar accent text */
-  --sidebar-border: oklch(0.278 0.02 258.338); /* #334155 - Sidebar borders */
+  --sidebar-border: oklch(0.922 0.008 264.436); /* #e2e8f0 - Light sidebar borders */
   --sidebar-ring: oklch(0.4 0.12 264.052 / 0.4); /* Primary with refined opacity - Sidebar focus ring */
 }
 
@@ -211,5 +211,114 @@
   .shadow-elegant-lg {
     box-shadow: 0 10px 15px -3px hsl(var(--foreground) / 0.1),
                 0 4px 6px -4px hsl(var(--foreground) / 0.1);
+  }
+
+  /* Custom scrollbar for sidebar */
+  .sidebar-scrollarea [data-radix-scroll-area-viewport] {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--sidebar-border)) transparent;
+  }
+
+  .sidebar-scrollarea [data-radix-scroll-area-viewport]::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .sidebar-scrollarea [data-radix-scroll-area-viewport]::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sidebar-scrollarea [data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--sidebar-border));
+    border-radius: 3px;
+  }
+
+  .sidebar-scrollarea [data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--sidebar-accent) / 0.5);
+  }
+
+  /* Enhanced native scrollbar styling for sidebar */
+  .sidebar-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--sidebar-border) / 0.3) transparent;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--sidebar-border) / 0.4);
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--sidebar-accent) / 0.6);
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-thumb:active {
+    background-color: hsl(var(--sidebar-accent) / 0.8);
+  }
+
+  /* Cursor pointer for interactive elements */
+  button,
+  [role="button"],
+  input[type="submit"],
+  input[type="button"],
+  input[type="reset"],
+  input[type="file"],
+  label[for],
+  select,
+  summary,
+  .cursor-pointer,
+  [data-clickable="true"] {
+    cursor: pointer;
+  }
+
+  /* Specific interactive elements */
+  a:not([disabled]),
+  button:not([disabled]),
+  [role="button"]:not([disabled]),
+  [role="tab"]:not([disabled]),
+  [role="option"]:not([disabled]),
+  [role="menuitem"]:not([disabled]),
+  [tabindex]:not([tabindex="-1"]):not([disabled]) {
+    cursor: pointer;
+  }
+
+  /* Disabled state cursor */
+  button:disabled,
+  [role="button"]:disabled,
+  input:disabled,
+  select:disabled,
+  textarea:disabled,
+  [disabled] {
+    cursor: not-allowed;
+  }
+
+  /* Hover states should also have pointer cursor */
+  .hover\:cursor-pointer:hover {
+    cursor: pointer;
+  }
+
+  /* Smooth transitions for responsive behavior */
+  @media (max-width: 768px) {
+    .admin-sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      z-index: 50;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease-in-out;
+    }
+    
+    .admin-sidebar.open {
+      transform: translateX(0);
+    }
   }
 }

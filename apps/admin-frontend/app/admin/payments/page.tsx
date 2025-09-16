@@ -51,7 +51,7 @@ export default function PaymentsPage() {
   const calculateStats = (paymentData: Payment[]) => {
     const total = paymentData.length
     const pending = paymentData.filter(p => p.status === "PENDING").length
-    const verified = paymentData.filter(p => p.status === "SUCCESS").length
+    const verified = paymentData.filter(p => p.status === "VERIFIED").length
     const failed = paymentData.filter(p => p.status === "FAILED").length
 
     setStats({ total, pending, verified, failed })

@@ -19,6 +19,11 @@ export interface Resource {
         name: string;
         code: string;
     };
+    section?: {
+        id: string;
+        name: string;
+        code: string;
+    };
     semester?: {
         id: string;
         number: number;
@@ -38,10 +43,11 @@ export interface CreateResourceRequest {
     description: string;
     type: "PDF" | "VIDEO" | "AUDIO" | "IMAGE" | "DOCUMENT" | "LINK" | "OTHER";
     externalUrl?: string;
-    isPublic: boolean;
+    isPublic?: boolean;
     subjectId?: string;
     semesterId?: string;
     courseId?: string;
+    sectionId?: string;
 }
 
 export interface UpdateResourceRequest {
@@ -53,6 +59,7 @@ export interface UpdateResourceRequest {
     subjectId?: string;
     semesterId?: string;
     courseId?: string;
+    sectionId?: string;
 }
 
 export interface ResourceFilters {

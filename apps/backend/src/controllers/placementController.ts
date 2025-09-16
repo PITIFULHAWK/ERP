@@ -42,15 +42,6 @@ export const getPlacements = asyncHandler(
         const [placements, total] = await Promise.all([
             prisma.placement.findMany({
                 where,
-                include: {
-                    createdBy: {
-                        select: {
-                            id: true,
-                            name: true,
-                            email: true,
-                        },
-                    },
-                },
                 orderBy: {
                     createdAt: "desc",
                 },
@@ -82,15 +73,6 @@ export const getPlacementById = asyncHandler(
 
         const placement = await prisma.placement.findUnique({
             where: { id },
-            include: {
-                createdBy: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                    },
-                },
-            },
         });
 
         if (!placement) {
@@ -148,15 +130,6 @@ export const createPlacement = asyncHandler(
                     : null,
                 createdById: req.user.id, // Use authenticated user ID
             },
-            include: {
-                createdBy: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                    },
-                },
-            },
         });
 
         res.status(201).json({
@@ -211,15 +184,6 @@ export const updatePlacement = asyncHandler(
                 }),
                 ...(updateData.status && { status: updateData.status }),
             },
-            include: {
-                createdBy: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                    },
-                },
-            },
         });
 
         res.json({
@@ -232,10 +196,7 @@ export const updatePlacement = asyncHandler(
 
 // Delete placement (Admin only)
 export const deletePlacement = asyncHandler(
-    async (
-        req: Request & { user?: { id: string; role: string } },
-        res: Response
-    ) => {
+    async (req: AuthenticatedRequest, res: Response) => {
         const { id } = req.params;
 
         console.log("Delete placement request received for ID:", id);
@@ -289,10 +250,14 @@ export const getEligibleUsersCount = asyncHandler(
             role: "STUDENT", // Only students get placement notifications
         };
 
-        // Add CGPA criteria if specified
+        // Add CGPA criteria if specified using enrollment data
         if (placement.cgpaCriteria && placement.cgpaCriteria > 0) {
-            whereClause.cgpa = {
-                gte: placement.cgpaCriteria,
+            whereClause.enrollments = {
+                some: {
+                    cgpa: {
+                        gte: placement.cgpaCriteria,
+                    },
+                },
             };
         }
 
@@ -319,14 +284,6 @@ export const sendPlacementNotification = asyncHandler(
 
         const placement = await prisma.placement.findUnique({
             where: { id },
-            include: {
-                createdBy: {
-                    select: {
-                        name: true,
-                        email: true,
-                    },
-                },
-            },
         });
 
         if (!placement) {
@@ -348,10 +305,14 @@ export const sendPlacementNotification = asyncHandler(
             role: "STUDENT", // Only students get placement notifications
         };
 
-        // Add CGPA criteria if specified
+        // Add CGPA criteria if specified using enrollment data
         if (placement.cgpaCriteria && placement.cgpaCriteria > 0) {
-            whereClause.cgpa = {
-                gte: placement.cgpaCriteria,
+            whereClause.enrollments = {
+                some: {
+                    cgpa: {
+                        gte: placement.cgpaCriteria,
+                    },
+                },
             };
         }
 
@@ -362,7 +323,15 @@ export const sendPlacementNotification = asyncHandler(
                 id: true,
                 name: true,
                 email: true,
-                cgpa: true,
+                enrollments: {
+                    select: {
+                        cgpa: true,
+                    },
+                    take: 1,
+                    orderBy: {
+                        createdAt: "desc",
+                    },
+                },
             },
         });
 
@@ -378,11 +347,14 @@ export const sendPlacementNotification = asyncHandler(
             // Send emails using the existing email queue service
             const emailPromises = eligibleUsers.map(async (user: any) => {
                 try {
+                    // Get the user's latest CGPA from enrollments
+                    const userCgpa = user.enrollments[0]?.cgpa || null;
+
                     // Add email to queue using the placement notification method
                     await emailQueueService.queuePlacementNotificationEmail(
                         user.email,
                         user.name,
-                        user.cgpa,
+                        userCgpa,
                         placement
                     );
 
@@ -436,7 +408,7 @@ export const sendPlacementNotification = asyncHandler(
                     recipients: eligibleUsers.map((user: any) => ({
                         name: user.name,
                         email: user.email,
-                        cgpa: user.cgpa,
+                        cgpa: user.enrollments[0]?.cgpa || null,
                     })),
                 },
             });

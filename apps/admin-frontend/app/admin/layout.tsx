@@ -10,14 +10,21 @@ export default function AdminLayout({
 }) {
   return (
     <ProtectedRoute allowedRoles={["ADMIN", "VERIFIER"]}>
-      <div className="flex h-screen bg-background">
-        {/* Sidebar */}
-        <AdminSidebar />
+      <div className="flex h-screen w-full bg-background overflow-hidden">
+        {/* Sidebar - Fixed height */}
+        <AdminSidebar className="flex-shrink-0" />
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 h-full">
+          {/* Header */}
           <AdminHeader />
-          <main className="flex-1 overflow-auto">{children}</main>
+          
+          {/* Main Content - Scrollable */}
+          <main className="flex-1 overflow-auto bg-background p-6">
+            <div className="max-w-7xl mx-auto">
+              {children}
+            </div>
+          </main>
         </div>
       </div>
     </ProtectedRoute>

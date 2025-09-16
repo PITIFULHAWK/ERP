@@ -10,7 +10,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { toast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
@@ -29,9 +28,8 @@ const resourceTypeIcons = {
 
 export function ResourceManagement() {
   const [resources, setResources] = useState<Resource[]>([])
-  const [courses, setCourses] = useState<{id: string; name: string}[]>([])
   const [subjects, setSubjects] = useState<{id: string; name: string}[]>([])
-  const [semesters, setSemesters] = useState<{id: string; name: string; number: number}[]>([])
+  const [sections, setSections] = useState<{id: string; name: string; code: string; course: {name: string}}[]>([])
   const [stats, setStats] = useState<ResourceStats | null>(null)
   const [loading, setLoading] = useState(false)
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null)
@@ -41,7 +39,6 @@ export function ResourceManagement() {
     title: "",
     description: "",
     type: "PDF",
-    isPublic: true,
   })
   const [editingResource, setEditingResource] = useState<UpdateResourceRequest>({})
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -51,18 +48,17 @@ export function ResourceManagement() {
   
   // Filters
   const [filters, setFilters] = useState({
-    type: "",
-    courseId: "",
-    subjectId: "",
-    semesterId: "",
-    isPublic: "",
+    type: "all",
+    sectionId: "all",
+    subjectId: "all",
+    isPublic: "all",
     search: "",
   })
 
   const loadResources = useCallback(async () => {
     try {
       const activeFilters = Object.fromEntries(
-        Object.entries(filters).filter(([, value]) => value !== "")
+        Object.entries(filters).filter(([, value]) => value !== "" && value !== "all" && value !== "none")
       )
       const response = await apiClient.getResources(activeFilters) as { success: boolean; data: Resource[] }
       if (response.success) {
@@ -79,26 +75,14 @@ export function ResourceManagement() {
 
   useEffect(() => {
     loadResources()
-    loadCourses()
     loadSubjects()
-    loadSemesters()
+    loadSections()
     loadStats()
   }, [loadResources])
 
   useEffect(() => {
     loadResources()
   }, [loadResources])
-
-  const loadCourses = async () => {
-    try {
-      const response = await apiClient.getCourses() as { success: boolean; data: {id: string; name: string}[] }
-      if (response.success) {
-        setCourses(response.data)
-      }
-    } catch {
-      console.error("Failed to load courses")
-    }
-  }
 
   const loadSubjects = async () => {
     try {
@@ -111,14 +95,14 @@ export function ResourceManagement() {
     }
   }
 
-  const loadSemesters = async () => {
+  const loadSections = async () => {
     try {
-      const response = await apiClient.getSemesters() as { success: boolean; data: {id: string; name: string; number: number}[] }
+      const response = await apiClient.getSections() as { success: boolean; data: {id: string; name: string; code: string; course: {name: string}}[] }
       if (response.success) {
-        setSemesters(response.data)
+        setSections(response.data)
       }
     } catch {
-      console.error("Failed to load semesters")
+      console.error("Failed to load sections")
     }
   }
 
@@ -159,7 +143,7 @@ export function ResourceManagement() {
           description: "Resource created successfully",
         })
         setShowCreateDialog(false)
-        setNewResource({ title: "", description: "", type: "PDF", isPublic: true })
+        setNewResource({ title: "", description: "", type: "PDF" })
         setSelectedFile(null)
         loadResources()
         loadStats()
@@ -253,10 +237,8 @@ export function ResourceManagement() {
       description: resource.description,
       type: resource.type,
       externalUrl: resource.externalUrl,
-      isPublic: resource.isPublic,
       subjectId: resource.subject?.id,
-      semesterId: resource.semester?.id,
-      courseId: resource.course?.id,
+      sectionId: resource.section?.id,
     })
     setShowEditDialog(true)
   }
@@ -330,55 +312,38 @@ export function ResourceManagement() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Course</Label>
-                  <Select value={newResource.courseId || ""} onValueChange={(value) => setNewResource(prev => ({ ...prev, courseId: value || undefined }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select course" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">None</SelectItem>
-                      {courses.map((course) => (
-                        <SelectItem key={course.id} value={course.id}>
-                          {course.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Subject</Label>
-                  <Select value={newResource.subjectId || ""} onValueChange={(value) => setNewResource(prev => ({ ...prev, subjectId: value || undefined }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select subject" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">None</SelectItem>
-                      {subjects.map((subject) => (
-                        <SelectItem key={subject.id} value={subject.id}>
-                          {subject.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Semester</Label>
-                  <Select value={newResource.semesterId || ""} onValueChange={(value) => setNewResource(prev => ({ ...prev, semesterId: value || undefined }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select semester" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">None</SelectItem>
-                      {semesters.map((semester) => (
-                        <SelectItem key={semester.id} value={semester.id}>
-                          Semester {semester.number}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label>Section</Label>
+                <Select value={newResource.sectionId || "none"} onValueChange={(value) => setNewResource(prev => ({ ...prev, sectionId: value === "none" ? undefined : value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select section" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {sections.map((section) => (
+                      <SelectItem key={section.id} value={section.id}>
+                        {section.name} ({section.code}) - {section.course.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Subject (Optional)</Label>
+                <Select value={newResource.subjectId || "none"} onValueChange={(value) => setNewResource(prev => ({ ...prev, subjectId: value === "none" ? undefined : value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {subjects.map((subject) => (
+                      <SelectItem key={subject.id} value={subject.id}>
+                        {subject.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {newResource.type === "LINK" ? (
@@ -404,14 +369,6 @@ export function ResourceManagement() {
                 </div>
               )}
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isPublic"
-                  checked={newResource.isPublic}
-                  onCheckedChange={(checked) => setNewResource(prev => ({ ...prev, isPublic: !!checked }))}
-                />
-                <Label htmlFor="isPublic">Make this resource public</Label>
-              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
@@ -438,7 +395,7 @@ export function ResourceManagement() {
               <CardTitle>Filters</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div className="space-y-2">
                   <Label>Search</Label>
                   <Input
@@ -454,7 +411,7 @@ export function ResourceManagement() {
                       <SelectValue placeholder="All types" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Types</SelectItem>
+                      <SelectItem value="all">All Types</SelectItem>
                       <SelectItem value="PDF">PDF</SelectItem>
                       <SelectItem value="VIDEO">Video</SelectItem>
                       <SelectItem value="AUDIO">Audio</SelectItem>
@@ -465,16 +422,16 @@ export function ResourceManagement() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Course</Label>
-                  <Select value={filters.courseId} onValueChange={(value) => setFilters(prev => ({ ...prev, courseId: value }))}>
+                  <Label>Section</Label>
+                  <Select value={filters.sectionId || "all"} onValueChange={(value) => setFilters(prev => ({ ...prev, sectionId: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="All courses" />
+                      <SelectValue placeholder="All sections" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Courses</SelectItem>
-                      {courses.map((course) => (
-                        <SelectItem key={course.id} value={course.id}>
-                          {course.name}
+                      <SelectItem value="all">All Sections</SelectItem>
+                      {sections.map((section) => (
+                        <SelectItem key={section.id} value={section.id}>
+                          {section.name} ({section.code}) - {section.course.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -487,7 +444,7 @@ export function ResourceManagement() {
                       <SelectValue placeholder="All subjects" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Subjects</SelectItem>
+                      <SelectItem value="all">All Subjects</SelectItem>
                       {subjects.map((subject) => (
                         <SelectItem key={subject.id} value={subject.id}>
                           {subject.name}
@@ -497,22 +454,22 @@ export function ResourceManagement() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Visibility</Label>
+                  <Label>Status</Label>
                   <Select value={filters.isPublic} onValueChange={(value) => setFilters(prev => ({ ...prev, isPublic: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="All" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All</SelectItem>
-                      <SelectItem value="true">Public</SelectItem>
-                      <SelectItem value="false">Private</SelectItem>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="true">Visible</SelectItem>
+                      <SelectItem value="false">Hidden</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="flex items-end">
                   <Button 
                     variant="outline" 
-                    onClick={() => setFilters({ type: "", courseId: "", subjectId: "", semesterId: "", isPublic: "", search: "" })}
+                    onClick={() => setFilters({ type: "all", sectionId: "all", subjectId: "all", isPublic: "all", search: "" })}
                   >
                     Clear
                   </Button>
@@ -536,7 +493,7 @@ export function ResourceManagement() {
                     <TableRow>
                       <TableHead>Resource</TableHead>
                       <TableHead>Type</TableHead>
-                      <TableHead>Course/Subject</TableHead>
+                      <TableHead>Section/Subject</TableHead>
                       <TableHead>Uploaded By</TableHead>
                       <TableHead>Stats</TableHead>
                       <TableHead>Visibility</TableHead>
@@ -562,9 +519,9 @@ export function ResourceManagement() {
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">
-                            {resource.course && <div>{resource.course.name}</div>}
+                            {resource.section && <div>{resource.section.name} ({resource.section.code})</div>}
                             {resource.subject && <div className="text-muted-foreground">{resource.subject.name}</div>}
-                            {!resource.course && !resource.subject && <span className="text-muted-foreground">General</span>}
+                            {!resource.section && !resource.subject && <span className="text-muted-foreground">General</span>}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -748,13 +705,38 @@ export function ResourceManagement() {
               </div>
             )}
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="edit-isPublic"
-                checked={editingResource.isPublic}
-                onCheckedChange={(checked) => setEditingResource(prev => ({ ...prev, isPublic: !!checked }))}
-              />
-              <Label htmlFor="edit-isPublic">Make this resource public</Label>
+            <div className="space-y-2">
+              <Label>Section</Label>
+              <Select value={editingResource.sectionId || "none"} onValueChange={(value) => setEditingResource(prev => ({ ...prev, sectionId: value === "none" ? undefined : value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select section" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {sections.map((section) => (
+                    <SelectItem key={section.id} value={section.id}>
+                      {section.name} ({section.code}) - {section.course.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Subject (Optional)</Label>
+              <Select value={editingResource.subjectId || "none"} onValueChange={(value) => setEditingResource(prev => ({ ...prev, subjectId: value === "none" ? undefined : value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {subjects.map((subject) => (
+                    <SelectItem key={subject.id} value={subject.id}>
+                      {subject.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

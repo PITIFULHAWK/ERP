@@ -121,7 +121,7 @@ export default function HostelsPage() {
         try {
           const paymentsResponse = await apiClient.getPayments({ 
             userId: application.userId,
-            status: "SUCCESS" 
+            status: "VERIFIED" 
           }) as ApiResponse<Array<{
             id: string;
             type: string;

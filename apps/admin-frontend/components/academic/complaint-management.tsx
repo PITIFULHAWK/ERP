@@ -70,21 +70,27 @@ export function ComplaintManagement() {
   
   // Filters
   const [filters, setFilters] = useState({
-    status: "",
-    category: "",
-    priority: "",
-    assignedToId: "",
+    status: "all",
+    category: "all",
+    priority: "all",
+    assignedToId: "unassigned",
     search: "",
   })
 
   const loadComplaints = useCallback(async () => {
+    setLoading(true)
     try {
       const activeFilters = Object.fromEntries(
-        Object.entries(filters).filter(([, value]) => value !== "")
+        Object.entries(filters).filter(([key, value]) => {
+          if (key === "search") return value !== ""
+          return value !== "all" && value !== "unassigned"
+        })
       )
       const response = await apiClient.getComplaints(activeFilters) as { success: boolean; data: Complaint[] }
-      if (response.success) {
-        setComplaints(response.data)
+      if (response.success && response.data) {
+        setComplaints(Array.isArray(response.data) ? response.data : [])
+      } else {
+        setComplaints([])
       }
     } catch {
       toast({
@@ -92,14 +98,18 @@ export function ComplaintManagement() {
         description: "Failed to load complaints",
         variant: "destructive",
       })
+    } finally {
+      setLoading(false)
     }
   }, [filters])
 
   const loadUsers = useCallback(async () => {
     try {
       const response = await apiClient.getUsers({ role: "ADMIN" }) as { success: boolean; data: {id: string; firstName: string; lastName: string}[] }
-      if (response.success) {
-        setUsers(response.data)
+      if (response.success && response.data) {
+        setUsers(Array.isArray(response.data) ? response.data : [])
+      } else {
+        setUsers([])
       }
     } catch {
       toast({
@@ -113,8 +123,10 @@ export function ComplaintManagement() {
   const loadStats = useCallback(async () => {
     try {
       const response = await apiClient.getComplaintStats() as { success: boolean; data: ComplaintStats }
-      if (response.success) {
+      if (response.success && response.data) {
         setStats(response.data)
+      } else {
+        setStats(null)
       }
     } catch {
       toast({
@@ -334,7 +346,7 @@ export function ComplaintManagement() {
                       <SelectValue placeholder="All statuses" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Statuses</SelectItem>
+                      <SelectItem value="all">All Statuses</SelectItem>
                       <SelectItem value="OPEN">Open</SelectItem>
                       <SelectItem value="ASSIGNED">Assigned</SelectItem>
                       <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
@@ -351,7 +363,7 @@ export function ComplaintManagement() {
                       <SelectValue placeholder="All categories" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Categories</SelectItem>
+                      <SelectItem value="all">All Categories</SelectItem>
                       <SelectItem value="ACADEMIC">Academic</SelectItem>
                       <SelectItem value="INFRASTRUCTURE">Infrastructure</SelectItem>
                       <SelectItem value="HOSTEL">Hostel</SelectItem>
@@ -374,7 +386,7 @@ export function ComplaintManagement() {
                       <SelectValue placeholder="All priorities" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Priorities</SelectItem>
+                      <SelectItem value="all">All Priorities</SelectItem>
                       <SelectItem value="LOW">Low</SelectItem>
                       <SelectItem value="MEDIUM">Medium</SelectItem>
                       <SelectItem value="HIGH">High</SelectItem>
@@ -385,7 +397,7 @@ export function ComplaintManagement() {
                 <div className="flex items-end">
                   <Button 
                     variant="outline" 
-                    onClick={() => setFilters({ status: "", category: "", priority: "", assignedToId: "", search: "" })}
+                    onClick={() => setFilters({ status: "all", category: "all", priority: "all", assignedToId: "unassigned", search: "" })}
                   >
                     Clear
                   </Button>
@@ -421,9 +433,16 @@ export function ComplaintManagement() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {complaints.map((complaint) => (
-                      <TableRow key={complaint.id}>
-                        <TableCell className="font-medium">
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          Loading complaints...
+                        </TableCell>
+                      </TableRow>
+                    ) : complaints && Array.isArray(complaints) && complaints.length > 0 ? (
+                      complaints.map((complaint) => (
+                        <TableRow key={complaint.id}>
+                          <TableCell className="font-medium">
                           <div className="max-w-xs">
                             <div className="font-semibold line-clamp-1">{complaint.title}</div>
                             <div className="text-sm text-muted-foreground line-clamp-2">{complaint.description}</div>
@@ -433,8 +452,8 @@ export function ComplaintManagement() {
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4" />
                             <div>
-                              <div className="font-medium">{complaint.student.firstName} {complaint.student.lastName}</div>
-                              <div className="text-sm text-muted-foreground">{complaint.student.email}</div>
+                              <div className="font-medium">{complaint.student?.firstName || 'Unknown'} {complaint.student?.lastName || ''}</div>
+                              <div className="text-sm text-muted-foreground">{complaint.student?.email || 'No email'}</div>
                             </div>
                           </div>
                         </TableCell>
@@ -470,7 +489,7 @@ export function ComplaintManagement() {
                           )}
                         </TableCell>
                         <TableCell className="text-sm">
-                          {format(new Date(complaint.createdAt), "MMM dd, yyyy")}
+                          {complaint.createdAt ? format(new Date(complaint.createdAt), "MMM dd, yyyy") : 'Unknown date'}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
@@ -493,7 +512,14 @@ export function ComplaintManagement() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          No complaints found
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -514,23 +540,23 @@ export function ComplaintManagement() {
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                     <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold">{stats.totalComplaints}</div>
+                      <div className="text-2xl font-bold">{stats?.totalComplaints || 0}</div>
                       <div className="text-sm text-muted-foreground">Total</div>
                     </div>
                     <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">{stats.openComplaints}</div>
+                      <div className="text-2xl font-bold text-blue-600">{stats?.openComplaints || 0}</div>
                       <div className="text-sm text-muted-foreground">Open</div>
                     </div>
                     <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold text-orange-600">{stats.inProgressComplaints}</div>
+                      <div className="text-2xl font-bold text-orange-600">{stats?.inProgressComplaints || 0}</div>
                       <div className="text-sm text-muted-foreground">In Progress</div>
                     </div>
                     <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">{stats.resolvedComplaints}</div>
+                      <div className="text-2xl font-bold text-green-600">{stats?.resolvedComplaints || 0}</div>
                       <div className="text-sm text-muted-foreground">Resolved</div>
                     </div>
                     <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold">{stats.avgResolutionTime.toFixed(1)} days</div>
+                      <div className="text-2xl font-bold">{stats?.avgResolutionTime ? stats.avgResolutionTime.toFixed(1) : '0.0'} days</div>
                       <div className="text-sm text-muted-foreground">Avg Resolution</div>
                     </div>
                   </div>
@@ -539,27 +565,35 @@ export function ComplaintManagement() {
                     <div>
                       <h3 className="text-lg font-semibold mb-4">Complaints by Category</h3>
                       <div className="space-y-2">
-                        {stats.complaintsByCategory.map((item) => (
-                          <div key={item.category} className="flex items-center justify-between p-3 border rounded-lg">
-                            <span className="font-medium">{item.category}</span>
-                            <Badge variant="secondary">{item.count}</Badge>
-                          </div>
-                        ))}
+                        {stats?.complaintsByCategory && Array.isArray(stats.complaintsByCategory) ? (
+                          stats.complaintsByCategory.map((item) => (
+                            <div key={item.category} className="flex items-center justify-between p-3 border rounded-lg">
+                              <span className="font-medium">{item.category}</span>
+                              <Badge variant="secondary">{item.count}</Badge>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No category data available</p>
+                        )}
                       </div>
                     </div>
 
                     <div>
                       <h3 className="text-lg font-semibold mb-4">Complaints by Priority</h3>
                       <div className="space-y-2">
-                        {stats.complaintsByPriority.map((item) => (
-                          <div key={item.priority} className="flex items-center justify-between p-3 border rounded-lg">
-                            <div className="flex items-center gap-2">
-                              {getPriorityIcon(item.priority)}
-                              <span className="font-medium">{item.priority}</span>
+                        {stats?.complaintsByPriority && Array.isArray(stats.complaintsByPriority) ? (
+                          stats.complaintsByPriority.map((item) => (
+                            <div key={item.priority} className="flex items-center justify-between p-3 border rounded-lg">
+                              <div className="flex items-center gap-2">
+                                {getPriorityIcon(item.priority)}
+                                <span className="font-medium">{item.priority}</span>
+                              </div>
+                              <Badge variant="secondary">{item.count}</Badge>
                             </div>
-                            <Badge variant="secondary">{item.count}</Badge>
-                          </div>
-                        ))}
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No priority data available</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -603,17 +637,17 @@ export function ComplaintManagement() {
             
             <div className="space-y-2">
               <Label>Assign To</Label>
-              <Select value={statusUpdate.assignedToId || ""} onValueChange={(value) => setStatusUpdate(prev => ({ ...prev, assignedToId: value || undefined }))}>
+              <Select value={statusUpdate.assignedToId || "unassigned"} onValueChange={(value) => setStatusUpdate(prev => ({ ...prev, assignedToId: value === "unassigned" ? undefined : value }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select admin" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Unassigned</SelectItem>
-                  {users.map((user) => (
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {users && Array.isArray(users) ? users.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.firstName} {user.lastName}
                     </SelectItem>
-                  ))}
+                  )) : null}
                 </SelectContent>
               </Select>
             </div>
@@ -695,9 +729,9 @@ export function ComplaintManagement() {
                     <div>
                       <Label className="text-sm font-medium">Student</Label>
                       <p className="mt-1 text-sm">
-                        {selectedComplaint.student.firstName} {selectedComplaint.student.lastName}
+                        {selectedComplaint.student?.firstName || 'Unknown'} {selectedComplaint.student?.lastName || ''}
                         <br />
-                        <span className="text-muted-foreground">{selectedComplaint.student.email}</span>
+                        <span className="text-muted-foreground">{selectedComplaint.student?.email || 'No email'}</span>
                       </p>
                     </div>
                     <div>
@@ -719,7 +753,7 @@ export function ComplaintManagement() {
                   <div>
                     <Label className="text-sm font-medium">Created</Label>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {format(new Date(selectedComplaint.createdAt), "PPP 'at' p")}
+                      {selectedComplaint.createdAt ? format(new Date(selectedComplaint.createdAt), "PPP 'at' p") : 'Unknown date'}
                     </p>
                   </div>
 
@@ -787,17 +821,17 @@ export function ComplaintManagement() {
                   {/* Updates History */}
                   <div className="space-y-3">
                     <Label>Update History</Label>
-                    {selectedComplaint.updates && selectedComplaint.updates.length > 0 ? (
+                    {selectedComplaint.updates && Array.isArray(selectedComplaint.updates) && selectedComplaint.updates.length > 0 ? (
                       <div className="space-y-3">
                         {selectedComplaint.updates.map((update) => (
                           <div key={update.id} className="p-4 border rounded-lg">
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium">
-                                  {update.updatedBy.firstName} {update.updatedBy.lastName}
+                                  {update.updatedBy?.firstName || 'Unknown'} {update.updatedBy?.lastName || 'User'}
                                 </span>
                                 <Badge variant="outline" className="text-xs">
-                                  {update.updatedBy.role}
+                                  {update.updatedBy?.role || 'Unknown'}
                                 </Badge>
                                 {update.isInternal && (
                                   <Badge variant="destructive" className="text-xs">
@@ -806,7 +840,7 @@ export function ComplaintManagement() {
                                 )}
                               </div>
                               <span className="text-sm text-muted-foreground">
-                                {format(new Date(update.createdAt), "MMM dd, yyyy 'at' h:mm a")}
+                                {update.createdAt ? format(new Date(update.createdAt), "MMM dd, yyyy 'at' h:mm a") : 'Unknown date'}
                               </span>
                             </div>
                             <p className="text-sm">{update.message}</p>
