@@ -9,6 +9,7 @@ import {
     getResourceStatsAdmin,
     uploadResourceFile,
     downloadResourceAdmin,
+    upload, // Add the multer middleware
 
     // Professor resource management
     shareResource,
@@ -29,7 +30,7 @@ router.get("/", getResources); // GET /resources
 router.get("/stats", getResourceStatsAdmin); // GET /resources/stats
 router.get("/:id", getResource); // GET /resources/:id
 router.post("/", createResource); // POST /resources
-router.post("/:id/upload", uploadResourceFile); // POST /resources/:id/upload
+router.post("/:id/upload", upload.single("file"), uploadResourceFile); // POST /resources/:id/upload
 router.patch("/:id", updateResourceAdmin); // PATCH /resources/:id
 router.delete("/:id", deleteResourceAdmin); // DELETE /resources/:id
 router.get("/:id/download", downloadResourceAdmin); // GET /resources/:id/download
@@ -37,8 +38,8 @@ router.get("/:id/download", downloadResourceAdmin); // GET /resources/:id/downlo
 // ===============================
 // PROFESSOR RESOURCE MANAGEMENT (existing)
 // ===============================
-// Resource sharing (Professor)
-router.post("/share", shareResource);
+// Resource sharing (Professor) - supports both file upload and external URLs
+router.post("/share", upload.single("file"), shareResource);
 router.get("/professor/:professorId", getResourcesForProfessor);
 router.get("/professor/:professorId/stats", getResourceStats);
 

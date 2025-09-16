@@ -7,6 +7,8 @@ This document provides comprehensive documentation for all API endpoints in the 
 - **Enhanced Resource Management**: Added comprehensive admin endpoints for resource management with section-based organization
 - **Section-Based Filtering**: Resources can now be filtered and organized by sections instead of individual course/semester combinations
 - **Improved Resource Types**: Updated resource type mapping between frontend and backend for better consistency
+- **Cloudinary Integration**: All file uploads now use Cloudinary cloud storage for better scalability and performance
+- **File Management**: Automatic file deletion and replacement functionality with cloud storage integration
 
 ## Base URL
 ```
@@ -192,10 +194,61 @@ GET /api/attendance/section/:sectionId/stats
 ```
 POST /api/academic-calendar/upload
 ```
+**Description:** Upload academic calendar PDF using Cloudinary cloud storage. Only PDF files up to 15MB are supported.
+
+**Headers:**
+```
+Content-Type: multipart/form-data
+```
+
 **Body:** (multipart/form-data)
 ```
+file: <PDF file>
 academicYearId: "academic-year-uuid"
-calendarPdf: <PDF file>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Academic calendar PDF uploaded successfully",
+  "data": {
+    "id": "academic-year-uuid",
+    "year": "2024-2025",
+    "calendarPdfUrl": "https://res.cloudinary.com/your-cloud/raw/upload/v1234567890/erp-academic-calendars/calendar.pdf",
+    "calendarPdfName": "academic-calendar-2024-2025.pdf",
+    "calendarCloudinaryPublicId": "erp-academic-calendars/1234567890-calendar.pdf",
+    "calendarUploadedAt": "2024-09-16T14:30:00.000Z",
+    "fileSize": 3145728,
+    "university": {
+      "id": "university-uuid",
+      "name": "University Name"
+    },
+    // ... other academic year fields
+  }
+}
+```
+
+**Error Responses:**
+```json
+{
+  "success": false,
+  "message": "No PDF file provided"
+}
+```
+
+```json
+{
+  "success": false,
+  "message": "Only PDF files are allowed for academic calendar upload."
+}
+```
+
+```json
+{
+  "success": false,
+  "message": "Academic year not found"
+}
 ```
 
 #### Get Calendar PDF
@@ -1484,11 +1537,66 @@ GET /api/resources/stats
 ```
 POST /api/resources/:id/upload
 ```
-**Description:** Upload a file for a resource.
+**Description:** Upload a file for a resource using Cloudinary cloud storage. Supports documents, images, videos, and audio files up to 10MB.
+
+**Headers:**
+```
+Content-Type: multipart/form-data
+```
 
 **Body:** (multipart/form-data)
 ```
 file: <uploaded file>
+```
+
+**Supported File Types:**
+- Documents: PDF, DOC, DOCX, PPT, PPTX, TXT
+- Images: JPEG, PNG, GIF
+- Videos: MP4, WEBM
+- Audio: MP3, WAV, MPEG
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "File uploaded successfully",
+  "data": {
+    "fileUrl": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/erp-resources/sample.pdf",
+    "fileName": "sample.pdf",
+    "fileSizeBytes": 2048576,
+    "resource": {
+      "id": "resource-uuid",
+      "title": "Resource Title",
+      "fileUrl": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/erp-resources/sample.pdf",
+      "fileName": "sample.pdf",
+      "fileSizeBytes": 2048576,
+      "cloudinaryPublicId": "erp-resources/1234567890-sample.pdf",
+      // ... other resource fields
+    }
+  }
+}
+```
+
+**Error Responses:**
+```json
+{
+  "success": false,
+  "message": "No file provided"
+}
+```
+
+```json
+{
+  "success": false,
+  "message": "Invalid file type. Please upload documents, images, videos, or audio files."
+}
+```
+
+```json
+{
+  "success": false,
+  "message": "Resource not found"
+}
 ```
 
 #### Download Resource (Admin)

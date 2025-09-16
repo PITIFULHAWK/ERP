@@ -2,49 +2,119 @@ import { Request, Response } from "express";
 import prisma from "@repo/db";
 import { asyncHandler } from "../middleware/index";
 import { ApiResponse } from "../types";
+import { uploadToCloudinary, deleteFromCloudinary } from "../config/cloudinary";
+import multer from "multer";
+
+// Configure Multer for academic calendar PDF uploads
+const storage = multer.memoryStorage();
+export const uploadCalendar = multer({
+    storage,
+    limits: {
+        fileSize: 15 * 1024 * 1024, // 15MB for PDFs
+    },
+    fileFilter: (req, file, cb) => {
+        // Only allow PDF files for academic calendar
+        if (file.mimetype === "application/pdf") {
+            cb(null, true);
+        } else {
+            cb(
+                new Error(
+                    "Only PDF files are allowed for academic calendar upload."
+                )
+            );
+        }
+    },
+});
 
 // Upload academic calendar PDF
 export const uploadCalendarPDF = asyncHandler(
     async (req: Request, res: Response) => {
-        const { academicYearId, calendarPdfUrl, calendarPdfName } = req.body;
+        const { academicYearId } = req.body;
+        const file = req.file;
 
-        // Verify academic year exists
-        const academicYear = await prisma.academicYear.findUnique({
-            where: { id: academicYearId },
-        });
-
-        if (!academicYear) {
-            return res.status(404).json({
+        if (!file) {
+            return res.status(400).json({
                 success: false,
-                message: "Academic year not found",
+                message: "No PDF file provided",
             });
         }
 
-        // Update academic year with calendar PDF
-        const updatedAcademicYear = await prisma.academicYear.update({
-            where: { id: academicYearId },
-            data: {
-                calendarPdfUrl,
-                calendarPdfName,
-                calendarUploadedAt: new Date(),
-            },
-            include: {
-                university: {
-                    select: {
-                        id: true,
-                        name: true,
+        if (!academicYearId) {
+            return res.status(400).json({
+                success: false,
+                message: "Academic year ID is required",
+            });
+        }
+
+        try {
+            // Verify academic year exists
+            const academicYear = await prisma.academicYear.findUnique({
+                where: { id: academicYearId },
+            });
+
+            if (!academicYear) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Academic year not found",
+                });
+            }
+
+            // Delete old calendar PDF from Cloudinary if it exists
+            if (academicYear.calendarCloudinaryPublicId) {
+                try {
+                    await deleteFromCloudinary(
+                        academicYear.calendarCloudinaryPublicId
+                    );
+                } catch (error) {
+                    console.error("Error deleting old calendar PDF:", error);
+                    // Continue with upload even if delete fails
+                }
+            }
+
+            // Upload new PDF to Cloudinary
+            const uploadResult = await uploadToCloudinary(
+                file.buffer,
+                file.originalname,
+                "erp-academic-calendars"
+            );
+
+            // Update academic year with calendar PDF
+            const updatedAcademicYear = await prisma.academicYear.update({
+                where: { id: academicYearId },
+                data: {
+                    calendarPdfUrl: uploadResult.secure_url,
+                    calendarPdfName: file.originalname,
+                    calendarCloudinaryPublicId: uploadResult.public_id,
+                    calendarUploadedAt: new Date(),
+                },
+                include: {
+                    university: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
                     },
                 },
-            },
-        });
+            });
 
-        const response: ApiResponse = {
-            success: true,
-            message: "Academic calendar PDF uploaded successfully",
-            data: updatedAcademicYear,
-        };
+            const response: ApiResponse = {
+                success: true,
+                message: "Academic calendar PDF uploaded successfully",
+                data: {
+                    ...updatedAcademicYear,
+                    fileSize: uploadResult.bytes,
+                },
+            };
 
-        res.json(response);
+            res.json(response);
+        } catch (error) {
+            console.error("Error uploading calendar PDF:", error);
+            res.status(500).json({
+                success: false,
+                message: "Failed to upload calendar PDF",
+                error: error instanceof Error ? error.message : "Unknown error",
+            });
+        }
     }
 );
 
@@ -169,34 +239,59 @@ export const removeCalendarPDF = asyncHandler(
     async (req: Request, res: Response) => {
         const { academicYearId } = req.params;
 
-        const academicYear = await prisma.academicYear.findUnique({
-            where: { id: academicYearId },
-        });
+        try {
+            const academicYear = await prisma.academicYear.findUnique({
+                where: { id: academicYearId },
+            });
 
-        if (!academicYear) {
-            return res.status(404).json({
+            if (!academicYear) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Academic year not found",
+                });
+            }
+
+            // Delete file from Cloudinary if it exists
+            if (academicYear.calendarCloudinaryPublicId) {
+                try {
+                    await deleteFromCloudinary(
+                        academicYear.calendarCloudinaryPublicId
+                    );
+                } catch (error) {
+                    console.error(
+                        "Error deleting calendar PDF from Cloudinary:",
+                        error
+                    );
+                    // Continue with database cleanup even if Cloudinary delete fails
+                }
+            }
+
+            // Remove calendar PDF from academic year
+            const updatedAcademicYear = await prisma.academicYear.update({
+                where: { id: academicYearId },
+                data: {
+                    calendarPdfUrl: null,
+                    calendarPdfName: null,
+                    calendarCloudinaryPublicId: null,
+                    calendarUploadedAt: null,
+                },
+            });
+
+            const response: ApiResponse = {
+                success: true,
+                message: "Academic calendar PDF removed successfully",
+                data: updatedAcademicYear,
+            };
+
+            res.json(response);
+        } catch (error) {
+            console.error("Error removing calendar PDF:", error);
+            res.status(500).json({
                 success: false,
-                message: "Academic year not found",
+                message: "Failed to remove calendar PDF",
+                error: error instanceof Error ? error.message : "Unknown error",
             });
         }
-
-        // Remove calendar PDF from academic year
-        const updatedAcademicYear = await prisma.academicYear.update({
-            where: { id: academicYearId },
-            data: {
-                calendarPdfUrl: null,
-                calendarPdfName: null,
-                calendarUploadedAt: null,
-            },
-        });
-
-        const response: ApiResponse = {
-            success: true,
-            message: "Academic calendar PDF removed successfully",
-            data: updatedAcademicYear,
-        };
-
-        res.json(response);
     }
 );
 

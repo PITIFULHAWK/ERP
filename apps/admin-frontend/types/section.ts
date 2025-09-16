@@ -2,14 +2,41 @@ export interface Section {
     id: string;
     name: string;
     code: string;
-    maxCapacity: number;
-    currentCapacity: number;
+    description?: string;
+    maxStudents: number;
+    currentStudents: number;
     isActive: boolean;
     course: {
         id: string;
         name: string;
+        code?: string;
+    };
+    semester?: {
+        id: string;
+        code: string;
+        number: number;
+    };
+    academicYear?: {
+        id: string;
+        year: string;
+        isActive: boolean;
     };
     enrollments: Enrollment[];
+    professorAssignments?: {
+        id: string;
+        assignmentType: string;
+        isActive: boolean;
+        professor: {
+            id: string;
+            name: string;
+            email: string;
+        };
+        subject: {
+            id: string;
+            name: string;
+            code: string;
+        };
+    }[];
     createdAt: string;
     updatedAt: string;
 }
@@ -19,10 +46,11 @@ export interface Enrollment {
     enrollmentDate: string;
     isActive: boolean;
     currentSemester: number;
+    status: string;
+    createdAt: string;
     student: {
         id: string;
-        firstName: string;
-        lastName: string;
+        name: string;
         email: string;
     };
     section: {
@@ -30,23 +58,36 @@ export interface Enrollment {
         name: string;
         code: string;
     };
-    course: {
+    enrollment: {
         id: string;
-        name: string;
+        course: {
+            id: string;
+            name: string;
+        };
+        semester: {
+            id: string;
+            code: string;
+            number: number;
+        };
     };
 }
 
 export interface CreateSectionRequest {
     name: string;
     code: string;
-    maxCapacity: number;
+    description?: string;
+    maxStudents: number;
     courseId: string;
+    semesterId: string;
+    academicYearId: string;
+    startTime?: string;
+    endTime?: string;
 }
 
 export interface UpdateSectionRequest {
     name?: string;
     code?: string;
-    maxCapacity?: number;
+    maxStudents?: number;
     isActive?: boolean;
 }
 
@@ -62,6 +103,8 @@ export interface CreateEnrollmentRequest {
     sectionId: string;
     courseId: string;
     currentSemester: number;
+    semesterId?: string;
+    academicYearId?: string;
 }
 
 export interface UpdateEnrollmentRequest {

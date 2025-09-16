@@ -5,12 +5,13 @@ import {
     getStudentCalendar,
     removeCalendarPDF,
     getAcademicYearsWithCalendar,
+    uploadCalendar, // Add multer middleware
 } from "../controllers/academicCalendarController";
 
 const router: Router = Router();
 
 // Academic calendar PDF management
-router.post("/upload", uploadCalendarPDF);
+router.post("/upload", uploadCalendar.single("file"), uploadCalendarPDF);
 router.get("/:academicYearId", getCalendarPDF);
 router.delete("/:academicYearId", removeCalendarPDF);
 

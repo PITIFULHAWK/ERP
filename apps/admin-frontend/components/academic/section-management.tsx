@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,43 +10,54 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { toast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
-import { Plus, Users, Edit2, Trash2, UserPlus, Eye } from "lucide-react"
-import type { Section, Enrollment, CreateSectionRequest, UpdateSectionRequest, CreateEnrollmentRequest } from "@/types"
+import { Plus, Users, Edit2, Trash2, Eye, Loader2, RefreshCw } from "lucide-react"
+import type { Section, CreateSectionRequest, UpdateSectionRequest } from "@/types"
 
 export function SectionManagement() {
+  const router = useRouter()
   const [sections, setSections] = useState<Section[]>([])
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([])
   const [courses, setCourses] = useState<{id: string; name: string; code: string}[]>([])
-  const [users, setUsers] = useState<{id: string; firstName: string; lastName: string; email: string}[]>([])
+  const [semesters, setSemesters] = useState<{id: string; code: string; number: number; courseId: string}[]>([])
+  const [academicYears, setAcademicYears] = useState<{id: string; year: string; isActive: boolean}[]>([])
   const [loading, setLoading] = useState(false)
+  const [dataLoading, setDataLoading] = useState(true)
   const [selectedSection, setSelectedSection] = useState<Section | null>(null)
   
   // Form states
   const [newSection, setNewSection] = useState<CreateSectionRequest>({
     name: "",
     code: "",
-    maxCapacity: 50,
-    courseId: ""
+    description: "",
+    maxStudents: 60,
+    courseId: "",
+    semesterId: "",
+    academicYearId: ""
   })
   const [editingSection, setEditingSection] = useState<UpdateSectionRequest>({})
-  const [newEnrollment, setNewEnrollment] = useState<CreateEnrollmentRequest>({
-    studentId: "",
-    sectionId: "",
-    courseId: "",
-    currentSemester: 1
-  })
 
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
-  const [showEnrollmentSheet, setShowEnrollmentSheet] = useState(false)
 
   useEffect(() => {
-    loadSections()
-    loadCourses()
-    loadUsers()
+    const loadAllData = async () => {
+      setDataLoading(true)
+      try {
+        await Promise.all([
+          loadSections(),
+          loadCourses(),
+          loadSemesters(),
+          loadAcademicYears()
+        ])
+      } catch (error) {
+        console.error('Failed to load initial data:', error)
+      } finally {
+        setDataLoading(false)
+      }
+    }
+    
+    loadAllData()
   }, [])
 
   const loadSections = async () => {
@@ -78,41 +90,49 @@ export function SectionManagement() {
     }
   }
 
-  const loadUsers = async () => {
+  const loadSemesters = async () => {
     try {
-      const response = await apiClient.getUsers({ role: "STUDENT" }) as { success: boolean; data: {id: string; firstName: string; lastName: string; email: string}[] }
+      const response = await apiClient.getSemesters() as { success: boolean; data: {id: string; code: string; number: number; courseId: string}[] }
       if (response.success) {
-        setUsers(response.data)
+        setSemesters(response.data)
       }
     } catch {
       toast({
         title: "Error",
-        description: "Failed to load users",
+        description: "Failed to load semesters",
         variant: "destructive",
       })
     }
   }
 
-  const loadEnrollments = async (sectionId: string) => {
+  const loadAcademicYears = async () => {
     try {
-      const response = await apiClient.getEnrollments({ sectionId }) as { success: boolean; data: Enrollment[] }
+      const response = await apiClient.getAcademicYears() as { success: boolean; data: {id: string; year: string; isActive: boolean}[] }
       if (response.success) {
-        setEnrollments(response.data)
+        setAcademicYears(response.data)
       }
-    } catch {
+    } catch (error) {
+      console.error('Error loading academic years:', error)
       toast({
         title: "Error",
-        description: "Failed to load enrollments",
+        description: "Failed to load academic years",
         variant: "destructive",
       })
     }
   }
 
   const handleCreateSection = async () => {
-    if (!newSection.name || !newSection.code || !newSection.courseId) {
+    if (!newSection.name || !newSection.code || !newSection.courseId || !newSection.semesterId || !newSection.academicYearId) {
+      const missingFields = [];
+      if (!newSection.name) missingFields.push("Section Name");
+      if (!newSection.code) missingFields.push("Section Code");
+      if (!newSection.courseId) missingFields.push("Course");
+      if (!newSection.semesterId) missingFields.push("Semester");
+      if (!newSection.academicYearId) missingFields.push("Academic Year");
+      
       toast({
-        title: "Error",
-        description: "Please fill all required fields",
+        title: "Missing Required Fields",
+        description: `Please fill in: ${missingFields.join(", ")}`,
         variant: "destructive",
       })
       return
@@ -127,7 +147,7 @@ export function SectionManagement() {
           description: "Section created successfully",
         })
         setShowCreateDialog(false)
-        setNewSection({ name: "", code: "", maxCapacity: 50, courseId: "" })
+        resetNewSectionForm()
         loadSections()
       }
     } catch {
@@ -192,38 +212,21 @@ export function SectionManagement() {
     }
   }
 
-  const handleCreateEnrollment = async () => {
-    if (!newEnrollment.studentId || !newEnrollment.sectionId || !newEnrollment.courseId) {
-      toast({
-        title: "Error",
-        description: "Please fill all required fields",
-        variant: "destructive",
-      })
-      return
-    }
+  const resetNewSectionForm = () => {
+    setNewSection({
+      name: "",
+      code: "",
+      description: "",
+      maxStudents:60,
+      courseId: "",
+      semesterId: "",
+      academicYearId: ""
+    })
+  }
 
-    setLoading(true)
-    try {
-      const response = await apiClient.createEnrollment(newEnrollment) as { success: boolean }
-      if (response.success) {
-        toast({
-          title: "Success",
-          description: "Student enrolled successfully",
-        })
-        setNewEnrollment({ studentId: "", sectionId: "", courseId: "", currentSemester: 1 })
-        if (selectedSection) {
-          loadEnrollments(selectedSection.id)
-        }
-      }
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to enroll student",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
+  const openCreateDialog = () => {
+    resetNewSectionForm()
+    setShowCreateDialog(true)
   }
 
   const openEditDialog = (section: Section) => {
@@ -231,17 +234,14 @@ export function SectionManagement() {
     setEditingSection({
       name: section.name,
       code: section.code,
-      maxCapacity: section.maxCapacity,
+      maxStudents: section.maxStudents,
       isActive: section.isActive
     })
     setShowEditDialog(true)
   }
 
   const viewSectionDetails = (section: Section) => {
-    setSelectedSection(section)
-    setNewEnrollment(prev => ({ ...prev, sectionId: section.id, courseId: section.course.id }))
-    loadEnrollments(section.id)
-    setShowEnrollmentSheet(true)
+    router.push(`/admin/sections/${section.id}`)
   }
 
   return (
@@ -253,18 +253,35 @@ export function SectionManagement() {
             Create and manage sections for organizing students
           </p>
         </div>
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <Dialog open={showCreateDialog} onOpenChange={(open) => {
+          if (!open) resetNewSectionForm()
+          setShowCreateDialog(open)
+        }}>
           <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
+            <Button className="flex items-center gap-2" onClick={openCreateDialog}>
               <Plus className="h-4 w-4" />
               Create Section
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create New Section</DialogTitle>
+              <DialogTitle className="flex items-center justify-between">
+                <span>Create New Section</span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={async () => {
+                    setDataLoading(true)
+                    await Promise.all([loadCourses(), loadSemesters(), loadAcademicYears()])
+                    setDataLoading(false)
+                  }}
+                  disabled={dataLoading}
+                >
+                  <RefreshCw className={`h-4 w-4 ${dataLoading ? 'animate-spin' : ''}`} />
+                </Button>
+              </DialogTitle>
               <DialogDescription>
-                Add a new section to organize students for a course
+                Create a new section by selecting a course, semester, and academic year.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -288,37 +305,112 @@ export function SectionManagement() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="course">Course</Label>
-                <Select value={newSection.courseId} onValueChange={(value) => setNewSection(prev => ({ ...prev, courseId: value }))}>
+                <Select value={newSection.courseId} onValueChange={(value) => {
+                  setNewSection(prev => ({ 
+                    ...prev, 
+                    courseId: value,
+                    semesterId: ""
+                  }))
+                }} disabled={dataLoading}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select course" />
+                    <SelectValue placeholder={dataLoading ? "Loading courses..." : "Select course"} />
                   </SelectTrigger>
                   <SelectContent>
                     {courses.map((course) => (
                       <SelectItem key={course.id} value={course.id}>
-                        {course.name}
+                        {course.name} ({course.code})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
+                <Label htmlFor="semester">Semester</Label>
+                <Select 
+                  value={newSection.semesterId} 
+                  onValueChange={(value) => setNewSection(prev => ({ ...prev, semesterId: value }))}
+                  disabled={!newSection.courseId || dataLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={!newSection.courseId ? "Select a course first" : "Select semester"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {semesters
+                      .filter(semester => !newSection.courseId || semester.courseId === newSection.courseId)
+                      .sort((a, b) => a.number - b.number)
+                      .map((semester) => (
+                        <SelectItem key={semester.id} value={semester.id}>
+                          {semester.code} (Semester {semester.number})
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="academicYear">Academic Year</Label>
+                <Select value={newSection.academicYearId} onValueChange={(value) => setNewSection(prev => ({ ...prev, academicYearId: value }))} disabled={dataLoading}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={dataLoading ? "Loading academic years..." : "Select academic year"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {academicYears
+                      .sort((a, b) => {
+                        if (a.isActive && !b.isActive) return -1;
+                        if (!a.isActive && b.isActive) return 1;
+                        return b.year.localeCompare(a.year);
+                      })
+                      .map((year) => (
+                        <SelectItem key={year.id} value={year.id}>
+                          <div className="flex items-center justify-between w-full">
+                            <span>{year.year}</span>
+                            {year.isActive && (
+                              <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+                                Active
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description (Optional)</Label>
+                <Input
+                  id="description"
+                  value={newSection.description || ""}
+                  onChange={(e) => setNewSection(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Brief description of the section"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="capacity">Max Capacity</Label>
                 <Input
                   id="capacity"
                   type="number"
-                  value={newSection.maxCapacity}
-                  onChange={(e) => setNewSection(prev => ({ ...prev, maxCapacity: parseInt(e.target.value) }))}
+                  value={newSection.maxStudents}
+                  onChange={(e) => setNewSection(prev => ({ ...prev, maxStudents: parseInt(e.target.value) }))}
                   min="1"
                   max="200"
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+              <Button variant="outline" onClick={() => {
+                resetNewSectionForm()
+                setShowCreateDialog(false)
+              }}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateSection} disabled={loading}>
-                {loading ? "Creating..." : "Create Section"}
+              <Button onClick={handleCreateSection} disabled={loading || dataLoading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Section"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -342,6 +434,7 @@ export function SectionManagement() {
                 <TableRow>
                   <TableHead>Section</TableHead>
                   <TableHead>Course</TableHead>
+                  <TableHead>Semester & Year</TableHead>
                   <TableHead>Capacity</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
@@ -356,9 +449,24 @@ export function SectionManagement() {
                         <div className="text-sm text-muted-foreground">{section.code}</div>
                       </div>
                     </TableCell>
-                    <TableCell>{section.course.name}</TableCell>
                     <TableCell>
-                      {section.currentCapacity}/{section.maxCapacity}
+                      <div>
+                        <div className="font-medium">{section.course.name}</div>
+                        <div className="text-sm text-muted-foreground">{section.course.code}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="text-sm">
+                          {section.semester ? `${section.semester.code} (Sem ${section.semester.number})` : 'N/A'}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {section.academicYear ? section.academicYear.year : 'N/A'}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {section.currentStudents}/{section.maxStudents}
                     </TableCell>
                     <TableCell>
                       <Badge variant={section.isActive ? "default" : "secondary"}>
@@ -435,8 +543,8 @@ export function SectionManagement() {
               <Input
                 id="edit-capacity"
                 type="number"
-                value={editingSection.maxCapacity || 50}
-                onChange={(e) => setEditingSection(prev => ({ ...prev, maxCapacity: parseInt(e.target.value) }))}
+                value={editingSection.maxStudents || 60}
+                onChange={(e) => setEditingSection(prev => ({ ...prev, maxStudents: parseInt(e.target.value) }))}
                 min="1"
                 max="200"
               />
@@ -452,107 +560,6 @@ export function SectionManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Section Details Sheet */}
-      <Sheet open={showEnrollmentSheet} onOpenChange={setShowEnrollmentSheet}>
-        <SheetContent className="w-[800px] sm:w-[800px]">
-          <SheetHeader>
-            <SheetTitle>
-              {selectedSection?.name} - Enrollments
-            </SheetTitle>
-            <SheetDescription>
-              Manage student enrollments for this section
-            </SheetDescription>
-          </SheetHeader>
-          
-          <div className="space-y-6 py-6">
-            {/* Add New Enrollment */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <UserPlus className="h-4 w-4" />
-                  Enroll Student
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Student</Label>
-                    <Select value={newEnrollment.studentId} onValueChange={(value) => setNewEnrollment(prev => ({ ...prev, studentId: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select student" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {users.map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.firstName} {user.lastName} ({user.email})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Current Semester</Label>
-                    <Input
-                      type="number"
-                      value={newEnrollment.currentSemester}
-                      onChange={(e) => setNewEnrollment(prev => ({ ...prev, currentSemester: parseInt(e.target.value) }))}
-                      min="1"
-                      max="20"
-                    />
-                  </div>
-                </div>
-                <Button onClick={handleCreateEnrollment} disabled={loading}>
-                  {loading ? "Enrolling..." : "Enroll Student"}
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Current Enrollments */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Current Enrollments</h3>
-              {enrollments.length > 0 ? (
-                <div className="border rounded-lg">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Student Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Semester</TableHead>
-                        <TableHead>Enrollment Date</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {enrollments.map((enrollment) => (
-                        <TableRow key={enrollment.id}>
-                          <TableCell className="font-medium">
-                            {enrollment.student.firstName} {enrollment.student.lastName}
-                          </TableCell>
-                          <TableCell>{enrollment.student.email}</TableCell>
-                          <TableCell>{enrollment.currentSemester}</TableCell>
-                          <TableCell>
-                            {new Date(enrollment.enrollmentDate).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={enrollment.isActive ? "default" : "secondary"}>
-                              {enrollment.isActive ? "Active" : "Inactive"}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  No students enrolled in this section yet
-                </div>
-              )}
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
     </div>
   )
 }

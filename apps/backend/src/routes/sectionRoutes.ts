@@ -6,6 +6,8 @@ import {
     getProfessorSections,
     getStudentSections,
     createSection,
+    getSectionEnrollments,
+    createStudentEnrollment,
 } from "../controllers/sectionController";
 
 const router: Router = Router();
@@ -13,8 +15,10 @@ const router: Router = Router();
 // Section management routes
 router.post("/", createSection);
 router.get("/", getAllSections);
+router.get("/:sectionId/enrollments", getSectionEnrollments);
 
-// Student section assignment
+// Student enrollment and section assignment
+router.post("/enroll-student", createStudentEnrollment);
 router.post("/assign-student", assignStudentToSection);
 router.get("/student/:studentId", getStudentSections);
 

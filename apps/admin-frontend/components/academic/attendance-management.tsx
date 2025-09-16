@@ -12,17 +12,26 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { toast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
+import { useAuth } from "@/contexts/auth-context"
 import { format } from "date-fns"
 import { CalendarIcon, CheckCircle, XCircle, Users, BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { AttendanceRecord, Section, Enrollment, Subject } from "@/types"
+import type { AttendanceRecord, Section, Enrollment } from "@/types"
+
+// Simple subject type for section assignments
+type SectionSubject = {
+  id: string;
+  name: string;
+  code: string;
+}
 
 export function AttendanceManagement() {
+  const { user } = useAuth()
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [selectedSection, setSelectedSection] = useState<string>("")
   const [selectedSubject, setSelectedSubject] = useState<string>("")
   const [sections, setSections] = useState<Section[]>([])
-  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [subjects, setSubjects] = useState<SectionSubject[]>([])
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([])
   const [attendanceMarking, setAttendanceMarking] = useState<{[key: string]: "PRESENT" | "ABSENT"}>({})
@@ -43,20 +52,50 @@ export function AttendanceManagement() {
     }
   }
 
-  const loadSubjects = async () => {
+  const loadSubjects = useCallback(async () => {
+    if (!selectedSection) {
+      setSubjects([])
+      return
+    }
+    
     try {
-      const response = await apiClient.getSubjects() as { success: boolean; data: Subject[] }
-      if (response.success) {
-        setSubjects(response.data)
+      // Get subjects from the selected section's semester (like in section details page)
+      const selectedSectionData = sections.find(section => section.id === selectedSection)
+      console.log("Selected section data:", selectedSectionData)
+      
+      if (selectedSectionData && selectedSectionData.semester?.id) {
+        console.log('Loading subjects for semester:', selectedSectionData.semester.code, '(ID:', selectedSectionData.semester.id, ')')
+        
+        // Load subjects by semester ID
+        const subjectsResponse = await apiClient.getSubjects({ semesterId: selectedSectionData.semester.id }) as { success: boolean; data: SectionSubject[] }
+        if (subjectsResponse.success) {
+          console.log('Loaded', subjectsResponse.data.length, 'subjects for semester', selectedSectionData.semester.code)
+          setSubjects(subjectsResponse.data)
+        } else {
+          console.log("Failed to load semester subjects, falling back to professor assignments")
+          // Fallback to professor assignments if semester loading fails
+          const assignmentsWithSubjects = selectedSectionData.professorAssignments
+            ?.filter(assignment => assignment.subject)
+            .map(assignment => assignment.subject)
+            .filter((subject, index, self) => 
+              index === self.findIndex(s => s.id === subject.id)
+            ) || []
+          
+          setSubjects(assignmentsWithSubjects)
+        }
+      } else {
+        console.log("No section data or semester found")
+        setSubjects([])
       }
-    } catch {
+    } catch (error) {
+      console.error("Error loading subjects:", error)
       toast({
         title: "Error",
-        description: "Failed to load subjects",
+        description: "Failed to load subjects for this section",
         variant: "destructive",
       })
     }
-  }
+  }, [selectedSection, sections])
 
   const loadEnrollments = useCallback(async () => {
     try {
@@ -80,39 +119,62 @@ export function AttendanceManagement() {
   }, [selectedSection])
 
   const loadAttendanceRecords = useCallback(async () => {
+    if (!selectedSection || !selectedSubject || !selectedDate) {
+      setAttendanceRecords([])
+      return
+    }
+
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd")
-      const response = await apiClient.getAttendance({
+      // Use the correct section attendance endpoint
+      const response = await apiClient.getSectionAttendance(selectedSection, {
         subjectId: selectedSubject,
-        startDate: dateStr,
-        endDate: dateStr,
-      }) as { success: boolean; data: AttendanceRecord[] }
+        date: dateStr,
+      }) as { 
+        success: boolean; 
+        data: { 
+          records: AttendanceRecord[]; 
+          studentsWithoutAttendance: {
+            id: string;
+            name: string;
+            email: string;
+          }[]
+        } 
+      }
+      
       if (response.success) {
-        setAttendanceRecords(response.data)
+        setAttendanceRecords(response.data.records)
         
         // Update attendance marking state with existing records
         const marking: {[key: string]: "PRESENT" | "ABSENT"} = {}
         enrollments.forEach((enrollment) => {
-          const existingRecord = response.data.find((record: AttendanceRecord) => 
+          const existingRecord = response.data.records.find((record: AttendanceRecord) => 
             record.enrollment.id === enrollment.id
           )
           marking[enrollment.id] = existingRecord ? existingRecord.status : "PRESENT"
         })
         setAttendanceMarking(marking)
       }
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to load attendance records",
-        variant: "destructive",
+    } catch (error) {
+      console.error("Failed to load attendance records:", error)
+      // Don't show error toast if it's just because no attendance exists yet
+      setAttendanceRecords([])
+      // Initialize attendance marking to PRESENT for all students
+      const marking: {[key: string]: "PRESENT" | "ABSENT"} = {}
+      enrollments.forEach((enrollment) => {
+        marking[enrollment.id] = "PRESENT"
       })
+      setAttendanceMarking(marking)
     }
-  }, [selectedSubject, selectedDate, enrollments])
+  }, [selectedSubject, selectedDate, selectedSection, enrollments])
 
   useEffect(() => {
     loadSections()
-    loadSubjects()
   }, [])
+
+  useEffect(() => {
+    loadSubjects()
+  }, [loadSubjects])
 
   useEffect(() => {
     if (selectedSection) {
@@ -134,10 +196,19 @@ export function AttendanceManagement() {
   }
 
   const submitBulkAttendance = async () => {
-    if (!selectedSubject || !selectedDate) {
+    if (!selectedSubject || !selectedDate || !selectedSection) {
       toast({
         title: "Error",
-        description: "Please select subject and date",
+        description: "Please select section, subject and date",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "User not authenticated",
         variant: "destructive",
       })
       return
@@ -145,15 +216,21 @@ export function AttendanceManagement() {
 
     setLoading(true)
     try {
-      const attendanceRecords = Object.entries(attendanceMarking).map(([enrollmentId, status]) => ({
-        enrollmentId,
-        status
-      }))
+      // Prepare attendance data in the format expected by backend
+      const attendanceData = Object.entries(attendanceMarking).map(([enrollmentId, status]) => {
+        const enrollment = enrollments.find(e => e.id === enrollmentId)
+        return {
+          studentId: enrollment?.student.id || "",
+          status
+        }
+      }).filter(item => item.studentId) // Filter out invalid entries
 
       const response = await apiClient.markBulkAttendance({
+        professorId: user.id,
+        sectionId: selectedSection,
         subjectId: selectedSubject,
         date: format(selectedDate, "yyyy-MM-dd"),
-        attendanceRecords
+        attendanceData
       }) as { success: boolean }
 
       if (response.success) {
@@ -286,7 +363,7 @@ export function AttendanceManagement() {
                         {enrollments.map((enrollment) => (
                           <TableRow key={enrollment.id}>
                             <TableCell className="font-medium">
-                              {enrollment.student.firstName} {enrollment.student.lastName}
+                              {enrollment.student.name}
                             </TableCell>
                             <TableCell>{enrollment.student.email}</TableCell>
                             <TableCell>

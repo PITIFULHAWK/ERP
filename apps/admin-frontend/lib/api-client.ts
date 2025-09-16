@@ -64,6 +64,26 @@ import {
     UpdateAcademicCalendarRequest,
     AcademicCalendarFilters,
 } from "../types";
+
+// Academic Year interfaces for API client
+interface CreateAcademicYearRequest {
+    year: string;
+    startDate: string;
+    endDate: string;
+    isActive?: boolean;
+    universityId: string;
+    calendarPdfUrl?: string;
+    calendarPdfName?: string;
+}
+
+interface UpdateAcademicYearRequest {
+    year?: string;
+    startDate?: string;
+    endDate?: string;
+    isActive?: boolean;
+    calendarPdfUrl?: string;
+    calendarPdfName?: string;
+}
 import {
     Placement,
     CreatePlacementRequest,
@@ -749,7 +769,7 @@ class ApiClient {
     }
 
     async markBulkAttendance(bulkData: BulkAttendanceRequest) {
-        return this.request("/attendance/bulk", {
+        return this.request("/attendance/mark", {
             method: "POST",
             body: JSON.stringify(bulkData),
         });
@@ -771,6 +791,20 @@ class ApiClient {
         return this.request(`/attendance/${id}`, {
             method: "DELETE",
         });
+    }
+
+    async getSectionAttendance(
+        sectionId: string,
+        filters?: {
+            subjectId?: string;
+            date?: string;
+            academicYearId?: string;
+        }
+    ) {
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/attendance/section/${sectionId}${params}`);
     }
 
     // ====== SECTION MANAGEMENT ======
@@ -809,8 +843,25 @@ class ApiClient {
         });
     }
 
+    async assignProfessorToSection(assignmentData: {
+        professorId: string;
+        sectionId: string;
+        subjectId: string;
+        assignmentType?: string;
+    }) {
+        return this.request("/sections/assign-professor", {
+            method: "POST",
+            body: JSON.stringify(assignmentData),
+        });
+    }
+
     // ====== ENROLLMENT MANAGEMENT ======
     async getEnrollments(filters?: EnrollmentFilters) {
+        // Check if this is for a specific section
+        if (filters?.sectionId) {
+            return this.request(`/sections/${filters.sectionId}/enrollments`);
+        }
+
         const params = filters
             ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
             : "";
@@ -826,9 +877,27 @@ class ApiClient {
     }
 
     async createEnrollment(enrollmentData: CreateEnrollmentRequest) {
-        return this.request("/enrollments", {
+        // Use the new student enrollment endpoint
+        return this.request("/sections/enroll-student", {
             method: "POST",
-            body: JSON.stringify(enrollmentData),
+            body: JSON.stringify({
+                studentId: enrollmentData.studentId,
+                courseId: enrollmentData.courseId,
+                semesterId: enrollmentData.semesterId,
+                academicYearId: enrollmentData.academicYearId,
+                currentSemester: enrollmentData.currentSemester,
+            }),
+        });
+    }
+
+    async assignStudentToSection(studentId: string, sectionId: string) {
+        // Use the correct endpoint for assigning students to sections
+        return this.request("/sections/assign-student", {
+            method: "POST",
+            body: JSON.stringify({
+                studentId: studentId,
+                sectionId: sectionId,
+            }),
         });
     }
 
@@ -1016,6 +1085,49 @@ class ApiClient {
 
     async downloadAcademicCalendar(id: string) {
         return this.request(`/academic-calendar/${id}/download`);
+    }
+
+    // ====== ACADEMIC YEAR MANAGEMENT ======
+    async getAcademicYears(universityId?: string) {
+        const params = universityId ? `?universityId=${universityId}` : "";
+        return this.request(`/academic-years${params}`);
+    }
+
+    async getAcademicYear(id: string) {
+        return this.request(`/academic-years/${id}`);
+    }
+
+    async createAcademicYear(academicYearData: CreateAcademicYearRequest) {
+        return this.request("/academic-years", {
+            method: "POST",
+            body: JSON.stringify(academicYearData),
+        });
+    }
+
+    async updateAcademicYear(
+        id: string,
+        academicYearData: UpdateAcademicYearRequest
+    ) {
+        return this.request(`/academic-years/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(academicYearData),
+        });
+    }
+
+    async deleteAcademicYear(id: string) {
+        return this.request(`/academic-years/${id}`, {
+            method: "DELETE",
+        });
+    }
+
+    async getActiveAcademicYear(universityId: string) {
+        return this.request(`/academic-years/active/${universityId}`);
+    }
+
+    async setActiveAcademicYear(id: string) {
+        return this.request(`/academic-years/${id}/activate`, {
+            method: "PATCH",
+        });
     }
 }
 

@@ -2,6 +2,46 @@ import { Request, Response } from "express";
 import prisma from "@repo/db";
 import { asyncHandler } from "../middleware/index";
 import { ApiResponse } from "../types";
+import { uploadToCloudinary, deleteFromCloudinary } from "../config/cloudinary";
+import multer from "multer";
+
+// Configure Multer for file uploads
+const storage = multer.memoryStorage();
+export const upload = multer({
+    storage,
+    limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB
+    },
+    fileFilter: (req, file, cb) => {
+        // Allow documents and images
+        const allowedTypes = [
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "text/plain",
+            "video/mp4",
+            "video/webm",
+            "audio/mpeg",
+            "audio/wav",
+            "audio/mp3",
+        ];
+
+        if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(
+                new Error(
+                    "Invalid file type. Please upload documents, images, videos, or audio files."
+                )
+            );
+        }
+    },
+});
 
 // Type mapping between frontend and backend
 const frontendToBackendTypeMap: Record<string, string> = {
@@ -490,13 +530,74 @@ export const getResourceStatsAdmin = asyncHandler(
 export const uploadResourceFile = asyncHandler(
     async (req: Request, res: Response) => {
         const { id } = req.params;
-        // This would handle file upload logic
-        // For now, return success
-        res.json({
-            success: true,
-            message: "File upload functionality to be implemented",
-            data: { fileUrl: "placeholder-url" },
-        });
+        const file = req.file;
+
+        if (!file) {
+            return res.status(400).json({
+                success: false,
+                message: "No file provided",
+            });
+        }
+
+        try {
+            // Check if resource exists
+            const resource = await prisma.sectionResource.findUnique({
+                where: { id },
+            });
+
+            if (!resource) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Resource not found",
+                });
+            }
+
+            // Delete old file from Cloudinary if it exists
+            if (resource.cloudinaryPublicId) {
+                try {
+                    await deleteFromCloudinary(resource.cloudinaryPublicId);
+                } catch (error) {
+                    console.error("Error deleting old file:", error);
+                    // Continue with upload even if delete fails
+                }
+            }
+
+            // Upload new file to Cloudinary
+            const uploadResult = await uploadToCloudinary(
+                file.buffer,
+                file.originalname,
+                "erp-resources"
+            );
+
+            // Update resource with new file information
+            const updatedResource = await prisma.sectionResource.update({
+                where: { id },
+                data: {
+                    fileUrl: uploadResult.secure_url,
+                    fileName: file.originalname,
+                    cloudinaryPublicId: uploadResult.public_id,
+                    fileSizeBytes: uploadResult.bytes,
+                },
+            });
+
+            res.json({
+                success: true,
+                message: "File uploaded successfully",
+                data: {
+                    fileUrl: uploadResult.secure_url,
+                    fileName: file.originalname,
+                    fileSizeBytes: uploadResult.bytes,
+                    resource: updatedResource,
+                },
+            });
+        } catch (error) {
+            console.error("Error uploading file:", error);
+            res.status(500).json({
+                success: false,
+                message: "Failed to upload file",
+                error: error instanceof Error ? error.message : "Unknown error",
+            });
+        }
     }
 );
 
@@ -557,107 +658,156 @@ export const shareResource = asyncHandler(
             content,
             isPinned = false,
         } = req.body;
+        const file = req.file; // Check if a file was uploaded
 
-        // Verify professor has permission to create resources for this section
-        const assignment = await prisma.professorSectionAssignment.findFirst({
-            where: {
-                professorId,
-                sectionId,
-                subjectId: subjectId || null,
-                isActive: true,
-                canCreateResources: true,
-            },
-        });
+        try {
+            // Verify professor has permission to create resources for this section
+            const assignment =
+                await prisma.professorSectionAssignment.findFirst({
+                    where: {
+                        professorId,
+                        sectionId,
+                        subjectId: subjectId || null,
+                        isActive: true,
+                        canCreateResources: true,
+                    },
+                });
 
-        if (!assignment) {
-            return res.status(403).json({
-                success: false,
-                message:
-                    "Professor does not have permission to create resources for this section/subject",
-            });
-        }
-
-        // Verify section exists
-        const section = await prisma.section.findUnique({
-            where: { id: sectionId },
-            include: {
-                course: true,
-                semester: true,
-            },
-        });
-
-        if (!section) {
-            return res.status(404).json({
-                success: false,
-                message: "Section not found",
-            });
-        }
-
-        // If subject is specified, verify it exists and belongs to the same semester
-        if (subjectId) {
-            const subject = await prisma.subject.findUnique({
-                where: { id: subjectId },
-            });
-
-            if (!subject || subject.semesterId !== section.semesterId) {
-                return res.status(400).json({
+            if (!assignment) {
+                return res.status(403).json({
                     success: false,
                     message:
-                        "Subject not found or doesn't belong to this section's semester",
+                        "Professor does not have permission to create resources for this section/subject",
                 });
             }
+
+            // Verify section exists
+            const section = await prisma.section.findUnique({
+                where: { id: sectionId },
+                include: {
+                    course: true,
+                    semester: true,
+                },
+            });
+
+            if (!section) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Section not found",
+                });
+            }
+
+            // If subject is specified, verify it exists and belongs to the same semester
+            if (subjectId) {
+                const subject = await prisma.subject.findUnique({
+                    where: { id: subjectId },
+                });
+
+                if (!subject || subject.semesterId !== section.semesterId) {
+                    return res.status(400).json({
+                        success: false,
+                        message:
+                            "Subject not found or doesn't belong to this section's semester",
+                    });
+                }
+            }
+
+            let finalFileUrl = fileUrl;
+            let finalFileName = fileName;
+            let finalFileSize = fileSize;
+            let finalMimeType = mimeType;
+            let cloudinaryInfo = null;
+
+            // If a file was uploaded, use Cloudinary
+            if (file) {
+                const uploadResult = await uploadToCloudinary(
+                    file.buffer,
+                    file.originalname,
+                    "erp-professor-resources"
+                );
+
+                finalFileUrl = uploadResult.secure_url;
+                finalFileName = file.originalname;
+                finalFileSize = uploadResult.bytes;
+                finalMimeType = file.mimetype;
+                cloudinaryInfo = {
+                    publicId: uploadResult.public_id,
+                    url: uploadResult.secure_url,
+                    bytes: uploadResult.bytes,
+                    format: uploadResult.format,
+                };
+            }
+
+            // Create the resource
+            const resource = await prisma.sectionResource.create({
+                data: {
+                    title,
+                    description,
+                    resourceType: resourceType as any,
+                    fileUrl: finalFileUrl,
+                    fileName: finalFileName,
+                    fileSize: finalFileSize || null,
+                    mimeType: finalMimeType,
+                    content,
+                    sectionId,
+                    subjectId: subjectId || null,
+                    uploadedBy: professorId,
+                    isPinned: isPinned === "true" || isPinned === true,
+                    isVisible: true,
+                    downloadCount: 0,
+                },
+                include: {
+                    section: {
+                        include: {
+                            course: true,
+                            semester: true,
+                        },
+                    },
+                    subject: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    uploader: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
+                },
+            });
+
+            const responseData: any = {
+                ...resource,
+            };
+
+            // Include Cloudinary info if file was uploaded
+            if (cloudinaryInfo) {
+                responseData.cloudinaryInfo = cloudinaryInfo;
+            }
+
+            res.status(201).json({
+                success: true,
+                message: file
+                    ? "Resource shared successfully with file upload"
+                    : "Resource shared successfully",
+                data: responseData,
+            });
+        } catch (error) {
+            console.error("Error sharing resource:", error);
+            res.status(500).json({
+                success: false,
+                message: "Failed to share resource",
+                error: error instanceof Error ? error.message : "Unknown error",
+            });
         }
-
-        // Create the resource
-        const resource = await prisma.sectionResource.create({
-            data: {
-                title,
-                description,
-                resourceType: resourceType as any,
-                fileUrl,
-                fileName,
-                fileSize: fileSize || null,
-                mimeType,
-                content,
-                sectionId,
-                subjectId: subjectId || null,
-                uploadedBy: professorId,
-                isPinned,
-                isVisible: true,
-                downloadCount: 0,
-            },
-            include: {
-                section: {
-                    include: {
-                        course: true,
-                        semester: true,
-                    },
-                },
-                subject: {
-                    select: {
-                        id: true,
-                        name: true,
-                        code: true,
-                    },
-                },
-                uploader: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                    },
-                },
-            },
-        });
-
-        res.status(201).json({
-            success: true,
-            message: "Resource shared successfully",
-            data: resource,
-        });
     }
 );
 
+// Share resource with file upload via Cloudinary
 // Get resources for a section (Student view)
 export const getResourcesForStudent = asyncHandler(
     async (req: Request, res: Response) => {

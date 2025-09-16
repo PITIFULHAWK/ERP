@@ -448,3 +448,150 @@ export const createSection = asyncHandler(
         });
     }
 );
+
+// Get enrollments for a specific section
+export const getSectionEnrollments = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { sectionId } = req.params;
+
+        const sectionEnrollments = await prisma.sectionEnrollment.findMany({
+            where: {
+                sectionId,
+                status: "ACTIVE",
+            },
+            include: {
+                student: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+                enrollment: {
+                    include: {
+                        course: true,
+                        semester: true,
+                    },
+                },
+            },
+            orderBy: {
+                createdAt: "desc",
+            },
+        });
+
+        res.json({
+            success: true,
+            message: "Section enrollments retrieved successfully",
+            data: sectionEnrollments,
+        });
+    }
+);
+
+// Create student enrollment (for admin-initiated enrollments)
+export const createStudentEnrollment = asyncHandler(
+    async (req: Request, res: Response) => {
+        const {
+            studentId,
+            courseId,
+            semesterId,
+            academicYearId,
+            currentSemester = 1,
+        } = req.body;
+
+        // Verify the user exists and is a student
+        const user = await prisma.user.findUnique({
+            where: { id: studentId },
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        if (user.role !== "STUDENT") {
+            return res.status(400).json({
+                success: false,
+                message: "User must be a student to be enrolled",
+            });
+        }
+
+        // Verify course, semester, and academic year exist
+        const [course, semester, academicYear] = await Promise.all([
+            prisma.course.findUnique({ where: { id: courseId } }),
+            prisma.semester.findUnique({ where: { id: semesterId } }),
+            prisma.academicYear.findUnique({ where: { id: academicYearId } }),
+        ]);
+
+        if (!course) {
+            return res.status(404).json({
+                success: false,
+                message: "Course not found",
+            });
+        }
+
+        if (!semester) {
+            return res.status(404).json({
+                success: false,
+                message: "Semester not found",
+            });
+        }
+
+        if (!academicYear) {
+            return res.status(404).json({
+                success: false,
+                message: "Academic year not found",
+            });
+        }
+
+        // Check if student is already enrolled in this course/semester/academic year
+        const existingEnrollment = await prisma.studentEnrollment.findFirst({
+            where: {
+                studentId,
+                courseId,
+                semesterId,
+                academicYearId,
+            },
+        });
+
+        if (existingEnrollment) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Student is already enrolled in this course/semester/academic year",
+                data: existingEnrollment,
+            });
+        }
+
+        // Create the enrollment
+        const enrollment = await prisma.studentEnrollment.create({
+            data: {
+                studentId,
+                courseId,
+                semesterId,
+                academicYearId,
+                currentSemester,
+                status: "ACTIVE",
+            },
+            include: {
+                student: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+                course: true,
+                semester: true,
+                academicYear: true,
+            },
+        });
+
+        res.status(201).json({
+            success: true,
+            message: "Student enrollment created successfully",
+            data: enrollment,
+        });
+    }
+);

@@ -4,116 +4,58 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { toast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
 import { format } from "date-fns"
-import { Plus, Upload, Download, Edit2, Trash2, Calendar, FileText, Eye } from "lucide-react"
-import type { AcademicCalendar, CreateAcademicCalendarRequest, UpdateAcademicCalendarRequest } from "@/types"
+import { Upload, Download, Trash2, Calendar, FileText, Eye } from "lucide-react"
+
+interface AcademicYear {
+  id: string
+  year: string
+  startDate: string
+  endDate: string
+  isActive: boolean
+  universityId: string
+  calendarPdfUrl?: string
+  calendarPdfName?: string
+  calendarUploadedAt?: string
+  university: {
+    id: string
+    name: string
+  }
+}
 
 export function AcademicCalendarManagement() {
-  const [calendars, setCalendars] = useState<AcademicCalendar[]>([])
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([])
   const [loading, setLoading] = useState(false)
-  const [selectedCalendar, setSelectedCalendar] = useState<AcademicCalendar | null>(null)
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState<AcademicYear | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  
-  // Form states
-  const [newCalendar, setNewCalendar] = useState<CreateAcademicCalendarRequest>({
-    academicYear: "",
-    title: "",
-    description: "",
-  })
-  const [editingCalendar, setEditingCalendar] = useState<UpdateAcademicCalendarRequest>({})
-
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [showEditDialog, setShowEditDialog] = useState(false)
   const [showUploadDialog, setShowUploadDialog] = useState(false)
 
   useEffect(() => {
-    loadCalendars()
+    loadAcademicYears()
   }, [])
 
-  const loadCalendars = async () => {
+  const loadAcademicYears = async () => {
     try {
-      const response = await apiClient.getAcademicCalendars() as { success: boolean; data: AcademicCalendar[] }
+      const response = await apiClient.getAcademicYears() as { success: boolean; data: AcademicYear[] }
       if (response.success) {
-        setCalendars(response.data)
+        setAcademicYears(response.data)
       }
     } catch {
       toast({
         title: "Error",
-        description: "Failed to load academic calendars",
+        description: "Failed to load academic years",
         variant: "destructive",
       })
-    }
-  }
-
-  const handleCreateCalendar = async () => {
-    if (!newCalendar.academicYear || !newCalendar.title) {
-      toast({
-        title: "Error",
-        description: "Please fill all required fields",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setLoading(true)
-    try {
-      const response = await apiClient.createAcademicCalendar(newCalendar) as { success: boolean }
-      if (response.success) {
-        toast({
-          title: "Success",
-          description: "Academic calendar created successfully",
-        })
-        setShowCreateDialog(false)
-        setNewCalendar({ academicYear: "", title: "", description: "" })
-        loadCalendars()
-      }
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to create academic calendar",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleUpdateCalendar = async () => {
-    if (!selectedCalendar) return
-
-    setLoading(true)
-    try {
-      const response = await apiClient.updateAcademicCalendar(selectedCalendar.id, editingCalendar) as { success: boolean }
-      if (response.success) {
-        toast({
-          title: "Success",
-          description: "Academic calendar updated successfully",
-        })
-        setShowEditDialog(false)
-        setEditingCalendar({})
-        setSelectedCalendar(null)
-        loadCalendars()
-      }
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to update academic calendar",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
     }
   }
 
   const handleUploadPDF = async () => {
-    if (!selectedCalendar || !selectedFile) {
+    if (!selectedAcademicYear || !selectedFile) {
       toast({
         title: "Error",
         description: "Please select a PDF file",
@@ -124,16 +66,25 @@ export function AcademicCalendarManagement() {
 
     setLoading(true)
     try {
-      const response = await apiClient.uploadAcademicCalendarPDF(selectedCalendar.id, selectedFile) as { success: boolean }
+      const formData = new FormData()
+      formData.append('file', selectedFile)
+      formData.append('academicYearId', selectedAcademicYear.id)
+
+      const response = await apiClient.request('/academic-calendar/upload', {
+        method: 'POST',
+        body: formData,
+        isFormData: true,
+      }) as { success: boolean }
+
       if (response.success) {
         toast({
           title: "Success",
-          description: "PDF uploaded successfully",
+          description: "Academic calendar PDF uploaded successfully",
         })
         setShowUploadDialog(false)
         setSelectedFile(null)
-        setSelectedCalendar(null)
-        loadCalendars()
+        setSelectedAcademicYear(null)
+        loadAcademicYears()
       }
     } catch {
       toast({
@@ -146,23 +97,25 @@ export function AcademicCalendarManagement() {
     }
   }
 
-  const handleDeleteCalendar = async (calendarId: string) => {
-    if (!confirm("Are you sure you want to delete this academic calendar?")) return
+  const handleRemoveCalendar = async (academicYear: AcademicYear) => {
+    if (!confirm("Are you sure you want to remove this academic calendar PDF?")) return
 
     setLoading(true)
     try {
-      const response = await apiClient.deleteAcademicCalendar(calendarId) as { success: boolean }
+      const response = await apiClient.request(`/academic-calendar/${academicYear.id}`, {
+        method: 'DELETE',
+      }) as { success: boolean }
       if (response.success) {
         toast({
           title: "Success",
-          description: "Academic calendar deleted successfully",
+          description: "Academic calendar PDF removed successfully",
         })
-        loadCalendars()
+        loadAcademicYears()
       }
     } catch {
       toast({
         title: "Error",
-        description: "Failed to delete academic calendar",
+        description: "Failed to remove calendar PDF",
         variant: "destructive",
       })
     } finally {
@@ -170,37 +123,18 @@ export function AcademicCalendarManagement() {
     }
   }
 
-  const handleDownloadCalendar = async (calendar: AcademicCalendar) => {
-    try {
-      const response = await apiClient.downloadAcademicCalendar(calendar.id) as { success: boolean; data: { downloadUrl: string } }
-      if (response.success) {
-        // Create download link
-        const link = document.createElement('a')
-        link.href = response.data.downloadUrl
-        link.download = calendar.fileName
-        link.click()
-      }
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to download calendar",
-        variant: "destructive",
-      })
+  const handleDownloadCalendar = (academicYear: AcademicYear) => {
+    if (academicYear.calendarPdfUrl) {
+      const link = document.createElement('a')
+      link.href = academicYear.calendarPdfUrl
+      link.download = academicYear.calendarPdfName || `Academic-Calendar-${academicYear.year}.pdf`
+      link.target = '_blank'
+      link.click()
     }
   }
 
-  const openEditDialog = (calendar: AcademicCalendar) => {
-    setSelectedCalendar(calendar)
-    setEditingCalendar({
-      title: calendar.title,
-      description: calendar.description,
-      isActive: calendar.isActive
-    })
-    setShowEditDialog(true)
-  }
-
-  const openUploadDialog = (calendar: AcademicCalendar) => {
-    setSelectedCalendar(calendar)
+  const openUploadDialog = (academicYear: AcademicYear) => {
+    setSelectedAcademicYear(academicYear)
     setShowUploadDialog(true)
   }
 
@@ -213,70 +147,16 @@ export function AcademicCalendarManagement() {
             Upload and manage academic calendar PDFs for different academic years
           </p>
         </div>
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Create Calendar
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create Academic Calendar</DialogTitle>
-              <DialogDescription>
-                Add a new academic calendar entry
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="academicYear">Academic Year</Label>
-                <Input
-                  id="academicYear"
-                  value={newCalendar.academicYear}
-                  onChange={(e) => setNewCalendar(prev => ({ ...prev, academicYear: e.target.value }))}
-                  placeholder="e.g., 2024-25"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={newCalendar.title}
-                  onChange={(e) => setNewCalendar(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="e.g., Academic Calendar 2024-25"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={newCalendar.description || ""}
-                  onChange={(e) => setNewCalendar(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Optional description"
-                  rows={3}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleCreateCalendar} disabled={loading}>
-                {loading ? "Creating..." : "Create Calendar"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Academic Calendars
+            Academic Years & Calendars
           </CardTitle>
           <CardDescription>
-            Manage academic calendar PDFs for different academic years
+            Manage academic calendar PDFs for each academic year
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -285,34 +165,34 @@ export function AcademicCalendarManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Academic Year</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>PDF Status</TableHead>
-                  <TableHead>Uploaded By</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead>University</TableHead>
+                  <TableHead>Period</TableHead>
+                  <TableHead>Calendar PDF</TableHead>
+                  <TableHead>Upload Date</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {calendars.map((calendar) => (
-                  <TableRow key={calendar.id}>
-                    <TableCell className="font-medium">{calendar.academicYear}</TableCell>
-                    <TableCell>{calendar.title}</TableCell>
-                    <TableCell className="max-w-xs">
-                      <div className="line-clamp-2 text-sm text-muted-foreground">
-                        {calendar.description || "No description"}
+                {academicYears.map((academicYear) => (
+                  <TableRow key={academicYear.id}>
+                    <TableCell className="font-medium">{academicYear.year}</TableCell>
+                    <TableCell>{academicYear.university.name}</TableCell>
+                    <TableCell className="text-sm">
+                      <div>
+                        {format(new Date(academicYear.startDate), "MMM dd, yyyy")} - 
+                      </div>
+                      <div>
+                        {format(new Date(academicYear.endDate), "MMM dd, yyyy")}
                       </div>
                     </TableCell>
                     <TableCell>
-                      {calendar.fileUrl ? (
+                      {academicYear.calendarPdfUrl ? (
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4 text-green-500" />
                           <div className="text-sm">
-                            <div className="font-medium">{calendar.fileName}</div>
-                            <div className="text-muted-foreground">
-                              {(calendar.fileSize / 1024 / 1024).toFixed(2)} MB
-                            </div>
+                            <div className="font-medium">{academicYear.calendarPdfName}</div>
+                            <div className="text-muted-foreground">PDF Available</div>
                           </div>
                         </div>
                       ) : (
@@ -321,26 +201,24 @@ export function AcademicCalendarManagement() {
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div>{calendar.uploadedBy.firstName} {calendar.uploadedBy.lastName}</div>
-                      </div>
-                    </TableCell>
                     <TableCell className="text-sm">
-                      {format(new Date(calendar.createdAt), "MMM dd, yyyy")}
+                      {academicYear.calendarUploadedAt 
+                        ? format(new Date(academicYear.calendarUploadedAt), "MMM dd, yyyy")
+                        : "-"
+                      }
                     </TableCell>
                     <TableCell>
-                      <Badge variant={calendar.isActive ? "default" : "secondary"}>
-                        {calendar.isActive ? "Active" : "Inactive"}
+                      <Badge variant={academicYear.isActive ? "default" : "secondary"}>
+                        {academicYear.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        {!calendar.fileUrl ? (
+                        {!academicYear.calendarPdfUrl ? (
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => openUploadDialog(calendar)}
+                            onClick={() => openUploadDialog(academicYear)}
                             className="flex items-center gap-1"
                           >
                             <Upload className="h-3 w-3" />
@@ -351,7 +229,7 @@ export function AcademicCalendarManagement() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleDownloadCalendar(calendar)}
+                              onClick={() => handleDownloadCalendar(academicYear)}
                               className="flex items-center gap-1"
                             >
                               <Download className="h-3 w-3" />
@@ -360,32 +238,23 @@ export function AcademicCalendarManagement() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => window.open(calendar.fileUrl, '_blank')}
+                              onClick={() => window.open(academicYear.calendarPdfUrl, '_blank')}
                               className="flex items-center gap-1"
                             >
                               <Eye className="h-3 w-3" />
                               View
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleRemoveCalendar(academicYear)}
+                              className="flex items-center gap-1 text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              Remove
+                            </Button>
                           </>
                         )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openEditDialog(calendar)}
-                          className="flex items-center gap-1"
-                        >
-                          <Edit2 className="h-3 w-3" />
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDeleteCalendar(calendar.id)}
-                          className="flex items-center gap-1 text-destructive"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                          Delete
-                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -396,69 +265,18 @@ export function AcademicCalendarManagement() {
         </CardContent>
       </Card>
 
-      {/* Edit Calendar Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Academic Calendar</DialogTitle>
-            <DialogDescription>
-              Update calendar information
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-title">Title</Label>
-              <Input
-                id="edit-title"
-                value={editingCalendar.title || ""}
-                onChange={(e) => setEditingCalendar(prev => ({ ...prev, title: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-description">Description</Label>
-              <Textarea
-                id="edit-description"
-                value={editingCalendar.description || ""}
-                onChange={(e) => setEditingCalendar(prev => ({ ...prev, description: e.target.value }))}
-                rows={3}
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="edit-isActive"
-                checked={editingCalendar.isActive ?? true}
-                onChange={(e) => setEditingCalendar(prev => ({ ...prev, isActive: e.target.checked }))}
-                className="rounded"
-                title="Active status"
-                aria-label="Active status"
-              />
-              <Label htmlFor="edit-isActive">Active</Label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdateCalendar} disabled={loading}>
-              {loading ? "Updating..." : "Update Calendar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Upload PDF Dialog */}
       <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Upload Academic Calendar PDF</DialogTitle>
             <DialogDescription>
-              Upload a PDF file for {selectedCalendar?.academicYear} academic calendar
+              Upload a PDF file for {selectedAcademicYear?.year} academic calendar
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="pdf-file">PDF File</Label>
+              <label htmlFor="pdf-file" className="text-sm font-medium">PDF File</label>
               <Input
                 id="pdf-file"
                 type="file"
@@ -466,9 +284,14 @@ export function AcademicCalendarManagement() {
                 onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
               />
               <p className="text-sm text-muted-foreground">
-                Only PDF files are allowed. Maximum size: 50MB
+                Only PDF files are allowed. Maximum size: 15MB
               </p>
             </div>
+            {selectedFile && (
+              <div className="text-sm text-muted-foreground">
+                Selected file: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowUploadDialog(false)}>

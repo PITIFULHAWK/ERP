@@ -13,6 +13,7 @@ import placementRoutes from "./placementRoutes";
 import sectionRoutes from "./sectionRoutes";
 import attendanceRoutes from "./attendanceRoutes";
 import academicCalendarRoutes from "./academicCalendarRoutes";
+import academicYearRoutes from "./academicYearRoutes";
 import resourceRoutes from "./resourceRoutes";
 import complaintRoutes from "./complaintRoutes";
 
@@ -35,6 +36,7 @@ router.use("/placements", placementRoutes);
 router.use("/sections", sectionRoutes);
 router.use("/attendance", attendanceRoutes);
 router.use("/academic-calendar", academicCalendarRoutes);
+router.use("/academic-years", academicYearRoutes);
 router.use("/resources", resourceRoutes);
 
 // Complaint management

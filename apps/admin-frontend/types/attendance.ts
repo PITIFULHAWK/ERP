@@ -45,10 +45,13 @@ export interface AttendanceFilters {
 }
 
 export interface BulkAttendanceRequest {
+    professorId: string;
+    sectionId: string;
     subjectId: string;
     date: string;
-    attendanceRecords: {
-        enrollmentId: string;
+    attendanceData: {
+        studentId: string;
         status: "PRESENT" | "ABSENT";
     }[];
+    classType?: "REGULAR" | "PRACTICAL" | "TUTORIAL";
 }
