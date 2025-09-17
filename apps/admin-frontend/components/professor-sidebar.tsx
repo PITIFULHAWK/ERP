@@ -12,7 +12,6 @@ import {
   BookOpen,
   Calendar,
   Users,
-  FileText,
   Bell,
   Settings,
   ChevronLeft,
@@ -83,11 +82,6 @@ const navigationGroups: NavigationGroup[] = [
         name: "My Sections",
         href: "/professor#sections",
         icon: Users,
-      },
-      {
-        name: "Assignments",
-        href: "/professor#assignments",
-        icon: FileText,
       },
     ]
   }

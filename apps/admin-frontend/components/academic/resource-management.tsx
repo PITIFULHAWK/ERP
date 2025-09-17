@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { toast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
+import { useAuth } from "@/contexts/auth-context"
 import { Plus, Download, Eye, Edit2, Trash2, FileText, Video, Image, Link, BarChart3 } from "lucide-react"
 import type { Resource, CreateResourceRequest, UpdateResourceRequest, ResourceStats } from "@/types"
 
@@ -27,6 +28,7 @@ const resourceTypeIcons = {
 }
 
 export function ResourceManagement() {
+  const { user } = useAuth()
   const [resources, setResources] = useState<Resource[]>([])
   const [subjects, setSubjects] = useState<{id: string; name: string}[]>([])
   const [sections, setSections] = useState<{id: string; name: string; code: string; course: {name: string}}[]>([])
@@ -73,38 +75,121 @@ export function ResourceManagement() {
     }
   }, [filters])
 
+  const loadSubjects = useCallback(async () => {
+    try {
+      if (user?.role === "PROFESSOR") {
+        // For professors, load only subjects they teach
+        const response = await apiClient.getProfessorSections(user.id) as {
+          success: boolean
+          data: Array<{
+            id: string
+            professorId: string
+            sectionId: string
+            subjectId: string
+            isActive: boolean
+            subject: {
+              id: string
+              name: string
+              code: string
+            }
+          }>
+        }
+        
+        if (response.success && response.data) {
+          // Extract unique subjects from professor assignments
+          const uniqueSubjects = response.data
+            .filter(assignment => assignment.subject && assignment.isActive)
+            .reduce((acc, assignment) => {
+              const subjectKey = assignment.subject.id
+              if (!acc.some(s => s.id === subjectKey)) {
+                acc.push({
+                  id: assignment.subject.id,
+                  name: assignment.subject.name
+                })
+              }
+              return acc
+            }, [] as {id: string; name: string}[])
+          
+          setSubjects(uniqueSubjects)
+        }
+      } else {
+        // For admins, load all subjects
+        const response = await apiClient.getSubjects() as { success: boolean; data: {id: string; name: string}[] }
+        if (response.success) {
+          setSubjects(response.data)
+        }
+      }
+    } catch {
+      console.error("Failed to load subjects")
+    }
+  }, [user?.role, user?.id])
+
+  const loadSections = useCallback(async () => {
+    try {
+      if (user?.role === "PROFESSOR") {
+        // For professors, load only sections they teach
+        const response = await apiClient.getProfessorSections(user.id) as {
+          success: boolean
+          data: Array<{
+            id: string
+            professorId: string
+            sectionId: string
+            subjectId: string
+            isActive: boolean
+            section: {
+              id: string
+              name: string
+              code: string
+              course: {
+                id: string
+                name: string
+                code: string
+              }
+            }
+          }>
+        }
+        
+        if (response.success && response.data) {
+          // Extract unique sections from professor assignments
+          const uniqueSections = response.data
+            .filter(assignment => assignment.section && assignment.isActive)
+            .reduce((acc, assignment) => {
+              const sectionKey = assignment.section.id
+              if (!acc.some(s => s.id === sectionKey)) {
+                acc.push({
+                  id: assignment.section.id,
+                  name: assignment.section.name,
+                  code: assignment.section.code,
+                  course: { name: assignment.section.course.name }
+                })
+              }
+              return acc
+            }, [] as {id: string; name: string; code: string; course: {name: string}}[])
+          
+          setSections(uniqueSections)
+        }
+      } else {
+        // For admins, load all sections
+        const response = await apiClient.getSections() as { success: boolean; data: {id: string; name: string; code: string; course: {name: string}}[] }
+        if (response.success) {
+          setSections(response.data)
+        }
+      }
+    } catch {
+      console.error("Failed to load sections")
+    }
+  }, [user?.role, user?.id])
+
   useEffect(() => {
     loadResources()
     loadSubjects()
     loadSections()
     loadStats()
-  }, [loadResources])
+  }, [loadResources, loadSubjects, loadSections])
 
   useEffect(() => {
     loadResources()
   }, [loadResources])
-
-  const loadSubjects = async () => {
-    try {
-      const response = await apiClient.getSubjects() as { success: boolean; data: {id: string; name: string}[] }
-      if (response.success) {
-        setSubjects(response.data)
-      }
-    } catch {
-      console.error("Failed to load subjects")
-    }
-  }
-
-  const loadSections = async () => {
-    try {
-      const response = await apiClient.getSections() as { success: boolean; data: {id: string; name: string; code: string; course: {name: string}}[] }
-      if (response.success) {
-        setSections(response.data)
-      }
-    } catch {
-      console.error("Failed to load sections")
-    }
-  }
 
   const loadStats = async () => {
     try {

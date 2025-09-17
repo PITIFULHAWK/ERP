@@ -9,6 +9,7 @@ model AcademicYear {
   // Academic Calendar PDF
   calendarPdfUrl  String?           // URL to the academic calendar PDF
   calendarPdfName String?           // Name of the PDF file
+  calendarCloudinaryPublicId String? // Cloudinary public ID for file management
   calendarUploadedAt DateTime?      // When the PDF was uploaded
   
   university      University        @relation(fields: [universityId], references: [id], onDelete: Cascade)
