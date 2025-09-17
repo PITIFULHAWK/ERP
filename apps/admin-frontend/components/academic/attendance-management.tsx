@@ -25,6 +25,14 @@ type SectionSubject = {
   code: string;
 }
 
+// Professor assignment type
+type ProfessorAssignment = {
+  id: string;
+  section: Section;
+  subject: SectionSubject | null;
+  isActive: boolean;
+}
+
 export function AttendanceManagement() {
   const { user } = useAuth()
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
@@ -36,66 +44,77 @@ export function AttendanceManagement() {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([])
   const [attendanceMarking, setAttendanceMarking] = useState<{[key: string]: "PRESENT" | "ABSENT"}>({})
   const [loading, setLoading] = useState(false)
+  const [professorAssignments, setProfessorAssignments] = useState<ProfessorAssignment[]>([])
 
-  const loadSections = async () => {
+  const loadSections = useCallback(async () => {
+    if (!user?.id) return
+    
     try {
-      const response = await apiClient.getSections() as { success: boolean; data: Section[] }
+      // Load professor's assigned sections instead of all sections
+      const response = await apiClient.getProfessorSections(user.id) as { success: boolean; data: ProfessorAssignment[] }
       if (response.success) {
-        setSections(response.data)
+        // Extract unique sections from professor assignments
+        const uniqueSections = response.data.reduce((acc: Section[], assignment: ProfessorAssignment) => {
+          const existingSection = acc.find(section => section.id === assignment.section.id)
+          if (!existingSection) {
+            acc.push(assignment.section)
+          }
+          return acc
+        }, [])
+        
+        setSections(uniqueSections)
+        setProfessorAssignments(response.data)
       }
     } catch {
       toast({
         title: "Error",
-        description: "Failed to load sections",
+        description: "Failed to load assigned sections",
         variant: "destructive",
       })
     }
-  }
+  }, [user?.id])
 
   const loadSubjects = useCallback(async () => {
-    if (!selectedSection) {
+    if (!selectedSection || !user?.id) {
       setSubjects([])
       return
     }
     
     try {
-      // Get subjects from the selected section's semester (like in section details page)
-      const selectedSectionData = sections.find(section => section.id === selectedSection)
-      console.log("Selected section data:", selectedSectionData)
+      // Filter professor assignments for the selected section to get only assigned subjects
+      const sectionAssignments = professorAssignments.filter(
+        assignment => assignment.section.id === selectedSection && assignment.subject
+      )
       
-      if (selectedSectionData && selectedSectionData.semester?.id) {
-        console.log('Loading subjects for semester:', selectedSectionData.semester.code, '(ID:', selectedSectionData.semester.id, ')')
-        
-        // Load subjects by semester ID
-        const subjectsResponse = await apiClient.getSubjects({ semesterId: selectedSectionData.semester.id }) as { success: boolean; data: SectionSubject[] }
-        if (subjectsResponse.success) {
-          console.log('Loaded', subjectsResponse.data.length, 'subjects for semester', selectedSectionData.semester.code)
-          setSubjects(subjectsResponse.data)
-        } else {
-          console.log("Failed to load semester subjects, falling back to professor assignments")
-          // Fallback to professor assignments if semester loading fails
-          const assignmentsWithSubjects = selectedSectionData.professorAssignments
-            ?.filter(assignment => assignment.subject)
-            .map(assignment => assignment.subject)
-            .filter((subject, index, self) => 
-              index === self.findIndex(s => s.id === subject.id)
-            ) || []
-          
-          setSubjects(assignmentsWithSubjects)
+      // Extract unique subjects from assignments
+      const assignedSubjects = sectionAssignments.reduce((acc: SectionSubject[], assignment: ProfessorAssignment) => {
+        const existingSubject = acc.find(subject => subject.id === assignment.subject?.id)
+        if (!existingSubject && assignment.subject) {
+          acc.push({
+            id: assignment.subject.id,
+            name: assignment.subject.name,
+            code: assignment.subject.code
+          })
         }
-      } else {
-        console.log("No section data or semester found")
-        setSubjects([])
+        return acc
+      }, [])
+      
+      console.log(`Loaded ${assignedSubjects.length} assigned subjects for section`)
+      setSubjects(assignedSubjects)
+      
+      // Reset selected subject if it's not in the new list
+      if (selectedSubject && !assignedSubjects.find(subject => subject.id === selectedSubject)) {
+        setSelectedSubject("")
       }
     } catch (error) {
       console.error("Error loading subjects:", error)
       toast({
         title: "Error",
-        description: "Failed to load subjects for this section",
+        description: "Failed to load assigned subjects",
         variant: "destructive",
       })
     }
-  }, [selectedSection, sections])
+  }, [selectedSection, professorAssignments, user?.id, selectedSubject])
 
   const loadEnrollments = useCallback(async () => {
     try {
@@ -170,7 +189,7 @@ export function AttendanceManagement() {
 
   useEffect(() => {
     loadSections()
-  }, [])
+  }, [loadSections])
 
   useEffect(() => {
     loadSubjects()

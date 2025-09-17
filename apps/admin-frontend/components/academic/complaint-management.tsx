@@ -51,7 +51,6 @@ const priorityColors = {
 
 export function ComplaintManagement() {
   const [complaints, setComplaints] = useState<Complaint[]>([])
-  const [users, setUsers] = useState<{id: string; firstName: string; lastName: string}[]>([])
   const [stats, setStats] = useState<ComplaintStats | null>(null)
   const [loading, setLoading] = useState(false)
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null)
@@ -73,26 +72,59 @@ export function ComplaintManagement() {
     status: "all",
     category: "all",
     priority: "all",
-    assignedToId: "unassigned",
+    assignedToId: "all",
     search: "",
   })
 
   const loadComplaints = useCallback(async () => {
+    console.log("=== Loading Complaints ===")
     setLoading(true)
     try {
       const activeFilters = Object.fromEntries(
         Object.entries(filters).filter(([key, value]) => {
           if (key === "search") return value !== ""
-          return value !== "all" && value !== "unassigned"
+          if (key === "assignedToId") return value !== "all" && value !== "unassigned"
+          return value !== "all"
         })
       )
+      
+      console.log("Active filters being sent:", activeFilters)
+      
       const response = await apiClient.getComplaints(activeFilters) as { success: boolean; data: Complaint[] }
+      console.log("Full API Response:", response)
+      console.log("Response success:", response.success)
+      console.log("Response data type:", typeof response.data)
+      console.log("Response data is array:", Array.isArray(response.data))
+      
       if (response.success && response.data) {
-        setComplaints(Array.isArray(response.data) ? response.data : [])
+        // Handle both possible response structures
+        let complaintsArray: Complaint[] = []
+        
+        if (Array.isArray(response.data)) {
+          // If data is directly an array
+          complaintsArray = response.data
+          console.log("Using direct array structure with length:", complaintsArray.length)
+        } else {
+          // If data is an object, check for complaints property
+          const dataObj = response.data as Record<string, unknown>
+          if (dataObj.complaints && Array.isArray(dataObj.complaints)) {
+            complaintsArray = dataObj.complaints as Complaint[]
+            console.log("Using paginated response structure with length:", complaintsArray.length)
+          } else {
+            console.log("No complaints array found in response data")
+          }
+        }
+        
+        console.log("Final complaints array with length:", complaintsArray.length)
+        console.log("First complaint:", complaintsArray[0])
+        setComplaints(complaintsArray)
       } else {
+        console.log("Setting empty complaints array due to unsuccessful response or no data")
         setComplaints([])
       }
-    } catch {
+    } catch (error) {
+      console.error("Error loading complaints:", error)
+      setComplaints([])
       toast({
         title: "Error",
         description: "Failed to load complaints",
@@ -100,25 +132,9 @@ export function ComplaintManagement() {
       })
     } finally {
       setLoading(false)
+      console.log("=== Finished Loading Complaints ===")
     }
   }, [filters])
-
-  const loadUsers = useCallback(async () => {
-    try {
-      const response = await apiClient.getUsers({ role: "ADMIN" }) as { success: boolean; data: {id: string; firstName: string; lastName: string}[] }
-      if (response.success && response.data) {
-        setUsers(Array.isArray(response.data) ? response.data : [])
-      } else {
-        setUsers([])
-      }
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to load users",
-        variant: "destructive",
-      })
-    }
-  }, [])
 
   const loadStats = useCallback(async () => {
     try {
@@ -139,9 +155,8 @@ export function ComplaintManagement() {
 
   useEffect(() => {
     loadComplaints()
-    loadUsers()
     loadStats()
-  }, [loadComplaints, loadUsers, loadStats])
+  }, [loadComplaints, loadStats])
 
   useEffect(() => {
     loadComplaints()
@@ -150,16 +165,18 @@ export function ComplaintManagement() {
   const handleStatusUpdate = async () => {
     if (!selectedComplaint) return
 
+    console.log("Status update data being sent:", statusUpdate)
     setLoading(true)
     try {
       const response = await apiClient.updateComplaintStatus(selectedComplaint.id, statusUpdate) as { success: boolean }
+      console.log("Status update response:", response)
       if (response.success) {
         toast({
           title: "Success",
           description: "Complaint status updated successfully",
         })
         setShowStatusDialog(false)
-        setStatusUpdate({ status: "OPEN" })
+        setStatusUpdate({ status: "OPEN", resolutionNote: "" })
         loadComplaints()
         loadStats()
         
@@ -192,9 +209,11 @@ export function ComplaintManagement() {
       return
     }
 
+    console.log("Adding update:", newUpdate)
     setLoading(true)
     try {
       const response = await apiClient.addComplaintUpdate(selectedComplaint.id, newUpdate) as { success: boolean }
+      console.log("Add update response:", response)
       if (response.success) {
         toast({
           title: "Success",
@@ -252,8 +271,7 @@ export function ComplaintManagement() {
     setSelectedComplaint(complaint)
     setStatusUpdate({
       status: complaint.status,
-      assignedToId: complaint.assignedToId,
-      resolutionNotes: complaint.resolutionNotes,
+      resolutionNote: complaint.resolutionNote,
     })
     setShowStatusDialog(true)
   }
@@ -397,7 +415,7 @@ export function ComplaintManagement() {
                 <div className="flex items-end">
                   <Button 
                     variant="outline" 
-                    onClick={() => setFilters({ status: "all", category: "all", priority: "all", assignedToId: "unassigned", search: "" })}
+                    onClick={() => setFilters({ status: "all", category: "all", priority: "all", assignedToId: "all", search: "" })}
                   >
                     Clear
                   </Button>
@@ -416,6 +434,11 @@ export function ComplaintManagement() {
               <CardDescription>
                 {complaints.length} complaint(s) found
               </CardDescription>
+              {/* Debug info */}
+              <div className="text-xs text-muted-foreground bg-gray-100 p-2 rounded">
+                Debug: Loading: {loading.toString()}, Complaints Array Length: {complaints?.length || 0}, 
+                Is Array: {Array.isArray(complaints).toString()}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="border rounded-lg">
@@ -427,7 +450,6 @@ export function ComplaintManagement() {
                       <TableHead>Category</TableHead>
                       <TableHead>Priority</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Assigned To</TableHead>
                       <TableHead>Created</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
@@ -435,12 +457,14 @@ export function ComplaintManagement() {
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                           Loading complaints...
                         </TableCell>
                       </TableRow>
                     ) : complaints && Array.isArray(complaints) && complaints.length > 0 ? (
-                      complaints.map((complaint) => (
+                      complaints.map((complaint) => {
+                        console.log("Rendering complaint:", complaint.id, complaint.title)
+                        return (
                         <TableRow key={complaint.id}>
                           <TableCell className="font-medium">
                           <div className="max-w-xs">
@@ -478,44 +502,34 @@ export function ComplaintManagement() {
                             </Badge>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          {complaint.assignedTo ? (
-                            <div className="text-sm">
-                              <div>{complaint.assignedTo.firstName} {complaint.assignedTo.lastName}</div>
-                              <div className="text-muted-foreground">{complaint.assignedTo.email}</div>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">Unassigned</span>
-                          )}
-                        </TableCell>
                         <TableCell className="text-sm">
                           {complaint.createdAt ? format(new Date(complaint.createdAt), "MMM dd, yyyy") : 'Unknown date'}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             <Button
-                              className="text-xs flex items-center gap-1"
+                              size="sm"
                               variant="outline"
                               onClick={() => viewComplaintDetails(complaint)}
                             >
-                              <Eye className="h-3 w-3" />
+                              <Eye className="h-4 w-4" />
                               View
                             </Button>
                             <Button
-                              className="text-xs flex items-center gap-1"
+                              size="sm"
                               variant="outline"
                               onClick={() => openStatusDialog(complaint)}
                             >
-                              <MessageSquare className="h-3 w-3" />
+                              <MessageSquare className="h-4 w-4" />
                               Update
                             </Button>
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
+                      )})
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                           No complaints found
                         </TableCell>
                       </TableRow>
@@ -614,7 +628,7 @@ export function ComplaintManagement() {
           <DialogHeader>
             <DialogTitle>Update Complaint Status</DialogTitle>
             <DialogDescription>
-              Change the status and assignment of the complaint
+              Change the status and add resolution notes for the complaint
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -626,7 +640,6 @@ export function ComplaintManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="OPEN">Open</SelectItem>
-                  <SelectItem value="ASSIGNED">Assigned</SelectItem>
                   <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
                   <SelectItem value="RESOLVED">Resolved</SelectItem>
                   <SelectItem value="CLOSED">Closed</SelectItem>
@@ -634,31 +647,14 @@ export function ComplaintManagement() {
                 </SelectContent>
               </Select>
             </div>
-            
-            <div className="space-y-2">
-              <Label>Assign To</Label>
-              <Select value={statusUpdate.assignedToId || "unassigned"} onValueChange={(value) => setStatusUpdate(prev => ({ ...prev, assignedToId: value === "unassigned" ? undefined : value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select admin" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {users && Array.isArray(users) ? users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.firstName} {user.lastName}
-                    </SelectItem>
-                  )) : null}
-                </SelectContent>
-              </Select>
-            </div>
 
             <div className="space-y-2">
               <Label>Resolution Notes</Label>
               <Textarea
-                value={statusUpdate.resolutionNotes || ""}
-                onChange={(e) => setStatusUpdate(prev => ({ ...prev, resolutionNotes: e.target.value }))}
+                value={statusUpdate.resolutionNote || ""}
+                onChange={(e) => setStatusUpdate(prev => ({ ...prev, resolutionNote: e.target.value }))}
                 placeholder="Add resolution notes..."
-                rows={3}
+                rows={4}
               />
             </div>
           </div>
@@ -675,7 +671,7 @@ export function ComplaintManagement() {
 
       {/* Complaint Details Sheet */}
       <Sheet open={showDetailsSheet} onOpenChange={setShowDetailsSheet}>
-        <SheetContent className="w-[800px] sm:w-[800px]">
+        <SheetContent className="w-[800px] sm:w-[800px] overflow-y-auto">
           <SheetHeader>
             <SheetTitle>
               Complaint Details
@@ -686,7 +682,7 @@ export function ComplaintManagement() {
           </SheetHeader>
           
           {selectedComplaint && (
-            <div className="space-y-6 py-6">
+            <div className="space-y-6 py-6 h-full">
               {/* Complaint Info */}
               <Card>
                 <CardHeader>
@@ -725,27 +721,13 @@ export function ComplaintManagement() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     <div>
                       <Label className="text-sm font-medium">Student</Label>
                       <p className="mt-1 text-sm">
                         {selectedComplaint.student?.firstName || 'Unknown'} {selectedComplaint.student?.lastName || ''}
                         <br />
                         <span className="text-muted-foreground">{selectedComplaint.student?.email || 'No email'}</span>
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Assigned To</Label>
-                      <p className="mt-1 text-sm">
-                        {selectedComplaint.assignedTo ? (
-                          <>
-                            {selectedComplaint.assignedTo.firstName} {selectedComplaint.assignedTo.lastName}
-                            <br />
-                            <span className="text-muted-foreground">{selectedComplaint.assignedTo.email}</span>
-                          </>
-                        ) : (
-                          <span className="text-muted-foreground">Unassigned</span>
-                        )}
                       </p>
                     </div>
                   </div>
@@ -757,10 +739,10 @@ export function ComplaintManagement() {
                     </p>
                   </div>
 
-                  {selectedComplaint.resolutionNotes && (
+                  {selectedComplaint.resolutionNote && (
                     <div>
                       <Label className="text-sm font-medium">Resolution Notes</Label>
-                      <p className="mt-1 text-sm text-muted-foreground">{selectedComplaint.resolutionNotes}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{selectedComplaint.resolutionNote}</p>
                     </div>
                   )}
 
@@ -828,10 +810,20 @@ export function ComplaintManagement() {
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium">
-                                  {update.updatedBy?.firstName || 'Unknown'} {update.updatedBy?.lastName || 'User'}
+                                  {update.updatedBy?.firstName && update.updatedBy?.lastName 
+                                    ? `${update.updatedBy.firstName} ${update.updatedBy.lastName}`
+                                    : update.updatedBy?.role === 'ADMIN' || update.updatedBy?.role === 'SUPER_ADMIN'
+                                    ? 'Admin User'
+                                    : update.updatedBy?.role === 'STUDENT'
+                                    ? 'Student'
+                                    : 'System User'
+                                  }
                                 </span>
                                 <Badge variant="outline" className="text-xs">
-                                  {update.updatedBy?.role || 'Unknown'}
+                                  {update.updatedBy?.role === 'ADMIN' ? 'Admin' : 
+                                   update.updatedBy?.role === 'SUPER_ADMIN' ? 'Super Admin' :
+                                   update.updatedBy?.role === 'STUDENT' ? 'Student' :
+                                   update.updatedBy?.role || 'Admin'}
                                 </Badge>
                                 {update.isInternal && (
                                   <Badge variant="destructive" className="text-xs">

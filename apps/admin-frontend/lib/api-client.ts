@@ -855,6 +855,10 @@ class ApiClient {
         });
     }
 
+    async getProfessorSections(professorId: string) {
+        return this.request(`/sections/professor/${professorId}`);
+    }
+
     // ====== ENROLLMENT MANAGEMENT ======
     async getEnrollments(filters?: EnrollmentFilters) {
         // Check if this is for a specific section

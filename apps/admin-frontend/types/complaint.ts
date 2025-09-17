@@ -25,7 +25,7 @@ export interface Complaint {
     priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
     studentId: string;
     assignedToId?: string;
-    resolutionNotes?: string;
+    resolutionNote?: string;
     student: {
         id: string;
         firstName: string;
@@ -85,7 +85,7 @@ export interface UpdateComplaintStatusRequest {
         | "CLOSED"
         | "REJECTED";
     assignedToId?: string;
-    resolutionNotes?: string;
+    resolutionNote?: string;
 }
 
 export interface AddComplaintUpdateRequest {

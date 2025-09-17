@@ -9,7 +9,7 @@ export const createComplaint = asyncHandler(
             title,
             description,
             category,
-            priority = "MEDIUM",
+            priority,
             location,
             urgency = false,
             attachmentUrls = [],
@@ -260,13 +260,15 @@ export const updateComplaintStatus = asyncHandler(
             updatedAt: new Date(),
         };
 
+        // Add resolution note if provided
+        if (resolutionNote) {
+            updateData.resolutionNote = resolutionNote;
+        }
+
         // If resolving the complaint
         if (status === "RESOLVED" || status === "CLOSED") {
             updateData.resolvedAt = new Date();
             updateData.resolvedBy = adminId;
-            if (resolutionNote) {
-                updateData.resolutionNote = resolutionNote;
-            }
         }
 
         // If assigning the complaint
@@ -307,8 +309,14 @@ export const updateComplaintStatus = asyncHandler(
             data: {
                 complaintId: id,
                 updatedBy: adminId,
-                updateType: assignedTo ? "ASSIGNMENT" : status === "RESOLVED" || status === "CLOSED" ? "RESOLUTION" : "STATUS_CHANGE",
-                message: resolutionNote || `Status changed to ${status}${assignedTo ? ` and assigned to admin` : ""}`,
+                updateType: assignedTo
+                    ? "ASSIGNMENT"
+                    : status === "RESOLVED" || status === "CLOSED"
+                      ? "RESOLUTION"
+                      : "STATUS_CHANGE",
+                message:
+                    resolutionNote ||
+                    `Status changed to ${status}${assignedTo ? ` and assigned to admin` : ""}`,
                 isInternal: false,
             },
         });
@@ -494,6 +502,10 @@ export const deleteComplaint = asyncHandler(
                 message: "Complaint closed by admin",
                 isInternal: true,
             },
+        });
+
+        await prisma.complaint.delete({
+            where: { id },
         });
 
         res.json({
