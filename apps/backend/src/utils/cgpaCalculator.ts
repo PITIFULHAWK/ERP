@@ -3,6 +3,7 @@ import prisma from "@repo/db";
 /**
  * Calculate CGPA for a student based on their exam results
  * CGPA = (Sum of (Grade Points × Credits)) / (Total Credits)
+ * Uses 10.0 scale for grade point calculation
  */
 export async function calculateStudentCGPA(studentId: string): Promise<number> {
     try {
@@ -91,18 +92,24 @@ function calculateGPAFromResults(examResults: any[]): number {
     let totalCredits = 0;
 
     for (const examResult of examResults) {
-        if (examResult.grades && examResult.grades.subject) {
-            const subject = examResult.grades.subject;
-            const marksObtained = examResult.grades.marksObtained;
-            const maxMarks = examResult.exam.maxMarks;
+        // Handle multiple grades per exam result (one per subject)
+        if (examResult.grades && Array.isArray(examResult.grades)) {
+            for (const grade of examResult.grades) {
+                if (grade.subject) {
+                    const subject = grade.subject;
+                    const marksObtained = grade.marksObtained;
+                    const maxMarks = examResult.exam.maxMarks;
 
-            // Calculate percentage and convert to grade point (4.0 scale)
-            const percentage = (marksObtained / maxMarks) * 100;
-            const gradePoint = convertPercentageToGradePoint(percentage);
+                    // Calculate percentage and convert to grade point (10.0 scale)
+                    const percentage = (marksObtained / maxMarks) * 100;
+                    const gradePoint =
+                        convertPercentageToGradePoint(percentage);
 
-            // Weight by subject credits
-            totalWeightedGradePoints += gradePoint * subject.credits;
-            totalCredits += subject.credits;
+                    // Weight by subject credits
+                    totalWeightedGradePoints += gradePoint * subject.credits;
+                    totalCredits += subject.credits;
+                }
+            }
         }
     }
 
@@ -116,19 +123,23 @@ function calculateGPAFromResults(examResults: any[]): number {
 }
 
 /**
- * Convert percentage to grade point (4.0 scale)
- * Standard grading scale:
- * 90-100: 4.0 (A)
- * 80-89:  3.0 (B)
- * 70-79:  2.0 (C)
- * 60-69:  1.0 (D)
- * <60:    0.0 (F)
+ * Convert percentage to grade point (10.0 scale)
+ * Standard Indian grading scale:
+ * 90-100: 10.0 (A+)
+ * 80-89:  9.0  (A)
+ * 70-79:  8.0  (B+)
+ * 60-69:  7.0  (B)
+ * 50-59:  6.0  (C)
+ * 40-49:  5.0  (D)
+ * <40:    0.0  (F)
  */
 function convertPercentageToGradePoint(percentage: number): number {
-    if (percentage >= 90) return 4.0;
-    if (percentage >= 80) return 3.0;
-    if (percentage >= 70) return 2.0;
-    if (percentage >= 60) return 1.0;
+    if (percentage >= 90) return 10.0;
+    if (percentage >= 80) return 9.0;
+    if (percentage >= 70) return 8.0;
+    if (percentage >= 60) return 7.0;
+    if (percentage >= 50) return 6.0;
+    if (percentage >= 40) return 5.0;
     return 0.0;
 }
 
@@ -144,9 +155,11 @@ export async function getStudentAcademicRecord(studentId: string) {
             where: {
                 subjects: {
                     some: {
-                        Grade: {
-                            examResult: {
-                                studentId,
+                        grades: {
+                            some: {
+                                examResult: {
+                                    studentId,
+                                },
                             },
                         },
                     },

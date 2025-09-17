@@ -26,7 +26,7 @@ model ExamResult {
   updatedAt          DateTime     @updatedAt
   exam               Exam         @relation(fields: [examId], references: [id])
   student            User         @relation("examResults", fields: [studentId], references: [id])
-  grades             Grade?
+  grades             Grade[]      @relation("ExamResultGrades")
 
   @@unique([studentId, examId])
   @@map("exam_results")
@@ -35,21 +35,19 @@ model ExamResult {
 model Grade {
   id            String     @id @default(uuid())
   marksObtained Float
-  examResultId  String     @unique
-  subjectId     String     @unique
+  examResultId  String
+  subjectId     String
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
-  examResult    ExamResult @relation(fields: [examResultId], references: [id])
-  subject       Subject    @relation(fields: [subjectId], references: [id])
+  examResult    ExamResult @relation("ExamResultGrades", fields: [examResultId], references: [id])
+  subject       Subject    @relation("SubjectGrades", fields: [subjectId], references: [id])
 
+  @@unique([examResultId, subjectId])
   @@map("grades")
 }
 
 enum ExamType {
-  MID_TERM
   FINAL_EXAM
-  QUIZ
-  PRACTICAL
 }
 
 enum ResultStatus {

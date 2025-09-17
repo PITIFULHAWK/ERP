@@ -327,7 +327,8 @@ export const getProfessorStudentsForGrading = asyncHandler(
         // Get exam results and grades for these students
         const studentsWithGrades = await Promise.all(
             sectionEnrollments.map(async (enrollment) => {
-                const examResult = await prisma.examResult.findFirst({
+                // Try to find existing exam result
+                let examResult = await prisma.examResult.findFirst({
                     where: {
                         studentId: enrollment.studentId,
                         examId: examId as string,
@@ -339,6 +340,26 @@ export const getProfessorStudentsForGrading = asyncHandler(
                         },
                     },
                 });
+
+                // If no exam result exists, create one automatically
+                if (!examResult) {
+                    examResult = await prisma.examResult.create({
+                        data: {
+                            examId: examId as string,
+                            studentId: enrollment.studentId,
+                            status: "PENDING",
+                            totalMarksObtained: null,
+                            percentage: null,
+                            grade: null,
+                        },
+                        include: {
+                            grades: {
+                                where: { subjectId: subjectId as string },
+                                include: { subject: true },
+                            },
+                        },
+                    });
+                }
 
                 return {
                     student: enrollment.student,
