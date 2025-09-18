@@ -9,6 +9,8 @@ interface ThemeProviderProps {
   disableTransitionOnChange?: boolean;
   storageKey?: string;
   themes?: string[];
+  forcedTheme?: string;
+  nonce?: string;
 }
 
 export function ThemeProvider({ 

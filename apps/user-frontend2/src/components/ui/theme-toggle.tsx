@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { useThemeTransition } from "@/hooks/useThemeTransition";
 
 interface ThemeToggleProps {
   variant?: "dropdown" | "simple";
@@ -22,16 +23,17 @@ export function ThemeToggle({
   showLabel = false, 
   className 
 }: ThemeToggleProps) {
-  const { setTheme, theme, resolvedTheme } = useTheme();
+  const { theme, resolvedTheme } = useTheme();
+  const { setTheme: setThemeWithTransition } = useThemeTransition();
 
-  // Simple toggle that cycles through themes
+  // Simple toggle that cycles through themes with smooth transitions
   const handleSimpleToggle = () => {
     if (theme === "light") {
-      setTheme("dark");
+      setThemeWithTransition("dark");
     } else if (theme === "dark") {
-      setTheme("system");
+      setThemeWithTransition("system");
     } else {
-      setTheme("light");
+      setThemeWithTransition("light");
     }
   };
 
@@ -58,8 +60,8 @@ export function ThemeToggle({
         className={cn("relative", className)}
         aria-label={`Switch to ${theme === "light" ? "dark" : theme === "dark" ? "system" : "light"} theme`}
       >
-        <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-        <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+        <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all duration-300 ease-in-out dark:-rotate-90 dark:scale-0" />
+        <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all duration-300 ease-in-out dark:rotate-0 dark:scale-100" />
         {showLabel && (
           <span className="ml-2 hidden sm:inline-block">
             {currentTheme.label}
@@ -79,8 +81,8 @@ export function ThemeToggle({
           className={cn("relative", className)}
           aria-label="Toggle theme menu"
         >
-          <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all duration-300 ease-in-out dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all duration-300 ease-in-out dark:rotate-0 dark:scale-100" />
           {showLabel && (
             <span className="ml-2 hidden sm:inline-block">
               {currentTheme.label}
@@ -91,7 +93,7 @@ export function ThemeToggle({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[8rem]">
         <DropdownMenuItem 
-          onClick={() => setTheme("light")}
+          onClick={() => setThemeWithTransition("light")}
           className={cn(
             "cursor-pointer",
             theme === "light" && "bg-accent text-accent-foreground"
@@ -104,7 +106,7 @@ export function ThemeToggle({
           )}
         </DropdownMenuItem>
         <DropdownMenuItem 
-          onClick={() => setTheme("dark")}
+          onClick={() => setThemeWithTransition("dark")}
           className={cn(
             "cursor-pointer",
             theme === "dark" && "bg-accent text-accent-foreground"
@@ -117,7 +119,7 @@ export function ThemeToggle({
           )}
         </DropdownMenuItem>
         <DropdownMenuItem 
-          onClick={() => setTheme("system")}
+          onClick={() => setThemeWithTransition("system")}
           className={cn(
             "cursor-pointer",
             theme === "system" && "bg-accent text-accent-foreground"

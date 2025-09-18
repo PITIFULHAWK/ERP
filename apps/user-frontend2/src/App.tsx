@@ -22,6 +22,8 @@ import AcademicCalendar from "./pages/AcademicCalendar";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
+import DarkModeTestPage from "./pages/DarkModeTestPage";
+import ThemePersistenceTest from "./pages/ThemePersistenceTest";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +57,8 @@ const router = createBrowserRouter([
     // Public routes
     { path: "/login", Component: Login },
     { path: "/signup", Component: Signup },
+    { path: "/dark-mode-test", Component: DarkModeTestPage },
+    { path: "/theme-persistence-test", Component: ThemePersistenceTest },
 
     // Default protected layout (all children use Layout + ProtectedRoute)
     {
@@ -96,6 +100,7 @@ const App = () => (
         defaultTheme="system"
         enableSystem
         disableTransitionOnChange={false}
+        storageKey="theme"
     >
         <QueryClientProvider client={queryClient}>
             <AuthProvider>

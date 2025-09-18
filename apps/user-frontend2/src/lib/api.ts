@@ -1,5 +1,6 @@
 // API Configuration and Service Layer
-const API_BASE_URL = "http://localhost:5000/api/v1";
+// Prefer environment variable for flexibility; fallback to localhost for dev
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ?? "http://localhost:5000/api/v1";
 
 // Types for API responses
 export interface ApiResponse<T = any> {
@@ -76,10 +77,18 @@ export interface Course {
     id: string;
     name: string;
     code: string;
-    description?: string;
-    duration: number;
+    credits: number;
+    totalSemester: number;
     totalFees: number;
+    currentStudents: number;
     universityId: string;
+    createdAt: string;
+    updatedAt: string;
+    university?: University;
+    _count?: {
+        enrollments: number;
+        applications: number;
+    };
 }
 
 export interface Application {
@@ -299,8 +308,13 @@ class ApiService {
     }
 
     // Courses endpoint
-    async getCourses(): Promise<ApiResponse<any[]>> {
-        return this.request<any[]>("/courses");
+    async getCourses(params?: { universityId?: string }): Promise<ApiResponse<Course[]>> {
+        const queryParams = new URLSearchParams();
+        if (params?.universityId) {
+            queryParams.append("universityId", params.universityId);
+        }
+        const query = queryParams.toString();
+        return this.request<Course[]>(`/courses${query ? `?${query}` : ""}`);
     }
 
     // Hostels endpoint

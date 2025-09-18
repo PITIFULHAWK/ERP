@@ -56,19 +56,19 @@ const Login: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
             <div className="w-full max-w-md">
                 {/* Header */}
                 <div className="text-center mb-8">
                     <div className="flex justify-center mb-4">
                         <div className="bg-primary rounded-full p-3">
-                            <GraduationCap className="h-8 w-8 text-white" />
+                            <GraduationCap className="h-8 w-8 text-primary-foreground" />
                         </div>
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-900">
+                    <h1 className="text-3xl font-bold text-foreground">
                         Welcome Back
                     </h1>
-                    <p className="text-gray-600 mt-2">
+                    <p className="text-muted-foreground mt-2">
                         Sign in to your student portal
                     </p>
                 </div>
@@ -160,7 +160,7 @@ const Login: React.FC = () => {
                         </Form>
                     </CardContent>
                     <CardFooter className="flex flex-col space-y-2">
-                        <div className="text-sm text-center text-gray-600">
+                        <div className="text-sm text-center text-muted-foreground">
                             Don't have an account?{" "}
                             <Link
                                 to="/signup"
@@ -173,7 +173,7 @@ const Login: React.FC = () => {
                 </Card>
 
                 {/* Footer */}
-                <div className="text-center mt-8 text-sm text-gray-500">
+                <div className="text-center mt-8 text-sm text-muted-foreground">
                     <p>© 2024 AcademiaOS. All rights reserved.</p>
                 </div>
             </div>

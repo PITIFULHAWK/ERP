@@ -171,21 +171,64 @@
 @layer base {
     * {
         @apply border-border;
-        /* Smooth transitions for theme switching */
+    }
+
+    /* Enhanced smooth transitions for theme switching */
+    *,
+    *::before,
+    *::after {
         transition: 
-            background-color 0.2s ease-in-out,
-            border-color 0.2s ease-in-out,
-            color 0.2s ease-in-out,
-            fill 0.2s ease-in-out,
-            stroke 0.2s ease-in-out,
-            box-shadow 0.2s ease-in-out;
+            background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            fill 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            stroke 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            text-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     /* Respect user's motion preferences */
     @media (prefers-reduced-motion: reduce) {
-        * {
-            transition: none !important;
-            animation: none !important;
+        *,
+        *::before,
+        *::after {
+            transition-duration: 0.01ms !important;
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            scroll-behavior: auto !important;
+        }
+    }
+
+    /* Enhanced transitions for specific elements that need smoother theme switching */
+    body,
+    [data-theme],
+    .theme-transition {
+        transition: 
+            background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Enhanced transitions during theme switching */
+    body.theme-transitioning,
+    body.theme-transitioning * {
+        transition: 
+            background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            fill 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            stroke 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            text-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Respect reduced motion preferences during theme transitions */
+    @media (prefers-reduced-motion: reduce) {
+        body.theme-transitioning,
+        body.theme-transitioning * {
+            transition-duration: 0.01ms !important;
         }
     }
 
@@ -217,15 +260,15 @@
     }
 
     .progress-success {
-        @apply bg-emerald-500;
+        @apply bg-success;
     }
 
     .progress-warning {
-        @apply bg-amber-500;
+        @apply bg-warning;
     }
 
     .progress-danger {
-        @apply bg-red-500;
+        @apply bg-destructive;
     }
 
     /* Enhanced transitions for theme switching */
@@ -241,6 +284,15 @@
             transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
+    /* Smooth theme transition utility classes */
+    .theme-transition-fast {
+        transition-duration: 0.15s;
+    }
+
+    .theme-transition-slow {
+        transition-duration: 0.5s;
+    }
+
     /* Prevent flash of unstyled content */
     html {
         color-scheme: light;
@@ -248,5 +300,32 @@
 
     html.dark {
         color-scheme: dark;
+    }
+
+    /* Smooth initial render to reduce FOUC */
+    html:not(.dark):not(.light) {
+        background-color: hsl(220, 14%, 96%);
+        color: hsl(224, 71%, 4%);
+    }
+
+    @media (prefers-color-scheme: dark) {
+        html:not(.dark):not(.light) {
+            background-color: hsl(224, 71%, 4%);
+            color: hsl(210, 40%, 98%);
+        }
+    }
+
+    /* Utility for elements that should not transition during theme changes */
+    .no-theme-transition {
+        transition: none !important;
+    }
+
+    /* Utility for enhanced theme transitions on specific elements */
+    .enhanced-theme-transition {
+        transition: 
+            background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+            border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+            color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+            box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
 }

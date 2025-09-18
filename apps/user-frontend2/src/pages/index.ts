@@ -1,1 +1,14 @@
- 
+export { default as Dashboard } from "./Dashboard";
+export { default as Login } from "./Login";
+export { default as Signup } from "./Signup";
+export { default as Attendance } from "./Attendance";
+export { default as Results } from "./Results";
+export { default as Courses } from "./Courses";
+export { default as Notices } from "./Notices";
+export { default as Payments } from "./Payments";
+export { default as Timetable } from "./Timetable";
+export { default as AcademicCalendar } from "./AcademicCalendar";
+export { default as Application } from "./Application";
+export { default as Index } from "./Index";
+export { default as NotFound } from "./NotFound";
+export { default as DarkModeTestPage } from "./DarkModeTestPage";
