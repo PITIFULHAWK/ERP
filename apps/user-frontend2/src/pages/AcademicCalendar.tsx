@@ -107,7 +107,7 @@ export default function AcademicCalendar() {
                 });
             }
         },
-        [user?.id]
+        [] // Remove user?.id dependency to prevent infinite loops
     );
 
     // Auto-retry with exponential backoff
@@ -131,7 +131,7 @@ export default function AcademicCalendar() {
         setTimeout(() => {
             fetchCalendarDocument(true);
         }, delay);
-    }, [state.retryCount, fetchCalendarDocument]);
+    }, [state.retryCount]); // Remove fetchCalendarDocument dependency
 
     // Download document
     const handleDownload = useCallback(async () => {
@@ -193,8 +193,10 @@ export default function AcademicCalendar() {
 
     // Initial load
     useEffect(() => {
-        fetchCalendarDocument();
-    }, [fetchCalendarDocument]);
+        if (user?.id) {
+            fetchCalendarDocument();
+        }
+    }, [user?.id]); // Only depend on user.id, not the callback
 
     // Loading state
     if (state.loading) {

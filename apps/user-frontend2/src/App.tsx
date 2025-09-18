@@ -6,6 +6,7 @@ import { createBrowserRouter, RouterProvider, Outlet, Navigate } from "react-rou
 
 import { Layout } from "@/components/layout/Layout";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RoleProtectedRoute from "@/components/RoleProtectedRoute";
 
@@ -90,15 +91,22 @@ const router = createBrowserRouter([
 ]);
 
 const App = () => (
-    <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-            <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <RouterProvider router={router} />
-            </TooltipProvider>
-        </AuthProvider>
-    </QueryClientProvider>
+    <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange={false}
+    >
+        <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+                <TooltipProvider>
+                    <Toaster />
+                    <Sonner />
+                    <RouterProvider router={router} />
+                </TooltipProvider>
+            </AuthProvider>
+        </QueryClientProvider>
+    </ThemeProvider>
 );
 
 export default App;
