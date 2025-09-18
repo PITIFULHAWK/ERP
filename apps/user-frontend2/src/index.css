@@ -108,11 +108,128 @@
 
         --sidebar-ring: 217.2 91.2% 59.8%;
     }
+
+    .dark {
+        /* Base colors - Dark theme */
+        --background: 224 71% 4%;
+        --foreground: 210 40% 98%;
+
+        /* Card colors - Dark theme */
+        --card: 224 71% 4%;
+        --card-foreground: 210 40% 98%;
+
+        /* Popover colors - Dark theme */
+        --popover: 224 71% 4%;
+        --popover-foreground: 210 40% 98%;
+
+        /* Primary - Sky Blue Accent (adjusted for dark) */
+        --primary: 199 89% 48%;
+        --primary-foreground: 224 71% 4%;
+        --primary-hover: 199 89% 55%;
+
+        /* Secondary - Dark theme */
+        --secondary: 215 27% 12%;
+        --secondary-foreground: 210 40% 98%;
+
+        /* Muted - Dark theme */
+        --muted: 215 27% 12%;
+        --muted-foreground: 217 10% 64%;
+
+        /* Accent - Dark theme */
+        --accent: 215 27% 12%;
+        --accent-foreground: 210 40% 98%;
+
+        /* Destructive - Red for alerts (dark theme) */
+        --destructive: 0 62% 30%;
+        --destructive-foreground: 210 40% 98%;
+
+        /* Success - Emerald Green (dark theme) */
+        --success: 160 84% 39%;
+        --success-foreground: 224 71% 4%;
+
+        /* Warning - Amber (dark theme) */
+        --warning: 43 96% 56%;
+        --warning-foreground: 224 71% 4%;
+
+        /* Sidebar - Darker variation for dark theme */
+        --sidebar-background: 224 71% 4%;
+        --sidebar-foreground: 217 10% 64%;
+        --sidebar-primary: 199 89% 48%;
+        --sidebar-primary-foreground: 224 71% 4%;
+        --sidebar-accent: 215 27% 12%;
+        --sidebar-accent-foreground: 210 40% 98%;
+        --sidebar-border: 215 27% 12%;
+        --sidebar-ring: 217.2 91.2% 59.8%;
+
+        /* Borders and inputs - Dark theme */
+        --border: 215 27% 12%;
+        --input: 215 27% 12%;
+        --ring: 199 89% 48%;
+    }
 }
 
 @layer base {
     * {
         @apply border-border;
+    }
+
+    /* Enhanced smooth transitions for theme switching */
+    *,
+    *::before,
+    *::after {
+        transition: 
+            background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            fill 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            stroke 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            text-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Respect user's motion preferences */
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            transition-duration: 0.01ms !important;
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            scroll-behavior: auto !important;
+        }
+    }
+
+    /* Enhanced transitions for specific elements that need smoother theme switching */
+    body,
+    [data-theme],
+    .theme-transition {
+        transition: 
+            background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Enhanced transitions during theme switching */
+    body.theme-transitioning,
+    body.theme-transitioning * {
+        transition: 
+            background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            fill 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            stroke 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            text-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Respect reduced motion preferences during theme transitions */
+    @media (prefers-reduced-motion: reduce) {
+        body.theme-transitioning,
+        body.theme-transitioning * {
+            transition-duration: 0.01ms !important;
+        }
     }
 
     body {
@@ -143,14 +260,72 @@
     }
 
     .progress-success {
-        @apply bg-emerald-500;
+        @apply bg-success;
     }
 
     .progress-warning {
-        @apply bg-amber-500;
+        @apply bg-warning;
     }
 
     .progress-danger {
-        @apply bg-red-500;
+        @apply bg-destructive;
+    }
+
+    /* Enhanced transitions for theme switching */
+    .theme-transition {
+        transition: 
+            background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            fill 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            stroke 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Smooth theme transition utility classes */
+    .theme-transition-fast {
+        transition-duration: 0.15s;
+    }
+
+    .theme-transition-slow {
+        transition-duration: 0.5s;
+    }
+
+    /* Prevent flash of unstyled content */
+    html {
+        color-scheme: light;
+    }
+
+    html.dark {
+        color-scheme: dark;
+    }
+
+    /* Smooth initial render to reduce FOUC */
+    html:not(.dark):not(.light) {
+        background-color: hsl(220, 14%, 96%);
+        color: hsl(224, 71%, 4%);
+    }
+
+    @media (prefers-color-scheme: dark) {
+        html:not(.dark):not(.light) {
+            background-color: hsl(224, 71%, 4%);
+            color: hsl(210, 40%, 98%);
+        }
+    }
+
+    /* Utility for elements that should not transition during theme changes */
+    .no-theme-transition {
+        transition: none !important;
+    }
+
+    /* Utility for enhanced theme transitions on specific elements */
+    .enhanced-theme-transition {
+        transition: 
+            background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+            border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+            color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+            box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
 }

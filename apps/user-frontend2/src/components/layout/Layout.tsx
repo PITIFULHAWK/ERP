@@ -12,6 +12,7 @@ import {
 import { LogOut } from "lucide-react";
 import { AppSidebar } from "./AppSidebar";
 import { useAuth } from "@/contexts/AuthContext";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -43,7 +44,7 @@ export function Layout({ children }: LayoutProps) {
                     <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between">
                         <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
                         <div className="flex items-center gap-4">
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-muted-foreground hidden sm:block">
                                 {new Date().toLocaleDateString("en-US", {
                                     weekday: "long",
                                     year: "numeric",
@@ -51,6 +52,15 @@ export function Layout({ children }: LayoutProps) {
                                     day: "numeric",
                                 })}
                             </div>
+                            <div className="text-sm text-muted-foreground sm:hidden">
+                                {new Date().toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                })}
+                            </div>
+
+                            {/* Theme Toggle */}
+                            <ThemeToggle variant="simple" />
 
                             {/* User Menu */}
                             {user && (

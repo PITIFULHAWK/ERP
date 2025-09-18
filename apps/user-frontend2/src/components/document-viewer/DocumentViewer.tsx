@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { DocumentViewerProps, DocumentType } from '@/types/document-viewer';
 import { PDFViewer } from './PDFViewer';
 import { ImageViewer } from './ImageViewer';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { ErrorBoundary, RetryableError, NetworkError } from '@/components/error-handling';
 
 export const DocumentViewer: React.FC<DocumentViewerProps> = ({
   documentUrl,
@@ -13,6 +14,9 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
   onLoad,
   className = ''
 }) => {
+  const [loadError, setLoadError] = useState<Error | null>(null);
+  const [retryCount, setRetryCount] = useState<number>(0);
+
   // Determine document type from URL if not explicitly provided
   const detectedType = useMemo((): DocumentType => {
     if (documentType) return documentType;
@@ -39,6 +43,24 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
     }
   }, [documentUrl]);
 
+  const handleDocumentError = useCallback((error: Error) => {
+    setLoadError(error);
+    onError?.(error);
+  }, [onError]);
+
+  const handleDocumentLoad = useCallback(() => {
+    setLoadError(null);
+    setRetryCount(0);
+    onLoad?.();
+  }, [onLoad]);
+
+  const handleRetry = useCallback(async () => {
+    setLoadError(null);
+    setRetryCount(prev => prev + 1);
+    // The actual retry will be handled by re-rendering the viewer components
+  }, []);
+
+  // Error states
   if (!documentUrl) {
     return (
       <Alert className={className}>
@@ -61,38 +83,82 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
     );
   }
 
-  // Render appropriate viewer based on document type
-  switch (detectedType) {
-    case 'pdf':
+  // Show retry error if document loading failed
+  if (loadError) {
+    const errorMessage = loadError.message.toLowerCase();
+    
+    // Show network error for connection issues
+    if (errorMessage.includes('network') || errorMessage.includes('fetch') || !navigator.onLine) {
       return (
-        <PDFViewer
-          pdfUrl={documentUrl}
-          fileName={fileName}
-          onError={onError}
-          onLoad={onLoad}
+        <NetworkError
+          onRetry={handleRetry}
           className={className}
+          autoRetryOnReconnect={true}
         />
       );
+    }
     
-    case 'image':
-      return (
-        <ImageViewer
-          imageUrl={documentUrl}
-          fileName={fileName}
-          onError={onError}
-          onLoad={onLoad}
-          className={className}
-        />
-      );
-    
-    default:
-      return (
-        <Alert className={className}>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Unsupported document type: {detectedType}
-          </AlertDescription>
-        </Alert>
-      );
+    // Show retryable error for other issues
+    return (
+      <RetryableError
+        error={loadError}
+        onRetry={handleRetry}
+        maxRetries={3}
+        currentRetry={retryCount}
+        autoRetry={false}
+        className={className}
+        showErrorDetails={process.env.NODE_ENV === 'development'}
+      />
+    );
   }
+
+  // Render appropriate viewer based on document type with error boundary
+  const ViewerComponent = () => {
+    switch (detectedType) {
+      case 'pdf':
+        return (
+          <PDFViewer
+            pdfUrl={documentUrl}
+            fileName={fileName}
+            onError={handleDocumentError}
+            onLoad={handleDocumentLoad}
+            className={className}
+          />
+        );
+      
+      case 'image':
+        return (
+          <ImageViewer
+            imageUrl={documentUrl}
+            fileName={fileName}
+            onError={handleDocumentError}
+            onLoad={handleDocumentLoad}
+            className={className}
+          />
+        );
+      
+      default:
+        return (
+          <Alert className={className}>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Unsupported document type: {detectedType}
+            </AlertDescription>
+          </Alert>
+        );
+    }
+  };
+
+  return (
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        console.error('DocumentViewer Error:', error, errorInfo);
+        handleDocumentError(error);
+      }}
+      resetKeys={[documentUrl, detectedType]}
+      resetOnPropsChange={true}
+    >
+      <ViewerComponent />
+    </ErrorBoundary>
+  );
 };

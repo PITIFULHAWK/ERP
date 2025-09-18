@@ -17,6 +17,42 @@ export interface DownloadProgress {
     percentage: number;
 }
 
+// Custom error classes for better error handling
+export class DocumentServiceError extends Error {
+    constructor(message: string, public context?: any) {
+        super(message);
+        this.name = 'DocumentServiceError';
+    }
+}
+
+export class DocumentNotFoundError extends DocumentServiceError {
+    constructor(message: string, context?: any) {
+        super(message);
+        this.name = 'DocumentNotFoundError';
+    }
+}
+
+export class NetworkError extends DocumentServiceError {
+    constructor(message: string, context?: any) {
+        super(message);
+        this.name = 'NetworkError';
+    }
+}
+
+export class ServerError extends DocumentServiceError {
+    constructor(message: string, public statusCode?: number, context?: any) {
+        super(message);
+        this.name = 'ServerError';
+    }
+}
+
+export class ValidationError extends DocumentServiceError {
+    constructor(message: string, context?: any) {
+        super(message);
+        this.name = 'ValidationError';
+    }
+}
+
 export class DocumentService {
     private static readonly SUPPORTED_MIME_TYPES = [
         "application/pdf",
@@ -34,19 +70,41 @@ export class DocumentService {
      */
     async fetchAcademicCalendar(studentId: string): Promise<CalendarDocument> {
         try {
+            // Check cache first
+            const cachedDocument = this.getCachedDocumentMetadata(`calendar_${studentId}`);
+            if (cachedDocument && 'academicYear' in cachedDocument) {
+                console.log("Returning cached calendar document");
+                return cachedDocument as CalendarDocument;
+            }
+
             const response = await apiService.getStudentCalendar(studentId);
 
             if (!response.success || !response.data) {
-                throw new Error(
-                    response.message || "Failed to fetch academic calendar"
-                );
+                const errorMessage = response.message || "Failed to fetch academic calendar";
+                
+                // Enhance error with more context
+                if (response.status === 404) {
+                    throw new DocumentNotFoundError("Academic calendar not found for this student", {
+                        studentId,
+                        documentType: 'calendar'
+                    });
+                } else if (response.status >= 500) {
+                    throw new ServerError(errorMessage, response.status);
+                } else if (!navigator.onLine) {
+                    throw new NetworkError("No internet connection available");
+                }
+                
+                throw new Error(errorMessage);
             }
 
             // Handle array response - take the first calendar document
             const calendarData = Array.isArray(response.data) ? response.data[0] : response.data;
             
             if (!calendarData) {
-                throw new Error("No calendar document found");
+                throw new DocumentNotFoundError("No calendar document found", {
+                    studentId,
+                    documentType: 'calendar'
+                });
             }
 
             // Extract the URL from the response (handle both url and calendarPdfUrl properties)
@@ -64,7 +122,10 @@ export class DocumentService {
             console.log("URL validation result:", validation);
             
             if (!validation.isValid) {
-                throw new Error(validation.error || "Invalid document URL");
+                throw new ValidationError(validation.error || "Invalid document URL", {
+                    url: documentUrl,
+                    validation
+                });
             }
 
             // Normalize the response to match CalendarDocument interface
@@ -85,9 +146,20 @@ export class DocumentService {
                 }
             };
 
+            // Cache the document for future use
+            this.cacheDocumentMetadata(normalizedDocument, 3600000); // 1 hour cache
+
             return normalizedDocument;
         } catch (error) {
             console.error("Error fetching academic calendar:", error);
+            
+            // Try to return cached version as fallback
+            const cachedDocument = this.getCachedDocumentMetadata(`calendar_${studentId}`);
+            if (cachedDocument && 'academicYear' in cachedDocument) {
+                console.warn("Returning stale cached document due to error");
+                return cachedDocument as CalendarDocument;
+            }
+            
             throw error;
         }
     }
@@ -97,23 +169,56 @@ export class DocumentService {
      */
     async fetchTimetable(studentId: string): Promise<TimetableDocument> {
         try {
+            // Check cache first
+            const cachedDocument = this.getCachedDocumentMetadata(`timetable_${studentId}`);
+            if (cachedDocument && 'section' in cachedDocument) {
+                console.log("Returning cached timetable document");
+                return cachedDocument as TimetableDocument;
+            }
+
             const response = await apiService.getStudentTimetable(studentId);
 
             if (!response.success || !response.data) {
-                throw new Error(
-                    response.message || "Failed to fetch timetable"
-                );
+                const errorMessage = response.message || "Failed to fetch timetable";
+                
+                // Enhance error with more context
+                if (response.status === 404) {
+                    throw new DocumentNotFoundError("Timetable not found for this student", {
+                        studentId,
+                        documentType: 'timetable'
+                    });
+                } else if (response.status >= 500) {
+                    throw new ServerError(errorMessage, response.status);
+                } else if (!navigator.onLine) {
+                    throw new NetworkError("No internet connection available");
+                }
+                
+                throw new Error(errorMessage);
             }
 
             // Validate the document URL
             const validation = this.validateDocumentUrl(response.data.url);
             if (!validation.isValid) {
-                throw new Error(validation.error || "Invalid document URL");
+                throw new ValidationError(validation.error || "Invalid document URL", {
+                    url: response.data.url,
+                    validation
+                });
             }
+
+            // Cache the document for future use
+            this.cacheDocumentMetadata(response.data, 3600000); // 1 hour cache
 
             return response.data;
         } catch (error) {
             console.error("Error fetching timetable:", error);
+            
+            // Try to return cached version as fallback
+            const cachedDocument = this.getCachedDocumentMetadata(`timetable_${studentId}`);
+            if (cachedDocument && 'section' in cachedDocument) {
+                console.warn("Returning stale cached document due to error");
+                return cachedDocument as TimetableDocument;
+            }
+            
             throw error;
         }
     }

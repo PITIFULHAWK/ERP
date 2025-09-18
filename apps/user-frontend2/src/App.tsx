@@ -6,6 +6,7 @@ import { createBrowserRouter, RouterProvider, Outlet, Navigate } from "react-rou
 
 import { Layout } from "@/components/layout/Layout";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RoleProtectedRoute from "@/components/RoleProtectedRoute";
 
@@ -21,6 +22,8 @@ import AcademicCalendar from "./pages/AcademicCalendar";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
+import DarkModeTestPage from "./pages/DarkModeTestPage";
+import ThemePersistenceTest from "./pages/ThemePersistenceTest";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +57,8 @@ const router = createBrowserRouter([
     // Public routes
     { path: "/login", Component: Login },
     { path: "/signup", Component: Signup },
+    { path: "/dark-mode-test", Component: DarkModeTestPage },
+    { path: "/theme-persistence-test", Component: ThemePersistenceTest },
 
     // Default protected layout (all children use Layout + ProtectedRoute)
     {
@@ -90,15 +95,23 @@ const router = createBrowserRouter([
 ]);
 
 const App = () => (
-    <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-            <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <RouterProvider router={router} />
-            </TooltipProvider>
-        </AuthProvider>
-    </QueryClientProvider>
+    <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange={false}
+        storageKey="theme"
+    >
+        <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+                <TooltipProvider>
+                    <Toaster />
+                    <Sonner />
+                    <RouterProvider router={router} />
+                </TooltipProvider>
+            </AuthProvider>
+        </QueryClientProvider>
+    </ThemeProvider>
 );
 
 export default App;
