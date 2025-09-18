@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -34,8 +36,6 @@ interface NavigationGroup {
 
 interface ProfessorSidebarProps {
   className?: string
-  activeTab: string
-  onTabChange: (tab: string) => void
 }
 
 // Navigation for professor dashboard
@@ -55,22 +55,22 @@ const navigationGroups: NavigationGroup[] = [
     items: [
       {
         name: "Attendance",
-        href: "/professor#attendance",
+        href: "/professor/attendance",
         icon: ClipboardCheck,
       },
       {
         name: "Grades",
-        href: "/professor#grades", 
+        href: "/professor/grades", 
         icon: Award,
       },
       {
         name: "Resources",
-        href: "/professor#resources",
+        href: "/professor/resources",
         icon: BookOpen,
       },
       {
         name: "Calendar",
-        href: "/professor#calendar",
+        href: "/professor/calendar",
         icon: Calendar,
       },
     ]
@@ -79,23 +79,24 @@ const navigationGroups: NavigationGroup[] = [
     label: "Class Management",
     items: [
       {
-        name: "My Sections",
-        href: "/professor#sections",
+        name: "My Courses",
+        href: "/professor/courses",
         icon: Users,
+      },
+      {
+        name: "Settings",
+        href: "/professor/settings",
+        icon: Settings,
       },
     ]
   }
 ]
 
-export function ProfessorSidebar({ className, activeTab, onTabChange }: ProfessorSidebarProps) {
+export function ProfessorSidebar({ className }: ProfessorSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const pathname = usePathname()
 
   const toggleSidebar = () => setIsCollapsed(!isCollapsed)
-
-  const getTabFromHref = (href: string) => {
-    const hash = href.split('#')[1]
-    return hash || 'overview'
-  }
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -134,7 +135,7 @@ export function ProfessorSidebar({ className, activeTab, onTabChange }: Professo
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="right" className="bg-card border-border">
+            <TooltipContent side="right" className="bg-popover text-popover-foreground border-border shadow-md">
               {isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             </TooltipContent>
           </Tooltip>
@@ -151,34 +152,32 @@ export function ProfessorSidebar({ className, activeTab, onTabChange }: Professo
               )}
               <div className="space-y-1">
                 {group.items.map((item) => {
-                  const tabKey = getTabFromHref(item.href)
-                  const isActive = activeTab === tabKey
+                  const isActive = pathname === item.href
                   
                   return (
                     <Tooltip key={item.name}>
                       <TooltipTrigger asChild>
-                        <Button
-                          variant={isActive ? "secondary" : "ghost"}
-                          onClick={() => onTabChange(tabKey)}
-                          className={cn(
-                            "w-full justify-start gap-3 h-11 px-3 transition-all duration-200",
-                            isCollapsed ? "px-0 justify-center" : "",
-                            isActive
-                              ? "bg-primary/10 text-primary hover:bg-primary/15 border border-primary/20 shadow-sm"
-                              : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
-                          )}
-                        >
-                          <item.icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-primary" : "")} />
-                          {!isCollapsed && (
-                            <span className={cn("font-medium", isActive ? "text-primary" : "")}>{item.name}</span>
-                          )}
-                        </Button>
+                        <Link href={item.href}>
+                          <Button
+                            variant={isActive ? "secondary" : "ghost"}
+                            className={cn(
+                              "w-full justify-start gap-3 h-11 px-3 transition-all duration-200",
+                              isCollapsed ? "px-0 justify-center" : "",
+                              isActive
+                                ? "bg-primary/10 text-primary hover:bg-primary/15 border border-primary/20 shadow-sm"
+                                : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                            )}
+                          >
+                            <item.icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-primary" : "")} />
+                            {!isCollapsed && (
+                              <span className={cn("font-medium", isActive ? "text-primary" : "")}>{item.name}</span>
+                            )}
+                          </Button>
+                        </Link>
                       </TooltipTrigger>
-                      {isCollapsed && (
-                        <TooltipContent side="right" className="bg-card border-border">
-                          {item.name}
-                        </TooltipContent>
-                      )}
+                      <TooltipContent side="right" className="bg-popover text-popover-foreground border-border shadow-md">
+                        {item.name}
+                      </TooltipContent>
                     </Tooltip>
                   )
                 })}
@@ -204,31 +203,29 @@ export function ProfessorSidebar({ className, activeTab, onTabChange }: Professo
                   {!isCollapsed && <span>Notifications</span>}
                 </Button>
               </TooltipTrigger>
-              {isCollapsed && (
-                <TooltipContent side="right" className="bg-card border-border">
-                  Notifications
-                </TooltipContent>
-              )}
+              <TooltipContent side="right" className="bg-popover text-popover-foreground border-border shadow-md">
+                Notifications
+              </TooltipContent>
             </Tooltip>
             
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    "w-full justify-start gap-3 h-11 px-3 hover:bg-muted/50",
-                    isCollapsed ? "px-0 justify-center" : ""
-                  )}
-                >
-                  <Settings className="h-5 w-5 flex-shrink-0" />
-                  {!isCollapsed && <span>Settings</span>}
-                </Button>
+                <Link href="/professor/settings">
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start gap-3 h-11 px-3 hover:bg-muted/50",
+                      isCollapsed ? "px-0 justify-center" : ""
+                    )}
+                  >
+                    <Settings className="h-5 w-5 flex-shrink-0" />
+                    {!isCollapsed && <span>Settings</span>}
+                  </Button>
+                </Link>
               </TooltipTrigger>
-              {isCollapsed && (
-                <TooltipContent side="right" className="bg-card border-border">
-                  Settings
-                </TooltipContent>
-              )}
+              <TooltipContent side="right" className="bg-popover text-popover-foreground border-border shadow-md">
+                Settings
+              </TooltipContent>
             </Tooltip>
           </div>
         </div>
