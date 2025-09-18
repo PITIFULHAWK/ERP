@@ -14,8 +14,8 @@ import { toast } from "@/hooks/use-toast";
 
 const REQUIRED_DOCUMENTS = [
   { type: "PHOTO", label: "Passport Size Photo", description: "Recent passport size photograph" },
-  { type: "ID_PROOF", label: "ID Proof", description: "Aadhar Card, PAN Card, or Passport" },
-  { type: "ACADEMIC_CERTIFICATE", label: "Academic Certificate", description: "10th/12th Mark Sheet or Degree Certificate" },
+  { type: "IDENTITY_PROOF", label: "ID Proof", description: "Aadhar Card, PAN Card, or Passport" },
+  { type: "CLASS_12_MARKSHEET", label: "Academic Certificate", description: "10th/12th Mark Sheet or Degree Certificate" },
   { type: "INCOME_CERTIFICATE", label: "Income Certificate", description: "Family income certificate (if applicable)" },
 ];
 
@@ -136,7 +136,7 @@ export default function Application() {
     try {
       setUploadingDoc(docType);
       
-      const response = await apiService.uploadDocument(application.id, docType, file);
+      const response = await apiService.uploadDocument(application.id, file, docType);
       
       if (response.success) {
         // Reload application data to get updated documents

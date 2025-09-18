@@ -38,3 +38,12 @@ yarn-error.log*
 *.pem
 
 pnpm-lock.yaml
+.kiro
+.vscode
+*.sh
+packages/db/scripts/seed.js
+packages/db/package-lock.json
+**/package-lock.json
+*-lock.json
+.vscode/settings.json
+test-demo.sh

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import prisma from "@repo/db";
+import prisma, { DocumentType } from "@repo/db";
 import {
     CreateApplicationRequest,
     CreateDocumentRequest,
@@ -363,6 +363,17 @@ export const addDocument = asyncHandler(async (req: Request, res: Response) => {
         return res.status(400).json(response);
     }
 
+    // Validate document type
+    const validDocumentTypes = Object.values(DocumentType);
+    if (!validDocumentTypes.includes(type as DocumentType)) {
+        const response: ApiResponse = {
+            success: false,
+            message: `Invalid document type. Valid types are: ${validDocumentTypes.join(", ")}`,
+            error: "Bad Request",
+        };
+        return res.status(400).json(response);
+    }
+
     try {
         // Check if application exists
         console.log("Searching for application with ID:", applicationId);
@@ -402,7 +413,7 @@ export const addDocument = asyncHandler(async (req: Request, res: Response) => {
         // Create document record in database
         const document = await prisma.document.create({
             data: {
-                type: type as any,
+                type: type as DocumentType,
                 fileName: originalFileName,
                 fileUrl: uploadResult.secure_url,
                 fileSize: uploadResult.bytes,
