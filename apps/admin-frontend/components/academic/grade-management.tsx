@@ -137,7 +137,8 @@ export function GradeManagement() {
       currentMarks: student.currentGrade?.marksObtained,
       gradeId: student.currentGrade?.id,
     })
-    setNewMarks(student.currentGrade?.marksObtained.toString() || "")
+    const mo = student.currentGrade?.marksObtained
+    setNewMarks(mo !== undefined && mo !== null ? String(mo) : "")
     setGradeDialogOpen(true)
   }
 
@@ -189,32 +190,7 @@ export function GradeManagement() {
     }
   }
 
-  const handleDeleteGrade = async (gradeId: string) => {
-    if (!user?.id) return
-
-    if (!confirm("Are you sure you want to delete this grade?")) return
-
-    try {
-      const response = await apiClient.deleteGrade(gradeId, user.id) as {
-        success: boolean;
-      }
-
-      if (response.success) {
-        toast({
-          title: "Success",
-          description: "Grade deleted successfully",
-        })
-        loadStudentsForGrading()
-        loadAssignments()
-      }
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to delete grade",
-        variant: "destructive",
-      })
-    }
-  }
+  // Note: Delete grade functionality intentionally removed per request
 
   const getUniqueOptions = (field: keyof ProfessorAssignment['section']) => {
     return assignments
@@ -373,17 +349,7 @@ export function GradeManagement() {
                                   {student.currentGrade ? <Edit className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                                   {student.currentGrade ? "Edit" : "Add"} Grade
                                 </Button>
-                                {student.currentGrade && (
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => handleDeleteGrade(student.currentGrade!.id)}
-                                    className="flex items-center gap-1"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                    Delete
-                                  </Button>
-                                )}
+                                {/* Delete button removed as requested */}
                               </div>
                             </TableCell>
                           </TableRow>

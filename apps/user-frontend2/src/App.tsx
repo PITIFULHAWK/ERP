@@ -18,12 +18,15 @@ import Application from "./pages/Application";
 import Timetable from "./pages/Timetable";
 import Attendance from "./pages/Attendance";
 import Results from "./pages/Results";
+import Complaints from "./pages/Complaints";
+import Placements from "./pages/Placements";
 import AcademicCalendar from "./pages/AcademicCalendar";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
 import DarkModeTestPage from "./pages/DarkModeTestPage";
 import ThemePersistenceTest from "./pages/ThemePersistenceTest";
+import PDFViewerDemo from "./pages/PDFViewerDemo";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +62,7 @@ const router = createBrowserRouter([
     { path: "/signup", Component: Signup },
     { path: "/dark-mode-test", Component: DarkModeTestPage },
     { path: "/theme-persistence-test", Component: ThemePersistenceTest },
+    { path: "/pdf-viewer-demo", Component: PDFViewerDemo },
 
     // Default protected layout (all children use Layout + ProtectedRoute)
     {
@@ -87,6 +91,8 @@ const router = createBrowserRouter([
             { path: "/timetable", Component: Timetable },
             { path: "/attendance", Component: Attendance },
             { path: "/results", Component: Results },
+            { path: "/complaints", Component: Complaints },
+            { path: "/placements", Component: Placements },
         ],
     },
 

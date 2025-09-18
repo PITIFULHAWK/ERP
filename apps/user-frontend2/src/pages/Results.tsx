@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
     Card,
     CardContent,
@@ -13,259 +13,41 @@ import {
     AccordionItem,
     AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Trophy, TrendingUp, Award, Star } from "lucide-react";
-
-const resultsData = [
-    {
-        semester: 1,
-        sgpa: 8.5,
-        status: "completed",
-        subjects: [
-            {
-                code: "CSE101",
-                name: "Programming Fundamentals",
-                grade: "A",
-                marks: 85,
-            },
-            {
-                code: "MTH101",
-                name: "Engineering Mathematics I",
-                grade: "A-",
-                marks: 78,
-            },
-            {
-                code: "PHY101",
-                name: "Engineering Physics",
-                grade: "B+",
-                marks: 72,
-            },
-            {
-                code: "CHM101",
-                name: "Engineering Chemistry",
-                grade: "A",
-                marks: 82,
-            },
-            {
-                code: "ENG101",
-                name: "Technical Communication",
-                grade: "A+",
-                marks: 92,
-            },
-            {
-                code: "CSE102",
-                name: "Computer Workshop",
-                grade: "A",
-                marks: 88,
-            },
-        ],
-    },
-    {
-        semester: 2,
-        sgpa: 8.8,
-        status: "completed",
-        subjects: [
-            { code: "CSE201", name: "Data Structures", grade: "A+", marks: 94 },
-            {
-                code: "MTH201",
-                name: "Engineering Mathematics II",
-                grade: "A",
-                marks: 85,
-            },
-            {
-                code: "CSE202",
-                name: "Digital Logic Design",
-                grade: "A",
-                marks: 87,
-            },
-            {
-                code: "ECE201",
-                name: "Electronics Engineering",
-                grade: "B+",
-                marks: 75,
-            },
-            {
-                code: "MEE201",
-                name: "Engineering Mechanics",
-                grade: "A-",
-                marks: 78,
-            },
-            {
-                code: "CSE203",
-                name: "Object Oriented Programming",
-                grade: "A+",
-                marks: 96,
-            },
-        ],
-    },
-    {
-        semester: 3,
-        sgpa: 9.1,
-        status: "completed",
-        subjects: [
-            { code: "CSE301", name: "Algorithms", grade: "A+", marks: 98 },
-            {
-                code: "CSE302",
-                name: "Computer Organization",
-                grade: "A+",
-                marks: 95,
-            },
-            { code: "CSE303", name: "Database Systems", grade: "A", marks: 89 },
-            {
-                code: "MTH301",
-                name: "Discrete Mathematics",
-                grade: "A",
-                marks: 86,
-            },
-            {
-                code: "CSE304",
-                name: "Software Engineering",
-                grade: "A+",
-                marks: 93,
-            },
-            {
-                code: "HSS301",
-                name: "Professional Ethics",
-                grade: "A",
-                marks: 88,
-            },
-        ],
-    },
-    {
-        semester: 4,
-        sgpa: 8.9,
-        status: "completed",
-        subjects: [
-            {
-                code: "CSE401",
-                name: "Operating Systems",
-                grade: "A+",
-                marks: 96,
-            },
-            {
-                code: "CSE402",
-                name: "Computer Networks",
-                grade: "A",
-                marks: 87,
-            },
-            {
-                code: "CSE403",
-                name: "Machine Learning",
-                grade: "A+",
-                marks: 94,
-            },
-            {
-                code: "CSE404",
-                name: "Web Technologies",
-                grade: "A-",
-                marks: 81,
-            },
-            {
-                code: "CSE405",
-                name: "Mobile App Development",
-                grade: "A",
-                marks: 90,
-            },
-            {
-                code: "MGT401",
-                name: "Engineering Economics",
-                grade: "B+",
-                marks: 76,
-            },
-        ],
-    },
-    {
-        semester: 5,
-        sgpa: 8.6,
-        status: "completed",
-        subjects: [
-            {
-                code: "CSE501",
-                name: "Artificial Intelligence",
-                grade: "A+",
-                marks: 97,
-            },
-            {
-                code: "CSE502",
-                name: "Information Security",
-                grade: "A",
-                marks: 88,
-            },
-            { code: "CSE503", name: "Cloud Computing", grade: "A", marks: 85 },
-            {
-                code: "CSE504",
-                name: "Human Computer Interaction",
-                grade: "A-",
-                marks: 79,
-            },
-            {
-                code: "CSE505",
-                name: "Project Management",
-                grade: "B+",
-                marks: 74,
-            },
-            {
-                code: "HSS501",
-                name: "Business Communication",
-                grade: "A",
-                marks: 86,
-            },
-        ],
-    },
-    {
-        semester: 6,
-        sgpa: 0,
-        status: "ongoing",
-        subjects: [
-            { code: "CSE601", name: "Deep Learning", grade: "-", marks: 0 },
-            {
-                code: "CSE602",
-                name: "Blockchain Technology",
-                grade: "-",
-                marks: 0,
-            },
-            {
-                code: "CSE603",
-                name: "IoT and Embedded Systems",
-                grade: "-",
-                marks: 0,
-            },
-            {
-                code: "CSE604",
-                name: "Big Data Analytics",
-                grade: "-",
-                marks: 0,
-            },
-            {
-                code: "CSE605",
-                name: "Capstone Project I",
-                grade: "-",
-                marks: 0,
-            },
-            {
-                code: "INR601",
-                name: "Industrial Training",
-                grade: "-",
-                marks: 0,
-            },
-        ],
-    },
-];
+import { apiService } from "@/lib/api";
+import { Loader2, Trophy, TrendingUp, Award, Star } from "lucide-react";
 
 export default function Results() {
-    const [expandedSemesters, setExpandedSemesters] = useState<string[]>([
-        "semester-5",
-    ]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [cgpa, setCgpa] = useState<number>(0);
+    const [semesterPerformance, setSemesterPerformance] = useState<
+        { semester: { id: string; number: number; code: string }; gpa: number }[]
+    >([]);
+    const [expandedSemesters, setExpandedSemesters] = useState<string[]>([]);
 
-    const completedSemesters = resultsData.filter(
-        (sem) => sem.status === "completed"
-    );
-    const cgpa =
-        completedSemesters.length > 0
-            ? (
-                  completedSemesters.reduce((sum, sem) => sum + sem.sgpa, 0) /
-                  completedSemesters.length
-              ).toFixed(2)
-            : "0.00";
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const res = await apiService.getUserProfile();
+                if (res.success && res.data) {
+                    const gp = (res.data as any).cgpa ?? 0;
+                    const perf = (res.data as any).academicRecord?.semesterPerformance ?? [];
+                    setCgpa(gp);
+                    setSemesterPerformance(perf);
+                    setExpandedSemesters(perf.map((p: any) => `semester-${p.semester.number}`));
+                } else {
+                    setError(res.message || "Failed to load results");
+                }
+            } catch (e) {
+                setError("Failed to load results. Please try again later.");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchProfile();
+    }, []);
 
     const getGradeColor = (grade: string) => {
         if (grade === "A+" || grade === "A") return "text-success";
@@ -288,6 +70,36 @@ export default function Results() {
         };
         return gradeMap[grade] || 0;
     };
+
+    const bestGpa = useMemo(() => {
+        if (!semesterPerformance.length) return 0;
+        return Math.max(...semesterPerformance.map((s) => s.gpa || 0));
+    }, [semesterPerformance]);
+
+    if (loading) {
+        return (
+            <div className="space-y-6">
+                <div className="space-y-2">
+                    <h1 className="text-3xl font-bold text-foreground">My Results</h1>
+                    <p className="text-lg text-muted-foreground">Loading your academic record...</p>
+                </div>
+                <div className="flex items-center justify-center py-12 text-muted-foreground">
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="space-y-6">
+                <div className="space-y-2">
+                    <h1 className="text-3xl font-bold text-foreground">My Results</h1>
+                    <p className="text-lg text-muted-foreground">{error}</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -313,9 +125,7 @@ export default function Results() {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-1">
-                            <div className="text-3xl font-bold text-primary">
-                                {cgpa}
-                            </div>
+                            <div className="text-3xl font-bold text-primary">{cgpa?.toFixed ? cgpa.toFixed(2) : Number(cgpa).toFixed(2)}</div>
                             <p className="text-sm text-muted-foreground">
                                 Out of 10.0
                             </p>
@@ -335,7 +145,7 @@ export default function Results() {
                     <CardContent>
                         <div className="space-y-1">
                             <div className="text-3xl font-bold text-success">
-                                {completedSemesters.length}
+                                {semesterPerformance.filter((s) => (s.gpa || 0) > 0).length}
                             </div>
                             <p className="text-sm text-muted-foreground">
                                 Out of 8 total
@@ -356,9 +166,7 @@ export default function Results() {
                     <CardContent>
                         <div className="space-y-1">
                             <div className="text-3xl font-bold text-warning">
-                                {Math.max(
-                                    ...completedSemesters.map((s) => s.sgpa)
-                                ).toFixed(1)}
+                                {bestGpa.toFixed(1)}
                             </div>
                             <p className="text-sm text-muted-foreground">
                                 Semester 3
@@ -379,10 +187,10 @@ export default function Results() {
                     <CardContent>
                         <div className="space-y-1">
                             <div className="text-lg font-bold text-primary">
-                                Consistent
+                                {bestGpa >= 9 ? "Excellent" : bestGpa >= 8 ? "Good" : bestGpa > 0 ? "Average" : "N/A"}
                             </div>
                             <p className="text-sm text-muted-foreground">
-                                Above 8.5 SGPA
+                                {bestGpa > 0 ? `Best SGPA ${bestGpa.toFixed(1)}` : "No completed semesters yet"}
                             </p>
                         </div>
                     </CardContent>
@@ -406,124 +214,43 @@ export default function Results() {
                         value={expandedSemesters}
                         onValueChange={setExpandedSemesters}
                     >
-                        {resultsData.map((semester) => (
+                        {semesterPerformance.map((sp) => (
                             <AccordionItem
-                                key={`semester-${semester.semester}`}
-                                value={`semester-${semester.semester}`}
+                                key={`semester-${sp.semester.number}`}
+                                value={`semester-${sp.semester.number}`}
                             >
                                 <AccordionTrigger className="hover:no-underline">
                                     <div className="flex items-center justify-between w-full pr-4">
                                         <div className="flex items-center gap-4">
                                             <Badge
                                                 variant={
-                                                    semester.status ===
-                                                    "completed"
-                                                        ? "default"
-                                                        : "secondary"
+                                                    sp.gpa > 0 ? "default" : "secondary"
                                                 }
                                             >
-                                                Semester {semester.semester}
+                                                Semester {sp.semester.number}
                                             </Badge>
                                             <span className="font-medium">
-                                                {semester.status === "completed"
-                                                    ? `SGPA: ${semester.sgpa}`
-                                                    : "Ongoing"}
+                                                {sp.gpa > 0 ? `GPA: ${sp.gpa}` : "Ongoing"}
                                             </span>
                                         </div>
                                         <Badge
-                                            variant={
-                                                semester.status === "completed"
-                                                    ? "outline"
-                                                    : "secondary"
-                                            }
+                                            variant={sp.gpa > 0 ? "outline" : "secondary"}
                                         >
-                                            {semester.status === "completed"
-                                                ? "Completed"
-                                                : "In Progress"}
+                                            {sp.gpa > 0 ? "Completed" : "In Progress"}
                                         </Badge>
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent>
                                     <div className="pt-4">
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full">
-                                                <thead>
-                                                    <tr className="border-b border-border">
-                                                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">
-                                                            Subject Code
-                                                        </th>
-                                                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">
-                                                            Subject Name
-                                                        </th>
-                                                        <th className="text-center py-3 px-4 font-medium text-muted-foreground">
-                                                            Grade
-                                                        </th>
-                                                        <th className="text-center py-3 px-4 font-medium text-muted-foreground">
-                                                            Marks
-                                                        </th>
-                                                        <th className="text-center py-3 px-4 font-medium text-muted-foreground">
-                                                            Grade Points
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {semester.subjects.map(
-                                                        (subject) => (
-                                                            <tr
-                                                                key={
-                                                                    subject.code
-                                                                }
-                                                                className="border-b border-border/50 hover:bg-muted/50"
-                                                            >
-                                                                <td className="py-3 px-4 font-mono text-sm">
-                                                                    {
-                                                                        subject.code
-                                                                    }
-                                                                </td>
-                                                                <td className="py-3 px-4">
-                                                                    {
-                                                                        subject.name
-                                                                    }
-                                                                </td>
-                                                                <td className="py-3 px-4 text-center">
-                                                                    <Badge
-                                                                        variant="outline"
-                                                                        className={`font-bold ${getGradeColor(subject.grade)}`}
-                                                                    >
-                                                                        {
-                                                                            subject.grade
-                                                                        }
-                                                                    </Badge>
-                                                                </td>
-                                                                <td className="py-3 px-4 text-center font-medium">
-                                                                    {subject.marks >
-                                                                    0
-                                                                        ? subject.marks
-                                                                        : "-"}
-                                                                </td>
-                                                                <td className="py-3 px-4 text-center font-medium">
-                                                                    {subject.grade !==
-                                                                    "-"
-                                                                        ? getGradePoints(
-                                                                              subject.grade
-                                                                          )
-                                                                        : "-"}
-                                                                </td>
-                                                            </tr>
-                                                        )
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                        {semester.status === "completed" && (
+                                        {/* Detailed subject-wise grades not available from profile; show summary */}
+                                        {sp.gpa > 0 && (
                                             <div className="mt-4 p-4 bg-primary/5 border border-primary/20 rounded-lg">
                                                 <div className="flex justify-between items-center">
                                                     <span className="font-medium text-primary">
-                                                        Semester Grade Point
-                                                        Average (SGPA)
+                                                        Semester GPA
                                                     </span>
                                                     <span className="text-2xl font-bold text-primary">
-                                                        {semester.sgpa}
+                                                        {sp.gpa}
                                                     </span>
                                                 </div>
                                             </div>

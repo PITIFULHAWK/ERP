@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Card,
     CardContent,
@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useAuth } from "@/contexts/AuthContext";
+import { apiService } from "@/lib/api";
 
 // Mock user state - in real app this would come from auth context
 const MOCK_USER = {
@@ -31,6 +32,63 @@ export default function Dashboard() {
     const { user } = useAuth();
     const navigate = useNavigate();
     const isStudent = user.role === "STUDENT";
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [cgpa, setCgpa] = useState<number>(0);
+    const [semestersCompleted, setSemestersCompleted] = useState<number>(0);
+    const [noticesCount, setNoticesCount] = useState<number>(0);
+    const [attendanceOverall, setAttendanceOverall] = useState<number | null>(null);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                // Profile for CGPA and semesters
+                const profileRes = await apiService.getUserProfile();
+                if (profileRes.success && profileRes.data) {
+                    const c = (profileRes.data as any).cgpa ?? 0;
+                    const perf = (profileRes.data as any).academicRecord?.semesterPerformance ?? [];
+                    setCgpa(Number(c) || 0);
+                    setSemestersCompleted(perf.filter((p: any) => (p.gpa || 0) > 0).length);
+                }
+
+                // Notices
+                const noticesRes = await apiService.getNotices();
+                if (noticesRes.success && Array.isArray(noticesRes.data)) {
+                    setNoticesCount(noticesRes.data.length);
+                }
+
+                // Attendance overall
+                if (isStudent && user?.id) {
+                    try {
+                        const attRes = await apiService.getStudentAttendance(user.id);
+                        if (attRes.success && attRes.data) {
+                            const summaries = attRes.data.summaries || [];
+                            if (summaries.length > 0) {
+                                const avg =
+                                    summaries.reduce(
+                                        (sum: number, s: any) => sum + (s.attendancePercentage || 0),
+                                        0
+                                    ) / summaries.length;
+                                setAttendanceOverall(Math.round(avg));
+                            } else {
+                                setAttendanceOverall(null);
+                            }
+                        }
+                    } catch (e) {
+                        // Attendance may not exist yet; keep null
+                        setAttendanceOverall(null);
+                    }
+                }
+            } catch (e) {
+                setError("Failed to load dashboard data");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [isStudent, user?.id]);
 
     // Safely format current semester info, which may be an object from backend
     const renderCurrentSemesterInfo = () => {
@@ -173,15 +231,13 @@ export default function Dashboard() {
                     <CardContent>
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">
-                                    Overall
-                                </span>
+                                <span className="text-sm text-muted-foreground">Overall</span>
                                 <span className="text-2xl font-bold text-success">
-                                    85%
+                                    {loading ? "--" : attendanceOverall === null ? "N/A" : `${attendanceOverall}%`}
                                 </span>
                             </div>
                             <div className="text-xs text-muted-foreground">
-                                6/8 subjects above 75%
+                                {loading ? "Loading..." : attendanceOverall === null ? "No attendance records yet" : "Based on subject attendance"}
                             </div>
                         </div>
                     </CardContent>
@@ -206,15 +262,13 @@ export default function Dashboard() {
                     <CardContent>
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">
-                                    Current CGPA
-                                </span>
+                                <span className="text-sm text-muted-foreground">Current CGPA</span>
                                 <span className="text-2xl font-bold text-primary">
-                                    8.7
+                                    {loading ? "--" : (cgpa?.toFixed ? cgpa.toFixed(2) : Number(cgpa).toFixed(2))}
                                 </span>
                             </div>
                             <div className="text-xs text-muted-foreground">
-                                5 semesters completed
+                                {loading ? "Loading..." : `${semestersCompleted} semesters completed`}
                             </div>
                         </div>
                     </CardContent>
@@ -241,15 +295,13 @@ export default function Dashboard() {
                     <CardContent>
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">
-                                    New notices
-                                </span>
+                                <span className="text-sm text-muted-foreground">Notices</span>
                                 <span className="text-2xl font-bold text-warning">
-                                    3
+                                    {loading ? "--" : noticesCount}
                                 </span>
                             </div>
                             <div className="text-xs text-muted-foreground">
-                                2 unread important notices
+                                {loading ? "Loading..." : `${noticesCount} total notices`}
                             </div>
                         </div>
                     </CardContent>

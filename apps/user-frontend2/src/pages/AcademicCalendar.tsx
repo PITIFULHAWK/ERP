@@ -13,7 +13,7 @@ import {
     Calendar,
     Clock,
 } from "lucide-react";
-import { DocumentViewer } from "@/components/document-viewer/DocumentViewer";
+import { EnhancedDocumentViewer } from "@/components/document-viewer/EnhancedDocumentViewer";
 import { documentService } from "@/lib/documentService";
 import { useAuth } from "@/contexts/AuthContext";
 import { CalendarDocument } from "@/lib/api";
@@ -396,7 +396,7 @@ export default function AcademicCalendar() {
 
                         {/* Document Viewer */}
                         <div className="border rounded-lg overflow-hidden">
-                            <DocumentViewer
+                            <EnhancedDocumentViewer
                                 documentUrl={state.document.url}
                                 documentType={
                                     documentService.validateDocumentUrl(

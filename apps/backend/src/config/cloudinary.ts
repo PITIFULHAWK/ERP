@@ -27,7 +27,7 @@ export const uploadToCloudinary = async (
                 {
                     folder,
                     public_id: `${folder}/${Date.now()}-${fileName}`,
-                    resource_type: "auto", // Automatically detect file type
+                    resource_type: "raw", // Automatically detect file type
                     quality: "auto", // Optimize quality
                     fetch_format: "auto", // Optimize format
                 },

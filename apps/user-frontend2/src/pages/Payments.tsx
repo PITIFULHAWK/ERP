@@ -33,10 +33,23 @@ export default function Payments() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [hostels, setHostels] = useState<Hostel[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const otherTypes = [
+    { value: "LIBRARY", label: "Library" },
+    { value: "MISC", label: "Miscellaneous" },
+    { value: "SUMMERQUARTER", label: "Summer Quarter" },
+  ] as const;
   
   // Form states
   const [coursePayment, setCoursePayment] = useState({
     courseId: "",
+    amount: "",
+    method: "MANUAL" as const,
+    reference: "",
+    notes: "",
+  });
+
+  const [otherPayment, setOtherPayment] = useState({
+    type: "LIBRARY" as "LIBRARY" | "MISC" | "SUMMERQUARTER",
     amount: "",
     method: "MANUAL" as const,
     reference: "",
@@ -74,9 +87,55 @@ export default function Payments() {
         setLoading(false);
       }
     };
-
+  
     fetchData();
   }, [user]);
+
+  const handleOtherPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    try {
+      setSubmitting(true);
+      const paymentData: CreatePaymentRequest = {
+        userId: user.id,
+        type: otherPayment.type,
+        amount: parseFloat(otherPayment.amount),
+        method: otherPayment.method,
+        reference: otherPayment.reference || undefined,
+        notes: otherPayment.notes || undefined,
+      } as any;
+
+      const response = await apiService.createPayment(paymentData);
+
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: `${otherPayment.type} payment submitted successfully!`,
+        });
+
+        setOtherPayment({
+          type: otherPayment.type,
+          amount: "",
+          method: "MANUAL",
+          reference: "",
+          notes: "",
+        });
+
+        const paymentsRes = await apiService.getPayments({ userId: user.id });
+        if (paymentsRes.success) setPayments(paymentsRes.data || []);
+      }
+    } catch (error) {
+      console.error("Other payment error", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit payment",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleCoursePayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -233,7 +292,7 @@ export default function Payments() {
         </TabsList>
 
         <TabsContent value="make-payment" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-3">
             {/* Course Payment */}
             <Card>
               <CardHeader>
@@ -421,6 +480,90 @@ export default function Payments() {
                     disabled={submitting || !hostelPayment.hostelId || !hostelPayment.amount}
                   >
                     {submitting ? "Submitting..." : "Submit Hostel Payment"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Other Payments */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Other Payments</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleOtherPayment} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="other-type">Payment Type</Label>
+                    <Select
+                      value={otherPayment.type}
+                      onValueChange={(v: any) => setOtherPayment({ ...otherPayment, type: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {otherTypes.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="other-amount">Amount (₹)</Label>
+                    <Input
+                      id="other-amount"
+                      type="number"
+                      placeholder="Enter amount"
+                      value={otherPayment.amount}
+                      onChange={(e) => setOtherPayment({ ...otherPayment, amount: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="other-method">Payment Method</Label>
+                    <Select
+                      value={otherPayment.method}
+                      onValueChange={(value: any) => setOtherPayment({ ...otherPayment, method: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MANUAL">Manual/Bank Transfer</SelectItem>
+                        <SelectItem value="UPI">UPI</SelectItem>
+                        <SelectItem value="CARD">Card</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="other-reference">Reference Number</Label>
+                    <Input
+                      id="other-reference"
+                      placeholder="Transaction reference (optional)"
+                      value={otherPayment.reference}
+                      onChange={(e) => setOtherPayment({ ...otherPayment, reference: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="other-notes">Notes</Label>
+                    <Textarea
+                      id="other-notes"
+                      placeholder="Additional notes (optional)"
+                      value={otherPayment.notes}
+                      onChange={(e) => setOtherPayment({ ...otherPayment, notes: e.target.value })}
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={submitting || !otherPayment.amount}
+                  >
+                    {submitting ? "Submitting..." : "Submit Payment"}
                   </Button>
                 </form>
               </CardContent>

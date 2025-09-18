@@ -10,6 +10,25 @@ export interface ApiResponse<T = any> {
     error?: string;
 }
 
+// Placements
+export type PlacementStatus = "ACTIVE" | "CLOSED" | "DRAFT";
+
+export interface Placement {
+    id: string;
+    title: string;
+    description: string;
+    companyName: string;
+    position: string;
+    packageOffered?: string | null;
+    cgpaCriteria?: number | null;
+    location?: string | null;
+    applicationDeadline?: string | null;
+    status: PlacementStatus;
+    emailsSent?: number | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
 // Attendance types
 export interface AttendanceSubjectInfo {
     id: string;
@@ -68,6 +87,96 @@ export interface University {
     name: string;
 }
 
+// Pagination helper
+export interface Pagination {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+}
+
+// Complaints
+export type ComplaintCategory =
+    | "HOSTEL"
+    | "ACADEMIC"
+    | "INFRASTRUCTURE"
+    | "FOOD"
+    | "TRANSPORT"
+    | "LIBRARY"
+    | "MEDICAL"
+    | "FINANCIAL"
+    | "ADMINISTRATIVE"
+    | "DISCIPLINARY"
+    | "TECHNICAL"
+    | "OTHER";
+
+export type ComplaintStatus =
+    | "OPEN"
+    | "IN_PROGRESS"
+    | "PENDING_INFO"
+    | "RESOLVED"
+    | "CLOSED"
+    | "ESCALATED";
+
+export type ComplaintPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
+export interface Complaint {
+    id: string;
+    title: string;
+    description: string;
+    category: ComplaintCategory;
+    status: ComplaintStatus;
+    priority?: ComplaintPriority;
+    location?: string;
+    urgency?: boolean;
+    attachmentUrls?: string[];
+    studentId: string;
+    createdAt: string;
+    updatedAt: string;
+    resolvedAt?: string | null;
+    resolutionNote?: string | null;
+    student?: { id: string; name: string; email: string };
+    resolver?: { id: string; name: string; email: string } | null;
+    assignedAdmin?: { id: string; name: string; email: string } | null;
+    _count?: { updates: number };
+}
+
+export interface ComplaintUpdate {
+    id: string;
+    complaintId: string;
+    updatedBy: string;
+    updateType: "COMMENT" | "STATUS_CHANGE" | "RESOLUTION" | "ASSIGNMENT";
+    message: string;
+    isInternal: boolean;
+    createdAt: string;
+    updater?: { id: string; name: string; email: string; role: string };
+}
+
+export interface ComplaintDetail extends Complaint {
+    updates: ComplaintUpdate[];
+}
+
+export interface ComplaintCreateRequest {
+    title: string;
+    description: string;
+    category: ComplaintCategory;
+    priority?: ComplaintPriority;
+    location?: string;
+    urgency?: boolean;
+    attachmentUrls?: string[];
+}
+
+export interface ComplaintQuery {
+    status?: ComplaintStatus;
+    category?: ComplaintCategory;
+    priority?: ComplaintPriority;
+    page?: number;
+    limit?: number;
+    sortBy?: "createdAt" | "updatedAt" | "priority" | "status";
+    sortOrder?: "asc" | "desc";
+}
+
 export interface LoginRequest {
     email: string;
     password: string;
@@ -87,7 +196,7 @@ export interface SignupRequest {
 
 export interface CreatePaymentRequest {
     userId: string;
-    type: "COURSE" | "HOSTEL";
+    type: "COURSE" | "HOSTEL" | "LIBRARY" | "MISC" | "SUMMERQUARTER";
     courseId?: string;
     hostelId?: string;
     amount: number;
@@ -100,7 +209,7 @@ export interface CreatePaymentRequest {
 export interface Payment {
     id: string;
     userId: string;
-    type: "COURSE" | "HOSTEL";
+    type: "COURSE" | "HOSTEL" | "LIBRARY" | "MISC" | "SUMMERQUARTER";
     courseId?: string;
     hostelId?: string;
     amount: number;
@@ -266,6 +375,64 @@ class ApiService {
         this.baseURL = baseURL;
     }
 
+    // User profile (includes cgpa and academicRecord)
+    async getUserProfile(): Promise<ApiResponse<User & { cgpa?: number; academicRecord?: any }>> {
+        return this.request<User & { cgpa?: number; academicRecord?: any }>(
+            `/users/profile`
+        );
+    }
+
+    // Complaints endpoints
+    async createComplaint(payload: ComplaintCreateRequest): Promise<ApiResponse<Complaint>> {
+        return this.request<Complaint>(`/complaints`, {
+            method: "POST",
+            body: JSON.stringify(payload),
+        });
+    }
+
+    async getComplaints(params?: ComplaintQuery): Promise<ApiResponse<{ complaints: Complaint[]; pagination: Pagination }>> {
+        const qp = new URLSearchParams();
+        if (params?.status) qp.append("status", params.status);
+        if (params?.category) qp.append("category", params.category);
+        if (params?.priority) qp.append("priority", params.priority);
+        if (params?.page) qp.append("page", String(params.page));
+        if (params?.limit) qp.append("limit", String(params.limit));
+        if (params?.sortBy) qp.append("sortBy", params.sortBy);
+        if (params?.sortOrder) qp.append("sortOrder", params.sortOrder);
+        const query = qp.toString();
+        return this.request<{ complaints: Complaint[]; pagination: Pagination }>(
+            `/complaints${query ? `?${query}` : ""}`
+        );
+    }
+
+    async getComplaintById(id: string): Promise<ApiResponse<ComplaintDetail>> {
+        return this.request<ComplaintDetail>(`/complaints/${id}`);
+    }
+
+    async addComplaintUpdate(id: string, payload: { message: string; isInternal?: boolean }): Promise<ApiResponse<ComplaintUpdate>> {
+        return this.request<ComplaintUpdate>(`/complaints/${id}/updates`, {
+            method: "POST",
+            body: JSON.stringify(payload),
+        });
+    }
+
+    // Placements endpoints
+    async getPlacements(params?: { status?: PlacementStatus; page?: number; limit?: number }): Promise<ApiResponse<{ placements: Placement[]; pagination: Pagination }>> {
+        const qp = new URLSearchParams();
+        if (params?.status) qp.append("status", params.status);
+        if (params?.page) qp.append("page", String(params.page));
+        if (params?.limit) qp.append("limit", String(params.limit));
+        const query = qp.toString();
+        // Backend response returns data: { placements, pagination }
+        return this.request<{ placements: Placement[]; pagination: Pagination }>(
+            `/placements${query ? `?${query}` : ""}`
+        );
+    }
+
+    async getPlacementById(id: string): Promise<ApiResponse<Placement>> {
+        return this.request<Placement>(`/placements/${id}`);
+    }
+
     private async request<T>(
         endpoint: string,
         options: RequestInit = {}
@@ -367,7 +534,7 @@ class ApiService {
     // Payment endpoints
     async getPayments(params?: {
         userId?: string;
-        type?: "COURSE" | "HOSTEL";
+        type?: "COURSE" | "HOSTEL" | "LIBRARY" | "MISC" | "SUMMERQUARTER";
         status?: string;
     }): Promise<ApiResponse<Payment[]>> {
         const queryParams = new URLSearchParams();

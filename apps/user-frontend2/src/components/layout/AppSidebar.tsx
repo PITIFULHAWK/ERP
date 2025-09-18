@@ -44,11 +44,14 @@ const studentNavigation = [
     { title: "Timetable", url: "/timetable", icon: Clock },
     { title: "My Attendance", url: "/attendance", icon: Calendar },
     { title: "My Results", url: "/results", icon: Trophy },
+    { title: "Complaints", url: "/complaints", icon: FileText },
+    { title: "Placements", url: "/placements", icon: FileText },
 ];
 
 const bottomNavigation = [
     { title: "Profile", url: "/profile", icon: User },
     { title: "Settings", url: "/settings", icon: Settings },
+    { title: "PDF Viewer Demo", url: "/pdf-viewer-demo", icon: FileText },
 ];
 
 export function AppSidebar() {

@@ -46,7 +46,7 @@ export interface NavigationControls {
   totalPages: number;
 }
 
-export type DocumentType = 'pdf' | 'image';
+export type DocumentType = 'pdf' | 'image' | 'auto';
 
 export interface DocumentMetadata {
   fileName: string;

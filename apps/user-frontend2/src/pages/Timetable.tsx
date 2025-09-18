@@ -16,7 +16,7 @@ import {
   Eye,
   EyeOff
 } from "lucide-react";
-import { DocumentViewer } from "@/components/document-viewer/DocumentViewer";
+import { EnhancedDocumentViewer } from "@/components/document-viewer/EnhancedDocumentViewer";
 import { documentService } from "@/lib/documentService";
 import { useAuth } from "@/contexts/AuthContext";
 import { TimetableDocument, StudentEnrollment } from "@/lib/api";
@@ -485,7 +485,7 @@ export default function Timetable() {
             </div>
           </CardHeader>
           <CardContent>
-            <DocumentViewer
+            <EnhancedDocumentViewer
               documentUrl={state.document.url}
               documentType={documentService.validateDocumentUrl(state.document.url).documentType || 'pdf'}
               fileName={state.document.fileName}
