@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Home, Plus, Search, Users, Bed, Phone, Mail, UserPlus, Check } from "lucide-react"
+import { Home, Plus, Search, Users, Bed, UserPlus, Check, Trash2 } from "lucide-react"
 import { apiClient } from "@/lib/api-client"
 import { toast } from "@/hooks/use-toast"
 import { Hostel } from "@/types/academic"
@@ -58,6 +58,9 @@ export default function HostelsPage() {
   const [assigningStudent, setAssigningStudent] = useState(false)
   const [addHostelDialogOpen, setAddHostelDialogOpen] = useState(false)
   const [creatingHostel, setCreatingHostel] = useState(false)
+  const [deleteHostelDialogOpen, setDeleteHostelDialogOpen] = useState(false)
+  const [deletingHostel, setDeletingHostel] = useState(false)
+  const [hostelToDelete, setHostelToDelete] = useState<Hostel | null>(null)
   const [newHostelData, setNewHostelData] = useState({
     name: "",
     fees: "",
@@ -273,6 +276,48 @@ export default function HostelsPage() {
     }
   }
 
+  const handleOpenDeleteDialog = (hostel: Hostel) => {
+    setHostelToDelete(hostel)
+    setDeleteHostelDialogOpen(true)
+  }
+
+  const handleDeleteHostel = async () => {
+    if (!hostelToDelete) return
+
+    try {
+      setDeletingHostel(true)
+      
+      const response = await apiClient.deleteHostel(hostelToDelete.id) as ApiResponse
+      
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "Hostel deleted successfully",
+        })
+        
+        // Refresh hostels data
+        const hostelResponse = await apiClient.getHostels() as ApiResponse<Hostel[]>
+        if (hostelResponse.success && hostelResponse.data) {
+          setHostels(hostelResponse.data)
+        }
+        
+        setDeleteHostelDialogOpen(false)
+        setHostelToDelete(null)
+      } else {
+        throw new Error("Failed to delete hostel")
+      }
+    } catch (error) {
+      console.error("Failed to delete hostel:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete hostel",
+        variant: "destructive",
+      })
+    } finally {
+      setDeletingHostel(false)
+    }
+  }
+
   const filteredHostels = hostels.filter((hostel) => {
     const matchesSearch =
       hostel.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -367,7 +412,7 @@ export default function HostelsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
-                  placeholder="Search hostels or wardens..."
+                  placeholder="Search hostels"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -400,8 +445,6 @@ export default function HostelsPage() {
                 <TableHead>Hostel Details</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Occupancy</TableHead>
-                <TableHead>Warden</TableHead>
-                <TableHead>Contact</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -429,31 +472,10 @@ export default function HostelsPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium">-</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="flex items-center text-sm">
-                        <Phone className="h-3 w-3 mr-1" />
-                        -
-                      </div>
-                      <div className="flex items-center text-sm">
-                        <Mail className="h-3 w-3 mr-1" />
-                        -
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
                     <Badge className="bg-green-100 text-green-800">Active</Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm">
-                        View
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        Edit
-                      </Button>
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -462,6 +484,15 @@ export default function HostelsPage() {
                       >
                         <UserPlus className="h-3 w-3 mr-1" />
                         Assign Student
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleOpenDeleteDialog(hostel)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Delete
                       </Button>
                     </div>
                   </TableCell>
@@ -638,6 +669,39 @@ export default function HostelsPage() {
                 {creatingHostel ? "Creating..." : "Create Hostel"}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Hostel Confirmation Dialog */}
+      <Dialog open={deleteHostelDialogOpen} onOpenChange={setDeleteHostelDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Hostel</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &quot;{hostelToDelete?.name}&quot;? This action cannot be undone.
+              {hostelToDelete && hostelToDelete.currentTotalStudents > 0 && (
+                <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <p className="text-sm text-yellow-800">
+                    ⚠️ This hostel currently has {hostelToDelete.currentTotalStudents} student(s) assigned. 
+                    Please reassign them before deleting the hostel.
+                  </p>
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setDeleteHostelDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteHostel} 
+              disabled={deletingHostel || (hostelToDelete?.currentTotalStudents ?? 0) > 0}
+            >
+              {deletingHostel ? "Deleting..." : "Delete Hostel"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

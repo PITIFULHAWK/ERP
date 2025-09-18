@@ -80,7 +80,7 @@ export interface Grade {
 export interface Exam {
     id: string;
     name: string;
-    type: "MID_TERM" | "FINAL_EXAM" | "QUIZ" | "PRACTICAL";
+    type: "FINAL_EXAM";
     examDate: string;
     maxMarks: number;
     semester: {

@@ -235,23 +235,6 @@ export default function CourseViewPage() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full">
-                <Users className="w-4 h-4 mr-2" />
-                Manage Students
-              </Button>
-              <Button variant="outline" className="w-full">
-                <Calendar className="w-4 h-4 mr-2" />
-                View Schedule
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

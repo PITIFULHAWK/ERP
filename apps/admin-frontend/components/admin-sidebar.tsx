@@ -16,7 +16,6 @@ import {
   Home,
   BookOpen,
   Bell,
-  Settings,
   ChevronLeft,
   ChevronRight,
   BarChart3,
@@ -140,17 +139,7 @@ const navigationGroups: NavigationGroup[] = [
         icon: MessageSquareMore,
       },
     ]
-  },
-  {
-    label: "System",
-    items: [
-      {
-        name: "Settings",
-        href: "/admin/settings",
-        icon: Settings,
-      },
-    ]
-  },
+  }
 ]
 
 interface AdminSidebarProps {

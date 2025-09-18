@@ -168,17 +168,6 @@ export function CreateCourseForm({ onSubmit, isLoading = false }: CreateCourseFo
                 />
                 {errors.totalFees && <p className="text-sm text-destructive mt-1">{errors.totalFees.message}</p>}
               </div>
-              <div>
-                <Label htmlFor="maxStudents">Max Students (Optional)</Label>
-                <Input
-                  id="maxStudents"
-                  type="number"
-                  placeholder="e.g., 60"
-                  {...register("maxStudents", { valueAsNumber: true })}
-                  className={errors.maxStudents ? "border-destructive" : ""}
-                />
-                {errors.maxStudents && <p className="text-sm text-destructive mt-1">{errors.maxStudents.message}</p>}
-              </div>
             </div>
             <div>
               <Label htmlFor="description">Description (Optional)</Label>

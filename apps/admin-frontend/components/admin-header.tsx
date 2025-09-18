@@ -1,8 +1,7 @@
 "use client"
 
-import { Bell, Search, User, LogOut } from "lucide-react"
+import { User, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,23 +48,6 @@ export function AdminHeader({ title = "Dashboard", breadcrumbs }: AdminHeaderPro
 
       {/* Right side - Search, Notifications, User Menu */}
       <div className="flex items-center space-x-6">
-        {/* Search */}
-        <div className="relative group">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 transition-colors group-focus-within:text-primary" />
-          <Input 
-            placeholder="Search across system..." 
-            className="pl-12 w-80 h-11 bg-muted/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl" 
-          />
-        </div>
-
-        {/* Notifications */}
-        <Button variant="ghost" size="sm" className="relative h-11 w-11 rounded-xl hover:bg-muted/50 transition-all duration-300 hover:scale-105 cursor-pointer">
-          <Bell className="w-5 h-5" />
-          <Badge className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center p-0 text-xs bg-destructive text-destructive-foreground border-2 border-background animate-pulse">
-            3
-          </Badge>
-        </Button>
-
         {/* Theme Toggle */}
         <div className="border-l border-border/50 pl-6">
           <ThemeToggle />
