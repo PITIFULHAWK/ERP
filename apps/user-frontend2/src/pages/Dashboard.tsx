@@ -32,6 +32,33 @@ export default function Dashboard() {
     const navigate = useNavigate();
     const isStudent = user.role === "STUDENT";
 
+    // Safely format current semester info, which may be an object from backend
+    const renderCurrentSemesterInfo = () => {
+        const info = user.currentSemesterInfo as any;
+        if (!info) return null;
+        if (typeof info !== "object") return <span>{String(info)}</span>;
+        // Try to build a friendly label from known fields
+        const parts: string[] = [];
+        if (info.semesterInfo || info.currentSemester) {
+            parts.push(info.semesterInfo ?? info.currentSemester);
+        }
+        if (info.academicYear?.year) {
+            parts.push(`AY ${info.academicYear.year}`);
+        }
+        if (info.course?.code || info.course?.name) {
+            parts.push(info.course.code ?? info.course.name);
+        }
+        if (parts.length === 0) {
+            // Fallback to a concise JSON string (not as a raw object)
+            try {
+                return <span>{JSON.stringify(info)}</span>;
+            } catch {
+                return null;
+            }
+        }
+        return <span>{parts.join(" • ")}</span>;
+    };
+
     if (!isStudent) {
         // Applicant View
         return (
@@ -120,7 +147,7 @@ export default function Dashboard() {
                     {user.currentSemesterInfo && (
                         <>
                             <span className="hidden sm:block">•</span>
-                            <span>{user.currentSemesterInfo}</span>
+                            {renderCurrentSemesterInfo()}
                         </>
                     )}
                 </div>

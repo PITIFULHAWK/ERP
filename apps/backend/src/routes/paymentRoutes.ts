@@ -3,7 +3,8 @@ import {
     getPayments,
     getPaymentById,
     getPaymentSummary,
-createPaymentWithReceipt,
+    createPaymentWithReceipt,
+    createPaymentSimple,
     verifyPayment,
     deletePayment,
 } from "../controllers/paymentController";
@@ -19,6 +20,7 @@ const router: Router = Router();
 router.get("/", getPayments); // Get all payments (Admin view)
 router.get("/summary", getPaymentSummary); // Get payment statistics
 router.get("/:id", getPaymentById); // Get payment by ID
+router.post("/", createPaymentSimple); // Simple JSON payment creation (user)
 router.post("/create-with-receipt", uploadReceiptFile, handleMulterError, createPaymentWithReceipt); // Create payment with optional receipt
 router.delete("/:id", deletePayment); // Delete payment
 // Verification routes (Admin only)

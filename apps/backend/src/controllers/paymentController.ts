@@ -107,7 +107,6 @@ export const getPayments = asyncHandler(async (req: Request, res: Response) => {
             createdAt: "desc",
         },
     });
-
     const response: ApiResponse = {
         success: true,
         message: "Payments retrieved successfully",
@@ -116,6 +115,133 @@ export const getPayments = asyncHandler(async (req: Request, res: Response) => {
 
     res.json(response);
 });
+
+// Create payment (JSON body, no file upload) - user side simple route
+export const createPaymentSimple = asyncHandler(
+    async (req: Request, res: Response) => {
+        const {
+            userId,
+            type,
+            courseId,
+            hostelId,
+            amount,
+            currency = "INR",
+            method = "MANUAL",
+            reference,
+            notes,
+        } = req.body as {
+            userId: string;
+            type: "COURSE" | "HOSTEL" | "LIBRARY" | "MISC" | "SUMMERQUARTER";
+            courseId?: string;
+            hostelId?: string;
+            amount: number;
+            currency?: string;
+            method?: "MANUAL" | "RAZORPAY" | "CARD" | "UPI";
+            reference?: string;
+            notes?: string;
+        };
+
+        if (!userId || typeof userId !== "string") {
+            return res.status(400).json({
+                success: false,
+                message: "userId is required",
+                error: "Bad Request",
+            } satisfies ApiResponse);
+        }
+
+        const validTypes = [
+            "COURSE",
+            "HOSTEL",
+            "LIBRARY",
+            "MISC",
+            "SUMMERQUARTER",
+        ] as const;
+        if (!type || !validTypes.includes(type)) {
+            return res.status(400).json({
+                success: false,
+                message: `Type must be one of: ${validTypes.join(", ")}`,
+                error: "Bad Request",
+            } satisfies ApiResponse);
+        }
+
+        const parsedAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+        if (!parsedAmount || typeof parsedAmount !== "number" || parsedAmount <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Amount must be a valid number greater than zero",
+                error: "Bad Request",
+            } satisfies ApiResponse);
+        }
+
+        if (type === "COURSE" && !courseId) {
+            return res.status(400).json({
+                success: false,
+                message: "courseId is required for COURSE payments",
+                error: "Bad Request",
+            } satisfies ApiResponse);
+        }
+        if (type === "HOSTEL" && !hostelId) {
+            return res.status(400).json({
+                success: false,
+                message: "hostelId is required for HOSTEL payments",
+                error: "Bad Request",
+            } satisfies ApiResponse);
+        }
+
+        // Validate user exists
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+                error: "Not Found",
+            } satisfies ApiResponse);
+        }
+
+        // Validate related entities
+        if (type === "COURSE" && courseId) {
+            const course = await prisma.course.findUnique({ where: { id: courseId } });
+            if (!course) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Course not found",
+                    error: "Not Found",
+                } satisfies ApiResponse);
+            }
+        }
+        if (type === "HOSTEL" && hostelId) {
+            const hostel = await prisma.hostel.findUnique({ where: { id: hostelId } });
+            if (!hostel) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Hostel not found",
+                    error: "Not Found",
+                } satisfies ApiResponse);
+            }
+        }
+
+        const payment = await prisma.payment.create({
+            data: {
+                userId,
+                type,
+                courseId: type === "COURSE" ? courseId ?? null : null,
+                hostelId: type === "HOSTEL" ? hostelId ?? null : null,
+                amount: parsedAmount,
+                currency,
+                method,
+                status: "PENDING",
+                reference,
+                notes,
+            },
+        });
+
+        return res.status(201).json({
+            success: true,
+            message: "Payment submitted successfully",
+            data: payment,
+        } satisfies ApiResponse);
+    }
+);
 
 // Get payment by ID
 export const getPaymentById = asyncHandler(

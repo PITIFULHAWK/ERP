@@ -10,6 +10,48 @@ export interface ApiResponse<T = any> {
     error?: string;
 }
 
+// Attendance types
+export interface AttendanceSubjectInfo {
+    id: string;
+    name: string;
+    code: string;
+    credits: number;
+}
+
+export interface AttendanceSectionInfo {
+    id: string;
+    name: string;
+    code?: string;
+}
+
+export interface AttendanceRecord {
+    id: string;
+    studentId: string;
+    enrollmentId: string;
+    subjectId: string | null;
+    sectionId: string;
+    date: string;
+    classType: "REGULAR" | "LAB" | "EXTRA" | string;
+    status: "PRESENT" | "ABSENT" | "LATE" | string;
+    markedAt: string;
+    markedBy: string;
+    subject?: AttendanceSubjectInfo | null;
+    section?: AttendanceSectionInfo;
+    markedByUser?: { id: string; name: string };
+}
+
+export interface AttendanceSummary {
+    id: string;
+    studentId: string;
+    subjectId: string;
+    academicYearId: string;
+    totalClasses: number;
+    presentClasses: number;
+    absentClasses: number;
+    attendancePercentage: number;
+    subject: AttendanceSubjectInfo;
+}
+
 export interface User {
     id: string;
     name: string;
@@ -413,16 +455,35 @@ class ApiService {
     }
 
     async getStudentEnrollments(studentId: string): Promise<ApiResponse<StudentEnrollment[]>> {
-        return this.request<StudentEnrollment[]>(`/enrollments/student/${studentId}`);
+        // Backend exposes sectionRoutes: GET /sections/student/:studentId
+        return this.request<StudentEnrollment[]>(`/sections/student/${studentId}`);
     }
 
     // Timetable endpoints
     async getStudentTimetable(studentId: string): Promise<ApiResponse<TimetableDocument>> {
-        return this.request<TimetableDocument>(`/timetable/student/${studentId}`);
+        // Backend mounts timetables router at /timetables
+        return this.request<TimetableDocument>(`/timetables/student/${studentId}`);
     }
 
     async getTimetableBySection(sectionId: string): Promise<ApiResponse<TimetableDocument>> {
-        return this.request<TimetableDocument>(`/timetable/section/${sectionId}`);
+        // Backend exposes GET /timetables/:sectionId
+        return this.request<TimetableDocument>(`/timetables/${sectionId}`);
+    }
+
+    // Attendance endpoints
+    async getStudentAttendance(
+        studentId: string,
+        params?: { subjectId?: string; semesterId?: string; academicYearId?: string }
+    ): Promise<ApiResponse<{ records: AttendanceRecord[]; summaries: AttendanceSummary[] }>> {
+        const queryParams = new URLSearchParams();
+        if (params?.subjectId) queryParams.append("subjectId", params.subjectId);
+        if (params?.semesterId) queryParams.append("semesterId", params.semesterId);
+        if (params?.academicYearId)
+            queryParams.append("academicYearId", params.academicYearId);
+        const query = queryParams.toString();
+        return this.request<{ records: AttendanceRecord[]; summaries: AttendanceSummary[] }>(
+            `/attendance/student/${studentId}${query ? `?${query}` : ""}`
+        );
     }
 }
 

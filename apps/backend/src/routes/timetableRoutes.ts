@@ -2,6 +2,7 @@ import { Router } from "express";
 import { requireAuth, requireAdmin } from "../middleware/authMiddleware";
 import {
     getSectionTimetable,
+    getStudentTimetable,
     uploadTimetable,
     deleteTimetable,
     getAllSectionTimetables,
@@ -19,6 +20,9 @@ router.get("/academic-years", getAcademicYears);
 
 // Get all section timetables (admin only)
 router.get("/", requireAdmin, getAllSectionTimetables);
+
+// Get timetable for a specific student (resolves active section)
+router.get("/student/:studentId", getStudentTimetable);
 
 // Get timetable for specific section
 router.get("/:sectionId", getSectionTimetable);

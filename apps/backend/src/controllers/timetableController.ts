@@ -15,6 +15,92 @@ interface AuthRequest extends Request {
 
 // Configure Multer for timetable file uploads
 const storage = multer.memoryStorage();
+
+// Get timetable for a specific student (by resolving their active section)
+export const getStudentTimetable = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { studentId } = req.params;
+
+        try {
+            // Find active section enrollment for the student (fallback to most recent if none active)
+            const enrollment = await prisma.sectionEnrollment.findFirst({
+                where: {
+                    studentId,
+                    status: "ACTIVE",
+                },
+                orderBy: { createdAt: "desc" },
+            });
+
+            const fallbackEnrollment = enrollment
+                ? enrollment
+                : await prisma.sectionEnrollment.findFirst({
+                      where: { studentId },
+                      orderBy: { createdAt: "desc" },
+                  });
+
+            if (!fallbackEnrollment) {
+                return res.status(404).json({
+                    success: false,
+                    message: "No section enrollment found for this student",
+                } as ApiResponse);
+            }
+
+            const sectionId = fallbackEnrollment.sectionId;
+
+            // Reuse logic to fetch section timetable
+            const timetableResource = await prisma.sectionResource.findFirst({
+                where: {
+                    sectionId,
+                    resourceType: "TIMETABLE",
+                },
+                include: {
+                    section: {
+                        include: {
+                            course: true,
+                            semester: true,
+                            academicYear: true,
+                            professorAssignments: {
+                                include: { professor: true, subject: true },
+                            },
+                        },
+                    },
+                    uploader: true,
+                },
+            });
+
+            if (!timetableResource) {
+                return res.status(404).json({
+                    success: false,
+                    message: "No timetable found for the student's section",
+                } as ApiResponse);
+            }
+
+            res.json({
+                success: true,
+                data: {
+                    id: timetableResource.id,
+                    title: timetableResource.title,
+                    description: timetableResource.description,
+                    url: timetableResource.fileUrl,
+                    fileName: timetableResource.fileName,
+                    mimeType: timetableResource.mimeType,
+                    fileSize: timetableResource.fileSize,
+                    section: timetableResource.section,
+                    uploadedBy: timetableResource.uploader,
+                    academicYear: timetableResource.section.academicYear,
+                    createdAt: timetableResource.createdAt,
+                    updatedAt: timetableResource.updatedAt,
+                },
+            } as ApiResponse);
+        } catch (error) {
+            console.error("Error fetching student timetable:", error);
+            res.status(500).json({
+                success: false,
+                message: "Failed to fetch student timetable",
+            } as ApiResponse);
+        }
+    }
+);
 export const upload = multer({
     storage,
     limits: {

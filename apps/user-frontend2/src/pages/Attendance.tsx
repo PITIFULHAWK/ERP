@@ -7,76 +7,66 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, AlertTriangle, CheckCircle, Clock } from "lucide-react";
-
-const attendanceData = [
-    {
-        subjectCode: "CSE401",
-        subjectName: "Machine Learning",
-        attended: 42,
-        total: 45,
-        percentage: 93,
-        status: "excellent",
-    },
-    {
-        subjectCode: "CSE402",
-        subjectName: "Database Management Systems",
-        attended: 38,
-        total: 45,
-        percentage: 84,
-        status: "good",
-    },
-    {
-        subjectCode: "CSE403",
-        subjectName: "Software Engineering",
-        attended: 40,
-        total: 45,
-        percentage: 89,
-        status: "good",
-    },
-    {
-        subjectCode: "CSE404",
-        subjectName: "Computer Networks",
-        attended: 35,
-        total: 45,
-        percentage: 78,
-        status: "good",
-    },
-    {
-        subjectCode: "CSE405",
-        subjectName: "Operating Systems",
-        attended: 32,
-        total: 45,
-        percentage: 71,
-        status: "warning",
-    },
-    {
-        subjectCode: "CSE406",
-        subjectName: "Web Technologies",
-        attended: 29,
-        total: 45,
-        percentage: 64,
-        status: "low",
-    },
-    {
-        subjectCode: "HSS401",
-        subjectName: "Professional Ethics",
-        attended: 41,
-        total: 45,
-        percentage: 91,
-        status: "excellent",
-    },
-    {
-        subjectCode: "CSE407",
-        subjectName: "Artificial Intelligence",
-        attended: 43,
-        total: 45,
-        percentage: 96,
-        status: "excellent",
-    },
-];
+import { Calendar, AlertTriangle, CheckCircle, Clock, Loader2, AlertCircle } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { apiService, AttendanceSummary } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function Attendance() {
+    const { user } = useAuth();
+    const [summaries, setSummaries] = useState<AttendanceSummary[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchAttendance = async () => {
+            if (!user?.id) {
+                setError("Not authenticated");
+                setLoading(false);
+                return;
+            }
+            try {
+                setLoading(true);
+                setError(null);
+                const res = await apiService.getStudentAttendance(user.id);
+                if (res.success && res.data) {
+                    setSummaries(res.data.summaries || []);
+                } else {
+                    setError(res.message || "Failed to load attendance");
+                }
+            } catch (e) {
+                setError("Failed to load attendance. Please try again later.");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAttendance();
+    }, [user?.id]);
+
+    const computed = useMemo(() => {
+        if (summaries.length === 0) {
+            return {
+                overall: 0,
+                subjectsAbove75: 0,
+                belowCount: 0,
+            };
+        }
+        const percentages = summaries.map((s) => s.attendancePercentage || 0);
+        const overall = Math.round(
+            percentages.reduce((a, b) => a + b, 0) / percentages.length
+        );
+        const subjectsAbove75 = summaries.filter((s) => s.attendancePercentage >= 75).length;
+        const belowCount = summaries.filter((s) => s.attendancePercentage < 75).length;
+        return { overall, subjectsAbove75, belowCount };
+    }, [summaries]);
+
+    const getStatusFromPercentage = (p: number) => {
+        if (p >= 90) return "excellent";
+        if (p >= 75) return "good";
+        if (p >= 50) return "warning";
+        return "low";
+    };
     const getStatusColor = (status: string) => {
         switch (status) {
             case "excellent":
@@ -128,14 +118,34 @@ export default function Attendance() {
         return "danger";
     };
 
-    const overallAttendance = Math.round(
-        attendanceData.reduce((sum, subject) => sum + subject.percentage, 0) /
-            attendanceData.length
-    );
+    if (loading) {
+        return (
+            <div className="space-y-6">
+                <div className="space-y-2">
+                    <h1 className="text-3xl font-bold text-foreground">My Attendance</h1>
+                    <p className="text-lg text-muted-foreground">Loading your attendance...</p>
+                </div>
+                <div className="flex items-center justify-center py-12 text-muted-foreground">
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                </div>
+            </div>
+        );
+    }
 
-    const subjectsAbove75 = attendanceData.filter(
-        (subject) => subject.percentage >= 75
-    ).length;
+    if (error) {
+        return (
+            <div className="space-y-6">
+                <div className="space-y-2">
+                    <h1 className="text-3xl font-bold text-foreground">My Attendance</h1>
+                    <p className="text-lg text-muted-foreground">Track your class attendance across all subjects for the current semester.</p>
+                </div>
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -163,11 +173,11 @@ export default function Attendance() {
                     <CardContent>
                         <div className="space-y-2">
                             <div className="text-3xl font-bold text-primary">
-                                {overallAttendance}%
+                                {computed.overall}%
                             </div>
                             <Progress
-                                value={overallAttendance}
-                                variant={getProgressVariant(overallAttendance)}
+                                value={computed.overall}
+                                variant={getProgressVariant(computed.overall)}
                                 className="h-3"
                             />
                             <p className="text-sm text-muted-foreground">
@@ -189,13 +199,10 @@ export default function Attendance() {
                     <CardContent>
                         <div className="space-y-2">
                             <div className="text-3xl font-bold text-success">
-                                {subjectsAbove75}/{attendanceData.length}
+                                {computed.subjectsAbove75}/{summaries.length}
                             </div>
                             <Progress
-                                value={
-                                    (subjectsAbove75 / attendanceData.length) *
-                                    100
-                                }
+                                value={summaries.length ? (computed.subjectsAbove75 / summaries.length) * 100 : 0}
                                 variant="success"
                                 className="h-3"
                             />
@@ -218,15 +225,10 @@ export default function Attendance() {
                     <CardContent>
                         <div className="space-y-2">
                             <div className="text-3xl font-bold text-warning">
-                                {
-                                    attendanceData.filter(
-                                        (s) => s.percentage < 75
-                                    ).length
-                                }
+                                {computed.belowCount}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                                {attendanceData.filter((s) => s.percentage < 75)
-                                    .length === 0
+                                {computed.belowCount === 0
                                     ? "All subjects on track"
                                     : "Subjects need attention"}
                             </div>
@@ -241,9 +243,9 @@ export default function Attendance() {
                     Subject-wise Attendance
                 </h2>
                 <div className="grid grid-cols-1 gap-4">
-                    {attendanceData.map((subject) => (
+                    {summaries.map((s) => (
                         <Card
-                            key={subject.subjectCode}
+                            key={s.subject.id}
                             className="shadow-card hover:shadow-lg transition-shadow duration-200"
                         >
                             <CardContent className="p-6">
@@ -256,40 +258,35 @@ export default function Attendance() {
                                                     variant="outline"
                                                     className="font-mono"
                                                 >
-                                                    {subject.subjectCode}
+                                                    {s.subject.code}
                                                 </Badge>
                                                 <Badge
                                                     variant="outline"
                                                     className={`${
-                                                        subject.percentage >= 75
+                                                        s.attendancePercentage >= 75
                                                             ? "text-success border-success"
-                                                            : subject.percentage >=
+                                                            : s.attendancePercentage >=
                                                                 50
                                                               ? "text-warning border-warning"
                                                               : "text-destructive border-destructive"
                                                     }`}
                                                 >
-                                                    {getStatusIcon(
-                                                        subject.status
-                                                    )}
+                                                    {getStatusIcon(getStatusFromPercentage(s.attendancePercentage))}
                                                     <span className="ml-1">
-                                                        {getStatusText(
-                                                            subject.status
-                                                        )}
+                                                        {getStatusText(getStatusFromPercentage(s.attendancePercentage))}
                                                     </span>
                                                 </Badge>
                                             </div>
                                             <h3 className="text-lg font-semibold text-foreground">
-                                                {subject.subjectName}
+                                                {s.subject.name}
                                             </h3>
                                         </div>
                                         <div className="text-right">
                                             <div className="text-2xl font-bold text-foreground">
-                                                {subject.percentage}%
+                                                {s.attendancePercentage}%
                                             </div>
                                             <div className="text-sm text-muted-foreground">
-                                                {subject.attended} /{" "}
-                                                {subject.total} classes
+                                                {s.presentClasses} / {s.totalClasses} classes
                                             </div>
                                         </div>
                                     </div>
@@ -297,25 +294,22 @@ export default function Attendance() {
                                     {/* Progress Bar */}
                                     <div className="space-y-2">
                                         <Progress
-                                            value={subject.percentage}
-                                            variant={getProgressVariant(
-                                                subject.percentage
-                                            )}
+                                            value={s.attendancePercentage}
+                                            variant={getProgressVariant(s.attendancePercentage)}
                                             className="h-3"
                                         />
                                         <div className="flex justify-between text-sm text-muted-foreground">
                                             <span>
-                                                Classes Attended:{" "}
-                                                {subject.attended}
+                                                Classes Attended: {s.presentClasses}
                                             </span>
                                             <span>
-                                                Total Classes: {subject.total}
+                                                Total Classes: {s.totalClasses}
                                             </span>
                                         </div>
                                     </div>
 
                                     {/* Warning for low attendance */}
-                                    {subject.percentage < 75 && (
+                                    {s.attendancePercentage < 75 && (
                                         <div className="flex items-center gap-2 p-3 bg-warning/10 border border-warning/20 rounded-lg">
                                             <AlertTriangle className="w-4 h-4 text-warning" />
                                             <div className="text-sm">
@@ -323,7 +317,7 @@ export default function Attendance() {
                                                     Attention Required:
                                                 </span>
                                                 <span className="text-muted-foreground ml-1">
-                                                    {subject.percentage < 50
+                                                    {s.attendancePercentage < 50
                                                         ? "Critical - Immediate action needed to meet minimum attendance."
                                                         : "Below 75% threshold. Consider attending upcoming classes."}
                                                 </span>
