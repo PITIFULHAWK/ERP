@@ -34,7 +34,56 @@ import {
     CreateReceiptRequest,
     VerifyPaymentRequest,
     PaymentFilters,
+
+    // New types for missing functionalities
+    AttendanceStats,
+    CreateAttendanceRequest,
+    AttendanceFilters,
+    BulkAttendanceRequest,
+    Section,
+    Enrollment,
+    CreateSectionRequest,
+    UpdateSectionRequest,
+    SectionFilters,
+    CreateEnrollmentRequest,
+    UpdateEnrollmentRequest,
+    EnrollmentFilters,
+    Resource,
+    CreateResourceRequest,
+    UpdateResourceRequest,
+    ResourceFilters,
+    ResourceStats,
+    Complaint,
+    CreateComplaintRequest,
+    UpdateComplaintStatusRequest,
+    AddComplaintUpdateRequest,
+    ComplaintFilters,
+    ComplaintStats,
+    AcademicCalendar,
+    CreateAcademicCalendarRequest,
+    UpdateAcademicCalendarRequest,
+    AcademicCalendarFilters,
 } from "../types";
+
+// Academic Year interfaces for API client
+interface CreateAcademicYearRequest {
+    year: string;
+    startDate: string;
+    endDate: string;
+    isActive?: boolean;
+    universityId: string;
+    calendarPdfUrl?: string;
+    calendarPdfName?: string;
+}
+
+interface UpdateAcademicYearRequest {
+    year?: string;
+    startDate?: string;
+    endDate?: string;
+    isActive?: boolean;
+    calendarPdfUrl?: string;
+    calendarPdfName?: string;
+}
 import {
     Placement,
     CreatePlacementRequest,
@@ -59,22 +108,33 @@ class ApiClient {
         return localStorage.getItem("auth_token");
     }
 
-    private getAuthHeaders(): HeadersInit {
+    private getAuthHeaders(isFormData: boolean = false): HeadersInit {
         const token = this.getAuthToken();
-        return {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-        };
+        const headers: HeadersInit = {};
+
+        if (!isFormData) {
+            headers["Content-Type"] = "application/json";
+        }
+
+        if (token) {
+            headers.Authorization = `Bearer ${token}`;
+        }
+
+        return headers;
     }
 
-    async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    async request<T>(
+        endpoint: string,
+        options: RequestInit & { isFormData?: boolean } = {}
+    ): Promise<T> {
         const url = `${this.baseURL}${endpoint}`;
+        const { isFormData, ...requestOptions } = options;
 
         const config: RequestInit = {
-            ...options,
+            ...requestOptions,
             headers: {
-                ...this.getAuthHeaders(),
-                ...options.headers,
+                ...this.getAuthHeaders(isFormData),
+                ...requestOptions.headers,
             },
         };
 
@@ -691,6 +751,483 @@ class ApiClient {
     // ====== HEALTH CHECK ======
     async healthCheck() {
         return this.request("/health");
+    }
+
+    // ====== ATTENDANCE MANAGEMENT ======
+    async getAttendance(filters?: AttendanceFilters) {
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/attendance${params}`);
+    }
+
+    async markAttendance(attendanceData: CreateAttendanceRequest) {
+        return this.request("/attendance", {
+            method: "POST",
+            body: JSON.stringify(attendanceData),
+        });
+    }
+
+    async markBulkAttendance(bulkData: BulkAttendanceRequest) {
+        return this.request("/attendance/mark", {
+            method: "POST",
+            body: JSON.stringify(bulkData),
+        });
+    }
+
+    async getAttendanceStats(
+        enrollmentId: string,
+        subjectId?: string
+    ): Promise<{
+        success: boolean;
+        data: AttendanceStats;
+        message?: string;
+    }> {
+        const params = subjectId ? `?subjectId=${subjectId}` : "";
+        return this.request(`/attendance/stats/${enrollmentId}${params}`);
+    }
+
+    async deleteAttendance(id: string) {
+        return this.request(`/attendance/${id}`, {
+            method: "DELETE",
+        });
+    }
+
+    async getSectionAttendance(
+        sectionId: string,
+        filters?: {
+            subjectId?: string;
+            date?: string;
+            academicYearId?: string;
+        }
+    ) {
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/attendance/section/${sectionId}${params}`);
+    }
+
+    // ====== SECTION MANAGEMENT ======
+    async getSections(filters?: SectionFilters) {
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/sections${params}`);
+    }
+
+    async getSection(id: string): Promise<{
+        success: boolean;
+        data: Section;
+        message?: string;
+    }> {
+        return this.request(`/sections/${id}`);
+    }
+
+    async createSection(sectionData: CreateSectionRequest) {
+        return this.request("/sections", {
+            method: "POST",
+            body: JSON.stringify(sectionData),
+        });
+    }
+
+    async updateSection(id: string, sectionData: UpdateSectionRequest) {
+        return this.request(`/sections/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify(sectionData),
+        });
+    }
+
+    async deleteSection(id: string) {
+        return this.request(`/sections/${id}`, {
+            method: "DELETE",
+        });
+    }
+
+    async assignProfessorToSection(assignmentData: {
+        professorId: string;
+        sectionId: string;
+        subjectId: string;
+        assignmentType?: string;
+    }) {
+        return this.request("/sections/assign-professor", {
+            method: "POST",
+            body: JSON.stringify(assignmentData),
+        });
+    }
+
+    async getProfessorSections(professorId: string) {
+        return this.request(`/sections/professor/${professorId}`);
+    }
+
+    // ====== ENROLLMENT MANAGEMENT ======
+    async getEnrollments(filters?: EnrollmentFilters) {
+        // Check if this is for a specific section
+        if (filters?.sectionId) {
+            return this.request(`/sections/${filters.sectionId}/enrollments`);
+        }
+
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/enrollments${params}`);
+    }
+
+    async getEnrollment(id: string): Promise<{
+        success: boolean;
+        data: Enrollment;
+        message?: string;
+    }> {
+        return this.request(`/enrollments/${id}`);
+    }
+
+    async createEnrollment(enrollmentData: CreateEnrollmentRequest) {
+        // Use the new student enrollment endpoint
+        return this.request("/sections/enroll-student", {
+            method: "POST",
+            body: JSON.stringify({
+                studentId: enrollmentData.studentId,
+                courseId: enrollmentData.courseId,
+                semesterId: enrollmentData.semesterId,
+                academicYearId: enrollmentData.academicYearId,
+                currentSemester: enrollmentData.currentSemester,
+            }),
+        });
+    }
+
+    async assignStudentToSection(studentId: string, sectionId: string) {
+        // Use the correct endpoint for assigning students to sections
+        return this.request("/sections/assign-student", {
+            method: "POST",
+            body: JSON.stringify({
+                studentId: studentId,
+                sectionId: sectionId,
+            }),
+        });
+    }
+
+    async updateEnrollment(
+        id: string,
+        enrollmentData: UpdateEnrollmentRequest
+    ) {
+        return this.request(`/enrollments/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify(enrollmentData),
+        });
+    }
+
+    async deleteEnrollment(id: string) {
+        return this.request(`/enrollments/${id}`, {
+            method: "DELETE",
+        });
+    }
+
+    // ====== RESOURCE MANAGEMENT ======
+    async getResources(filters?: ResourceFilters) {
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/resources${params}`);
+    }
+
+    async getResource(id: string): Promise<{
+        success: boolean;
+        data: Resource;
+        message?: string;
+    }> {
+        return this.request(`/resources/${id}`);
+    }
+
+    async createResource(resourceData: CreateResourceRequest) {
+        return this.request("/resources", {
+            method: "POST",
+            body: JSON.stringify(resourceData),
+        });
+    }
+
+    async uploadResourceFile(id: string, file: File) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        return this.request(`/resources/${id}/upload`, {
+            method: "POST",
+            body: formData,
+            isFormData: true,
+        });
+    }
+
+    async updateResource(id: string, resourceData: UpdateResourceRequest) {
+        return this.request(`/resources/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify(resourceData),
+        });
+    }
+
+    async deleteResource(id: string) {
+        return this.request(`/resources/${id}`, {
+            method: "DELETE",
+        });
+    }
+
+    async getResourceStats(): Promise<{
+        success: boolean;
+        data: ResourceStats;
+        message?: string;
+    }> {
+        return this.request("/resources/stats");
+    }
+
+    async downloadResource(id: string) {
+        return this.request(`/resources/${id}/download`);
+    }
+
+    // ====== COMPLAINT MANAGEMENT ======
+    async getComplaints(filters?: ComplaintFilters) {
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/complaints${params}`);
+    }
+
+    async getComplaint(id: string): Promise<{
+        success: boolean;
+        data: Complaint;
+        message?: string;
+    }> {
+        return this.request(`/complaints/${id}`);
+    }
+
+    async createComplaint(complaintData: CreateComplaintRequest) {
+        return this.request("/complaints", {
+            method: "POST",
+            body: JSON.stringify(complaintData),
+        });
+    }
+
+    async updateComplaintStatus(
+        id: string,
+        statusData: UpdateComplaintStatusRequest
+    ) {
+        return this.request(`/complaints/${id}/status`, {
+            method: "PATCH",
+            body: JSON.stringify(statusData),
+        });
+    }
+
+    async addComplaintUpdate(
+        id: string,
+        updateData: AddComplaintUpdateRequest
+    ) {
+        return this.request(`/complaints/${id}/updates`, {
+            method: "POST",
+            body: JSON.stringify(updateData),
+        });
+    }
+
+    async deleteComplaint(id: string) {
+        return this.request(`/complaints/${id}`, {
+            method: "DELETE",
+        });
+    }
+
+    async getComplaintStats(): Promise<{
+        success: boolean;
+        data: ComplaintStats;
+        message?: string;
+    }> {
+        return this.request("/complaints/stats");
+    }
+
+    // ====== ACADEMIC CALENDAR MANAGEMENT ======
+    async getAcademicCalendars(filters?: AcademicCalendarFilters) {
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/academic-calendar${params}`);
+    }
+
+    async getAcademicCalendar(id: string): Promise<{
+        success: boolean;
+        data: AcademicCalendar;
+        message?: string;
+    }> {
+        return this.request(`/academic-calendar/${id}`);
+    }
+
+    async createAcademicCalendar(calendarData: CreateAcademicCalendarRequest) {
+        return this.request("/academic-calendar", {
+            method: "POST",
+            body: JSON.stringify(calendarData),
+        });
+    }
+
+    async uploadAcademicCalendarPDF(id: string, file: File) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        return this.request(`/academic-calendar/${id}/upload`, {
+            method: "POST",
+            body: formData,
+            isFormData: true,
+        });
+    }
+
+    async updateAcademicCalendar(
+        id: string,
+        calendarData: UpdateAcademicCalendarRequest
+    ) {
+        return this.request(`/academic-calendar/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify(calendarData),
+        });
+    }
+
+    async deleteAcademicCalendar(id: string) {
+        return this.request(`/academic-calendar/${id}`, {
+            method: "DELETE",
+        });
+    }
+
+    async downloadAcademicCalendar(id: string) {
+        return this.request(`/academic-calendar/${id}/download`);
+    }
+
+    // ====== ACADEMIC YEAR MANAGEMENT ======
+    async getAcademicYears(universityId?: string) {
+        const params = universityId ? `?universityId=${universityId}` : "";
+        return this.request(`/academic-years${params}`);
+    }
+
+    async getAcademicYear(id: string) {
+        return this.request(`/academic-years/${id}`);
+    }
+
+    async createAcademicYear(academicYearData: CreateAcademicYearRequest) {
+        return this.request("/academic-years", {
+            method: "POST",
+            body: JSON.stringify(academicYearData),
+        });
+    }
+
+    async updateAcademicYear(
+        id: string,
+        academicYearData: UpdateAcademicYearRequest
+    ) {
+        return this.request(`/academic-years/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(academicYearData),
+        });
+    }
+
+    async deleteAcademicYear(id: string) {
+        return this.request(`/academic-years/${id}`, {
+            method: "DELETE",
+        });
+    }
+
+    async getActiveAcademicYear(universityId: string) {
+        return this.request(`/academic-years/active/${universityId}`);
+    }
+
+    async setActiveAcademicYear(id: string) {
+        return this.request(`/academic-years/${id}/activate`, {
+            method: "PATCH",
+        });
+    }
+
+    // ====== GRADE MANAGEMENT ======
+    async getProfessorGrades(
+        professorId: string,
+        filters?: {
+            sectionId?: string;
+            subjectId?: string;
+            examId?: string;
+        }
+    ) {
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/grades/professor/${professorId}${params}`);
+    }
+
+    async getProfessorStudentsForGrading(
+        professorId: string,
+        sectionId: string,
+        subjectId: string,
+        examId: string
+    ) {
+        const params = new URLSearchParams({
+            sectionId,
+            subjectId,
+            examId,
+        }).toString();
+        return this.request(
+            `/grades/professor/${professorId}/students?${params}`
+        );
+    }
+
+    async getProfessorExams(
+        professorId: string,
+        filters?: {
+            sectionId?: string;
+            subjectId?: string;
+        }
+    ) {
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/grades/professor/${professorId}/exams${params}`);
+    }
+
+    async createOrUpdateGrade(gradeData: {
+        professorId: string;
+        examResultId: string;
+        subjectId: string;
+        marksObtained: number;
+    }) {
+        return this.request("/grades", {
+            method: "POST",
+            body: JSON.stringify(gradeData),
+        });
+    }
+
+    async deleteGrade(gradeId: string, professorId: string) {
+        return this.request(`/grades/${gradeId}`, {
+            method: "DELETE",
+            body: JSON.stringify({ professorId }),
+        });
+    }
+
+    // Timetable Management APIs
+    async getAllTimetables() {
+        return this.request("/timetables");
+    }
+
+    async getSectionTimetable(sectionId: string) {
+        return this.request(`/timetables/${sectionId}`);
+    }
+
+    async uploadTimetable(
+        sectionId: string,
+        file: File,
+        academicYearId?: string,
+        description?: string
+    ) {
+        const formData = new FormData();
+        formData.append("timetable", file);
+        if (academicYearId) formData.append("academicYearId", academicYearId);
+        if (description) formData.append("description", description);
+
+        return this.request(`/timetables/${sectionId}`, {
+            method: "POST",
+            body: formData,
+            isFormData: true,
+        });
+    }
+
+    async deleteTimetable(sectionId: string) {
+        return this.request(`/timetables/${sectionId}`, {
+            method: "DELETE",
+        });
     }
 }
 

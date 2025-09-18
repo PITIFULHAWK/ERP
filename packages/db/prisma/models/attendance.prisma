@@ -20,7 +20,6 @@ model Attendance {
   academicYearId    String
   
   // Relationships
-  student           User              @relation("StudentAttendances", fields: [studentId], references: [id], onDelete: Cascade)
   enrollment        StudentEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
   subject           Subject           @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   section           Section?          @relation("SectionAttendances", fields: [sectionId], references: [id], onDelete: SetNull)
@@ -50,7 +49,8 @@ model AttendanceSummary {
   // Date range for this summary
   fromDate          DateTime
   toDate            DateTime
-  student           User              @relation("StudentAttendanceSummaries", fields: [studentId], references: [id], onDelete: Cascade)
+  
+  // Relationships
   enrollment        StudentEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
   subject           Subject           @relation("SubjectAttendanceSummaries", fields: [subjectId], references: [id], onDelete: Cascade)
   academicYear      AcademicYear      @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
@@ -65,8 +65,6 @@ model AttendanceSummary {
 enum AttendanceStatus {
   PRESENT
   ABSENT
-  LATE
-  EXCUSED
 }
 
 enum ClassType {

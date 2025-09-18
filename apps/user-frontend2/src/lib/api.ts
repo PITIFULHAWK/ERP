@@ -17,6 +17,7 @@ export interface User {
     userStatus?: "VERIFIED" | "NOT_VERIFIED";
     universityId: string;
     university?: University;
+    currentSemesterInfo?: number;
 }
 
 export interface University {

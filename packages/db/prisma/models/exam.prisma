@@ -1,14 +1,14 @@
 model Exam {
-  id         String      @id @default(uuid())
+  id         String       @id @default(uuid())
   name       String
   type       ExamType
   examDate   DateTime
-  maxMarks   Float       @default(100)
+  maxMarks   Float        @default(100)
   semesterId String
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  results    ExamResult?
-  semester   Semester    @relation(fields: [semesterId], references: [id])
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  results    ExamResult[]
+  semester   Semester     @relation(fields: [semesterId], references: [id])
 
   @@map("exams")
 }
@@ -20,35 +20,34 @@ model ExamResult {
   status             ResultStatus
   remarks            String?
   grade              Float?
-  studentId          String       @unique
-  examId             String       @unique
+  studentId          String
+  examId             String
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   exam               Exam         @relation(fields: [examId], references: [id])
-  student            User         @relation(fields: [studentId], references: [id])
-  grades             Grade?
+  student            User         @relation("examResults", fields: [studentId], references: [id])
+  grades             Grade[]      @relation("ExamResultGrades")
 
+  @@unique([studentId, examId])
   @@map("exam_results")
 }
 
 model Grade {
   id            String     @id @default(uuid())
   marksObtained Float
-  examResultId  String     @unique
-  subjectId     String     @unique
+  examResultId  String
+  subjectId     String
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
-  examResult    ExamResult @relation(fields: [examResultId], references: [id])
-  subject       Subject    @relation(fields: [subjectId], references: [id])
+  examResult    ExamResult @relation("ExamResultGrades", fields: [examResultId], references: [id])
+  subject       Subject    @relation("SubjectGrades", fields: [subjectId], references: [id])
 
+  @@unique([examResultId, subjectId])
   @@map("grades")
 }
 
 enum ExamType {
-  MID_TERM
   FINAL_EXAM
-  QUIZ
-  PRACTICAL
 }
 
 enum ResultStatus {

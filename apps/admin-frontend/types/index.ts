@@ -39,6 +39,65 @@ export type {
     NotificationResult,
 } from "./placement";
 
+// Attendance types
+export type {
+    AttendanceRecord,
+    AttendanceStats,
+    CreateAttendanceRequest,
+    AttendanceFilters,
+    BulkAttendanceRequest,
+} from "./attendance";
+
+// Grade management types
+export type {
+    Grade as ProfessorGrade,
+    CreateGradeRequest,
+    ProfessorAssignment,
+    StudentForGrading,
+    ProfessorExam,
+    GradeFilters,
+} from "./grade";
+
+// Section and Enrollment types
+export type {
+    Section,
+    Enrollment,
+    CreateSectionRequest,
+    UpdateSectionRequest,
+    SectionFilters,
+    CreateEnrollmentRequest,
+    UpdateEnrollmentRequest,
+    EnrollmentFilters,
+} from "./section";
+
+// Resource types
+export type {
+    Resource,
+    CreateResourceRequest,
+    UpdateResourceRequest,
+    ResourceFilters,
+    ResourceStats,
+} from "./resource";
+
+// Complaint types
+export type {
+    Complaint,
+    ComplaintUpdate,
+    CreateComplaintRequest,
+    UpdateComplaintStatusRequest,
+    AddComplaintUpdateRequest,
+    ComplaintFilters,
+    ComplaintStats,
+} from "./complaint";
+
+// Academic Calendar types
+export type {
+    AcademicCalendar,
+    CreateAcademicCalendarRequest,
+    UpdateAcademicCalendarRequest,
+    AcademicCalendarFilters,
+} from "./academic-calendar";
+
 // Re-export university specific types with prefixes to avoid conflicts
 export type {
     Course as UniversityCourse,

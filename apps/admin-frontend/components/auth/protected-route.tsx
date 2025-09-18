@@ -27,6 +27,19 @@ export function ProtectedRoute({
         router.push(redirectTo)
         return
       }
+      
+      // Check if user has access to this route
+      if (user && allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+        // Redirect based on user role
+        if (user.role === "PROFESSOR") {
+          router.push("/professor")
+        } else if (user.role === "ADMIN" || user.role === "VERIFIER") {
+          router.push("/admin")
+        } else {
+          router.push("/unauthorized")
+        }
+        return
+      }
     }
   }, [isLoading, isAuthenticated, user, allowedRoles, redirectTo, router])
 

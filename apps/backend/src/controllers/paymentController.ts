@@ -33,12 +33,35 @@ interface VerifyPaymentRequest {
 export const getPayments = asyncHandler(async (req: Request, res: Response) => {
     const { status, type, userId } = req.query;
 
+    // Validate status parameter
+    const validStatuses = ["PENDING", "VERIFIED", "REJECTED", "FAILED"];
+    const validTypes = ["COURSE", "HOSTEL", "LIBRARY", "MISC", "SUMMERQUARTER"];
+
+    const whereClause: any = {};
+
+    if (status && validStatuses.includes(status as string)) {
+        whereClause.status = status as
+            | "PENDING"
+            | "VERIFIED"
+            | "REJECTED"
+            | "FAILED";
+    }
+
+    if (type && validTypes.includes(type as string)) {
+        whereClause.type = type as
+            | "COURSE"
+            | "HOSTEL"
+            | "LIBRARY"
+            | "MISC"
+            | "SUMMERQUARTER";
+    }
+
+    if (userId) {
+        whereClause.userId = userId as string;
+    }
+
     const payments = await prisma.payment.findMany({
-        where: {
-            ...(status && { status: status as any }),
-            ...(type && { type: type as any }),
-            ...(userId && { userId: userId as string }),
-        },
+        where: whereClause,
         include: {
             user: {
                 select: {
@@ -574,7 +597,8 @@ export const verifyPayment = asyncHandler(
                         reference: payment.reference || "",
                         verifiedBy: verifier.name,
                         verifiedAt: payment.verifiedAt?.toISOString(),
-                        universityName: payment.user.university?.name || "University"
+                        universityName:
+                            payment.user.university?.name || "University",
                     }
                 );
             } catch (emailError) {

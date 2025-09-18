@@ -21,7 +21,7 @@ export const getSubjects = asyncHandler(async (req: Request, res: Response) => {
             },
             _count: {
                 select: {
-                    Grade: true,
+                    attendances: true,
                 },
             },
         },
@@ -238,7 +238,7 @@ export const deleteSubject = asyncHandler(
         }
 
         // Check if subject has grades
-        if (existingSubject.Grade.length > 0) {
+        if (existingSubject.Grade) {
             const response: ApiResponse = {
                 success: false,
                 message: "Cannot delete subject with existing grades",
@@ -253,53 +253,6 @@ export const deleteSubject = asyncHandler(
         const response: ApiResponse = {
             success: true,
             message: "Subject deleted successfully",
-        };
-
-        res.json(response);
-    }
-);
-
-// Get subjects by semester
-export const getSubjectsBySemester = asyncHandler(
-    async (req: Request, res: Response) => {
-        const { semesterId } = req.params;
-
-        // Check if semester exists
-        const semester = await prisma.semester.findUnique({
-            where: { id: semesterId },
-        });
-
-        if (!semester) {
-            const response: ApiResponse = {
-                success: false,
-                message: "Semester not found",
-            };
-            return res.status(404).json(response);
-        }
-
-        const subjects = await prisma.subject.findMany({
-            where: { semesterId },
-            include: {
-                semester: {
-                    include: {
-                        course: true,
-                    },
-                },
-                _count: {
-                    select: {
-                        Grade: true,
-                    },
-                },
-            },
-            orderBy: {
-                code: "asc",
-            },
-        });
-
-        const response: ApiResponse = {
-            success: true,
-            message: "Subjects retrieved successfully",
-            data: subjects,
         };
 
         res.json(response);

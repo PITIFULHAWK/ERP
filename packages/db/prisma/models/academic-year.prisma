@@ -5,10 +5,14 @@ model AcademicYear {
   endDate         DateTime
   isActive        Boolean           @default(false)
   universityId    String
-  university      University        @relation(fields: [universityId], references: [id], onDelete: Cascade)
   
-  // Academic Calendar Events
-  calendars       AcademicCalendar[]
+  // Academic Calendar PDF
+  calendarPdfUrl  String?           // URL to the academic calendar PDF
+  calendarPdfName String?           // Name of the PDF file
+  calendarCloudinaryPublicId String? // Cloudinary public ID for file management
+  calendarUploadedAt DateTime?      // When the PDF was uploaded
+  
+  university      University        @relation(fields: [universityId], references: [id], onDelete: Cascade)
   
   // Related entities
   enrollments     StudentEnrollment[]
@@ -22,65 +26,4 @@ model AcademicYear {
 
   @@unique([universityId, year])
   @@map("academic_years")
-}
-
-model AcademicCalendar {
-  id              String        @id @default(uuid())
-  title           String        // e.g., "Semester 1 Start", "Mid-term Exams"
-  startDate       DateTime
-  endDate         DateTime?     // For events that span multiple days
-  isHoliday       Boolean       @default(false)
-  
-  // File attachments for calendar content (images/PDFs)
-  attachments     CalendarAttachment[]
-  
-  academicYearId  String
-  academicYear    AcademicYear  @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
-  
-  // Optional: Link to specific course/semester
-  courseId        String?
-  course          Course?       @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  
-  semesterId      String?
-  semester        Semester?     @relation(fields: [semesterId], references: [id], onDelete: SetNull)
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  @@map("academic_calendars")
-}
-
-model CalendarAttachment {
-  id              String            @id @default(uuid())
-  
-  // File details
-  fileName        String
-  originalName    String
-  fileUrl         String
-  fileSize        Int
-  mimeType        String
-  fileType        CalendarFileType
-  
-  // Optional description
-  description     String?
-  
-  // Upload info
-  uploadedBy      String
-  uploadedAt      DateTime          @default(now())
-  
-  // Calendar relationship
-  calendarId      String
-  calendar        AcademicCalendar  @relation(fields: [calendarId], references: [id], onDelete: Cascade)
-  
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-
-  @@map("calendar_attachments")
-}
-
-enum CalendarFileType {
-  IMAGE
-  PDF
-  DOCUMENT
-  OTHER
 }

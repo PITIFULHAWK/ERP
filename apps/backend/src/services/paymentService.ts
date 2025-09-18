@@ -1,4 +1,5 @@
 import prisma from "@repo/db";
+import { Payment, Receipt, PaymentStatus } from "@repo/db";
 
 export type CreatePaymentInput = {
     userId: string;
@@ -12,7 +13,9 @@ export type CreatePaymentInput = {
     notes?: string;
 };
 
-export async function createPayment(input: CreatePaymentInput) {
+export async function createPayment(
+    input: CreatePaymentInput
+): Promise<Payment> {
     const {
         userId,
         type,
@@ -45,7 +48,7 @@ export async function createPayment(input: CreatePaymentInput) {
             amount,
             currency,
             method,
-            status: "PENDING", // remains pending until admin verification
+            status: PaymentStatus.PENDING, // remains pending until admin verification
             reference,
             notes,
         },
@@ -54,9 +57,7 @@ export async function createPayment(input: CreatePaymentInput) {
     return payment;
 }
 
-export async function getPaymentSummary(params: {
-    userId: string;
-}) {
+export async function getPaymentSummary(params: { userId: string }) {
     const { userId } = params;
 
     const [courseTotal, hostelTotal, coursePaidAgg, hostelPaidAgg] =
@@ -64,7 +65,7 @@ export async function getPaymentSummary(params: {
             prisma.course.aggregate({
                 _sum: { totalFees: true },
                 where: {
-                    users: { some: { id: userId } },
+                    enrollments: { some: { id: userId } },
                 },
             }),
             prisma.hostel.aggregate({
@@ -75,18 +76,26 @@ export async function getPaymentSummary(params: {
             }),
             prisma.payment.aggregate({
                 _sum: { amount: true },
-                where: { userId, type: "COURSE", status: "SUCCESS" },
+                where: {
+                    userId,
+                    type: "COURSE",
+                    status: PaymentStatus.VERIFIED,
+                },
             }),
             prisma.payment.aggregate({
                 _sum: { amount: true },
-                where: { userId, type: "HOSTEL", status: "SUCCESS" },
+                where: {
+                    userId,
+                    type: "HOSTEL",
+                    status: PaymentStatus.VERIFIED,
+                },
             }),
         ]);
 
-    const totalCourseFees = courseTotal._sum.totalFees ?? 0;
+    const totalCourseFees = courseTotal._sum?.totalFees ?? 0;
     const totalHostelFees = hostelTotal._sum.fees ?? 0;
-    const paidCourse = coursePaidAgg._sum.amount ?? 0;
-    const paidHostel = hostelPaidAgg._sum.amount ?? 0;
+    const paidCourse = coursePaidAgg._sum?.amount ?? 0;
+    const paidHostel = hostelPaidAgg._sum?.amount ?? 0;
 
     return {
         course: {
@@ -105,9 +114,9 @@ export async function getPaymentSummary(params: {
 export async function listPayments(params: {
     userId?: string;
     type?: "COURSE" | "HOSTEL";
-    status?: "PENDING" | "SUCCESS" | "FAILED";
+    status?: PaymentStatus;
     limit?: number;
-}) {
+}): Promise<(Payment & { receipts: Receipt[] })[]> {
     const { userId, type, status, limit = 50 } = params;
     return prisma.payment.findMany({
         where: {
@@ -148,10 +157,10 @@ export async function verifyPayment(input: {
     paymentId: string;
     verified: boolean;
     adminId: string; // for audit (optional future use)
-}) {
+}): Promise<Payment> {
     const { paymentId, verified } = input;
 
-    const status = verified ? "SUCCESS" : "FAILED";
+    const status = verified ? PaymentStatus.VERIFIED : PaymentStatus.FAILED;
 
     const payment = await prisma.payment.update({
         where: { id: paymentId },
@@ -159,7 +168,7 @@ export async function verifyPayment(input: {
     });
 
     // Update user's convenience flags only when successful
-    if (payment.status === "SUCCESS") {
+    if (payment.status === PaymentStatus.VERIFIED) {
         if (payment.type === "COURSE") {
             await prisma.user.update({
                 where: { id: payment.userId },
@@ -176,5 +185,3 @@ export async function verifyPayment(input: {
 
     return payment;
 }
-
-

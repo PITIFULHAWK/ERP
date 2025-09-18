@@ -2,11 +2,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Outlet } from "react-router";
+
 import { Layout } from "@/components/layout/Layout";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RoleProtectedRoute from "@/components/RoleProtectedRoute";
+
 import Dashboard from "./pages/Dashboard";
 import Courses from "./pages/Courses";
 import Notices from "./pages/Notices";
@@ -16,12 +18,75 @@ import Timetable from "./pages/Timetable";
 import Attendance from "./pages/Attendance";
 import Results from "./pages/Results";
 import Holidays from "./pages/Holidays";
-
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+/**
+ * Wrapper for all protected routes
+ * - checks authentication
+ * - applies Layout
+ */
+const ProtectedLayout = () => (
+    <ProtectedRoute>
+        <Layout>
+            <Outlet />
+        </Layout>
+    </ProtectedRoute>
+);
+
+/**
+ * Wrapper for role-protected routes
+ */
+const RoleProtectedLayout = ({ allowedRoles }: { allowedRoles: string[] }) => (
+    <ProtectedRoute>
+        <RoleProtectedRoute allowedRoles={allowedRoles}>
+            <Layout>
+                <Outlet />
+            </Layout>
+        </RoleProtectedRoute>
+    </ProtectedRoute>
+);
+
+const router = createBrowserRouter([
+    // Public routes
+    { path: "/login", Component: Login },
+    { path: "/signup", Component: Signup },
+
+    // Default protected layout (all children use Layout + ProtectedRoute)
+    {
+        element: <ProtectedLayout />,
+        children: [
+            { path: "/", Component: Dashboard },
+            { path: "/notices", Component: Notices },
+            { path: "/holidays", Component: Holidays },
+            { path: "/application", Component: Application },
+        ],
+    },
+
+    // Role-protected layout
+    {
+        element: (
+            <RoleProtectedLayout
+                allowedRoles={
+                    ["STUDENT", "PROFESSOR", "VERIFIER", "ADMIN"] as const
+                }
+            />
+        ),
+        children: [
+            { path: "/courses", Component: Courses },
+            { path: "/payments", Component: Payments },
+            { path: "/timetable", Component: Timetable },
+            { path: "/attendance", Component: Attendance },
+            { path: "/results", Component: Results },
+        ],
+    },
+
+    // Catch-all
+    { path: "*", Component: NotFound },
+]);
 
 const App = () => (
     <QueryClientProvider client={queryClient}>
@@ -29,154 +94,7 @@ const App = () => (
             <TooltipProvider>
                 <Toaster />
                 <Sonner />
-                <BrowserRouter>
-                    <Routes>
-                        {/* Public routes */}
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/signup" element={<Signup />} />
-
-                        {/* Protected routes */}
-                        <Route
-                            path="/"
-                            element={
-                                <ProtectedRoute>
-                                    <Layout>
-                                        <Dashboard />
-                                    </Layout>
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/courses"
-                            element={
-                                <ProtectedRoute>
-                                    <RoleProtectedRoute
-                                        allowedRoles={[
-                                            "STUDENT",
-                                            "PROFESSOR",
-                                            "VERIFIER",
-                                            "ADMIN",
-                                        ]}
-                                    >
-                                        <Layout>
-                                            <Courses />
-                                        </Layout>
-                                    </RoleProtectedRoute>
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/notices"
-                            element={
-                                <ProtectedRoute>
-                                    <Layout>
-                                        <Notices />
-                                    </Layout>
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/holidays"
-                            element={
-                                <ProtectedRoute>
-                                    <Layout>
-                                        <Holidays />
-                                    </Layout>
-                                </ProtectedRoute>
-                            }
-                        />
-
-                        <Route
-                            path="/application"
-                            element={
-                                <ProtectedRoute>
-                                    <Layout>
-                                        <Application />
-                                    </Layout>
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/payments"
-                            element={
-                                <ProtectedRoute>
-                                    <RoleProtectedRoute
-                                        allowedRoles={[
-                                            "STUDENT",
-                                            "PROFESSOR",
-                                            "VERIFIER",
-                                            "ADMIN",
-                                        ]}
-                                    >
-                                        <Layout>
-                                            <Payments />
-                                        </Layout>
-                                    </RoleProtectedRoute>
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/timetable"
-                            element={
-                                <ProtectedRoute>
-                                    <RoleProtectedRoute
-                                        allowedRoles={[
-                                            "STUDENT",
-                                            "PROFESSOR",
-                                            "VERIFIER",
-                                            "ADMIN",
-                                        ]}
-                                    >
-                                        <Layout>
-                                            <Timetable />
-                                        </Layout>
-                                    </RoleProtectedRoute>
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/attendance"
-                            element={
-                                <ProtectedRoute>
-                                    <RoleProtectedRoute
-                                        allowedRoles={[
-                                            "STUDENT",
-                                            "PROFESSOR",
-                                            "VERIFIER",
-                                            "ADMIN",
-                                        ]}
-                                    >
-                                        <Layout>
-                                            <Attendance />
-                                        </Layout>
-                                    </RoleProtectedRoute>
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/results"
-                            element={
-                                <ProtectedRoute>
-                                    <RoleProtectedRoute
-                                        allowedRoles={[
-                                            "STUDENT",
-                                            "PROFESSOR",
-                                            "VERIFIER",
-                                            "ADMIN",
-                                        ]}
-                                    >
-                                        <Layout>
-                                            <Results />
-                                        </Layout>
-                                    </RoleProtectedRoute>
-                                </ProtectedRoute>
-                            }
-                        />
-
-                        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                        <Route path="*" element={<NotFound />} />
-                    </Routes>
-                </BrowserRouter>
+                <RouterProvider router={router} />
             </TooltipProvider>
         </AuthProvider>
     </QueryClientProvider>

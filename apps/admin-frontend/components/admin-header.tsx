@@ -59,7 +59,7 @@ export function AdminHeader({ title = "Dashboard", breadcrumbs }: AdminHeaderPro
         </div>
 
         {/* Notifications */}
-        <Button variant="ghost" size="sm" className="relative h-11 w-11 rounded-xl hover:bg-muted/50 transition-all duration-300 hover:scale-105">
+        <Button variant="ghost" size="sm" className="relative h-11 w-11 rounded-xl hover:bg-muted/50 transition-all duration-300 hover:scale-105 cursor-pointer">
           <Bell className="w-5 h-5" />
           <Badge className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center p-0 text-xs bg-destructive text-destructive-foreground border-2 border-background animate-pulse">
             3
@@ -74,7 +74,7 @@ export function AdminHeader({ title = "Dashboard", breadcrumbs }: AdminHeaderPro
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-11 w-11 rounded-xl hover:bg-muted/50 transition-all duration-300 hover:scale-105">
+            <Button variant="ghost" className="relative h-11 w-11 rounded-xl hover:bg-muted/50 transition-all duration-300 hover:scale-105 cursor-pointer">
               <Avatar className="h-9 w-9 ring-2 ring-border hover:ring-primary transition-all duration-300">
                 <AvatarImage src="/admin-avatar.png" alt={user?.name || "Admin"} />
                 <AvatarFallback className="bg-primary text-primary-foreground font-semibold">

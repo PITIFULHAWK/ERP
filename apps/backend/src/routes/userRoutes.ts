@@ -3,10 +3,15 @@ import { body, param } from "express-validator";
 import {
     createUser,
     deleteUser,
+    getCurrentSemester,
+    getSemesterProgress,
     getUserById,
+    getUserProfile,
     getUsers,
     login, // Import login
+    updateCurrentSemester,
     updateUser,
+    updateUserProfile,
     updateUserRole,
 } from "../controllers/userController";
 import { requireAdmin, requireAuth } from "../middleware/authMiddleware";
@@ -23,6 +28,27 @@ router.post(
     ],
     validateRequest,
     login
+);
+
+// PROFILE ROUTES (Protected)
+router.get("/profile", requireAuth, getUserProfile);
+
+router.put(
+    "/profile",
+    requireAuth,
+    [
+        body("name")
+            .optional()
+            .isString()
+            .notEmpty()
+            .withMessage("Name cannot be empty"),
+        body("email")
+            .optional()
+            .isEmail()
+            .withMessage("Valid email is required"),
+    ],
+    validateRequest,
+    updateUserProfile
 );
 
 // USER CRUD ROUTES (Protected)
@@ -81,6 +107,38 @@ router.patch(
     ],
     validateRequest,
     updateUserRole
+);
+
+// SEMESTER MANAGEMENT ROUTES
+router.get(
+    "/:studentId/current-semester",
+    requireAuth,
+    [param("studentId").isUUID().withMessage("Valid student ID is required")],
+    validateRequest,
+    getCurrentSemester
+);
+
+router.get(
+    "/:studentId/semester-progress",
+    requireAuth,
+    [param("studentId").isUUID().withMessage("Valid student ID is required")],
+    validateRequest,
+    getSemesterProgress
+);
+
+router.patch(
+    "/:studentId/current-semester",
+    requireAuth,
+    [
+        param("studentId").isUUID().withMessage("Valid student ID is required"),
+        body("currentSemester")
+            .isInt({ min: 1, max: 20 })
+            .withMessage(
+                "Current semester must be a valid number between 1 and 20"
+            ),
+    ],
+    validateRequest,
+    updateCurrentSemester
 );
 
 export default router;

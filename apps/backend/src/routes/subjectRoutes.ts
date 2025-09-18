@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { Request, Response, NextFunction } from "express";
 import { body, param } from "express-validator";
 import {
     getSubjects,
@@ -6,7 +7,6 @@ import {
     createSubject,
     updateSubject,
     deleteSubject,
-    getSubjectsBySemester,
     createGrade,
 } from "../controllers/subjectController";
 import {
@@ -37,7 +37,12 @@ router.get(
     requireAuth,
     [param("semesterId").isUUID().withMessage("Valid semester ID is required")],
     validateRequest,
-    getSubjectsBySemester
+    (req: Request, res: Response, next: NextFunction) => {
+        // Convert semesterId from params to query for getSubjects
+        req.query.semesterId = req.params.semesterId;
+        next();
+    },
+    getSubjects
 );
 
 // Admin-only routes - only admins can create, update, or delete subjects
