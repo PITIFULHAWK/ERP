@@ -30,7 +30,7 @@ import {
 const userNavigation = [
     { title: "Dashboard", url: "/", icon: Home },
     { title: "Notices", url: "/notices", icon: Bell },
-    { title: "Holidays", url: "/holidays", icon: CalendarDays },
+    { title: "Academic Calendar", url: "/academic-calendar", icon: CalendarDays },
     { title: "Apply for Course", url: "/application", icon: FileText },
 ];
 
@@ -39,7 +39,7 @@ const studentNavigation = [
     { title: "Dashboard", url: "/", icon: Home },
     { title: "Browse Courses", url: "/courses", icon: BookOpen },
     { title: "Notices", url: "/notices", icon: Bell },
-    { title: "Holidays", url: "/holidays", icon: CalendarDays },
+    { title: "Academic Calendar", url: "/academic-calendar", icon: CalendarDays },
     { title: "Payments", url: "/payments", icon: CreditCard },
     { title: "Timetable", url: "/timetable", icon: Clock },
     { title: "My Attendance", url: "/attendance", icon: Calendar },

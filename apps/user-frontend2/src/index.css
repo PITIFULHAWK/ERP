@@ -4,6 +4,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* React PDF styles */
+.react-pdf__Page {
+  @apply shadow-md;
+}
+
+.react-pdf__Page__canvas {
+  @apply max-w-full h-auto;
+}
+
+.react-pdf__Page__textContent {
+  @apply hidden;
+}
+
+.react-pdf__Page__annotations {
+  @apply hidden;
+}
+
 /* AcademiaOS Design System - Modern University Portal */
 
 @layer base {

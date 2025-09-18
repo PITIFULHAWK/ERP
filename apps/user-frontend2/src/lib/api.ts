@@ -129,6 +129,58 @@ export interface Document {
     uploadedAt: string;
 }
 
+// Academic Calendar and Timetable Document Interfaces
+export interface AcademicYear {
+    id: string;
+    year: string;
+    startDate: string;
+    endDate: string;
+    isActive: boolean;
+}
+
+export interface SectionInfo {
+    id: string;
+    name: string;
+    courseId: string;
+    academicYearId: string;
+    course?: Course;
+}
+
+export interface CalendarDocument {
+    id: string;
+    url: string;
+    fileName: string;
+    mimeType: string;
+    fileSize: number;
+    uploadedAt: string;
+    lastModified: string;
+    academicYear: AcademicYear;
+    calendarPdfUrl?: string; // Optional property for backward compatibility
+}
+
+export interface TimetableDocument {
+    id: string;
+    url: string;
+    fileName: string;
+    mimeType: string;
+    fileSize: number;
+    uploadedAt: string;
+    lastModified: string;
+    section: SectionInfo;
+    academicYear: AcademicYear;
+}
+
+export interface StudentEnrollment {
+    id: string;
+    studentId: string;
+    sectionId: string;
+    academicYearId: string;
+    enrollmentDate: string;
+    status: "ACTIVE" | "INACTIVE" | "COMPLETED";
+    section: SectionInfo;
+    academicYear: AcademicYear;
+}
+
 export interface CreateApplicationRequest {
     firstName: string;
     lastName: string;
@@ -339,6 +391,24 @@ class ApiService {
         return this.request<{ exists: boolean; application?: Application }>(
             `/applications/check`
         );
+    }
+
+    // Academic Calendar endpoints
+    async getStudentCalendar(studentId: string): Promise<ApiResponse<CalendarDocument>> {
+        return this.request<CalendarDocument>(`/academic-calendar/student/${studentId}`);
+    }
+
+    async getStudentEnrollments(studentId: string): Promise<ApiResponse<StudentEnrollment[]>> {
+        return this.request<StudentEnrollment[]>(`/enrollments/student/${studentId}`);
+    }
+
+    // Timetable endpoints
+    async getStudentTimetable(studentId: string): Promise<ApiResponse<TimetableDocument>> {
+        return this.request<TimetableDocument>(`/timetable/student/${studentId}`);
+    }
+
+    async getTimetableBySection(sectionId: string): Promise<ApiResponse<TimetableDocument>> {
+        return this.request<TimetableDocument>(`/timetable/section/${sectionId}`);
     }
 }
 

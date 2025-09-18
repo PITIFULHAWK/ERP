@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createBrowserRouter, RouterProvider, Outlet } from "react-router";
+import { createBrowserRouter, RouterProvider, Outlet, Navigate } from "react-router";
 
 import { Layout } from "@/components/layout/Layout";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -17,7 +17,7 @@ import Application from "./pages/Application";
 import Timetable from "./pages/Timetable";
 import Attendance from "./pages/Attendance";
 import Results from "./pages/Results";
-import Holidays from "./pages/Holidays";
+import AcademicCalendar from "./pages/AcademicCalendar";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
@@ -61,7 +61,8 @@ const router = createBrowserRouter([
         children: [
             { path: "/", Component: Dashboard },
             { path: "/notices", Component: Notices },
-            { path: "/holidays", Component: Holidays },
+            { path: "/academic-calendar", Component: AcademicCalendar },
+            { path: "/holidays", element: <Navigate to="/academic-calendar" replace /> },
             { path: "/application", Component: Application },
         ],
     },

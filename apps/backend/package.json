@@ -26,7 +26,9 @@
     "express-validator": "^7.2.1",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
+    "pdfjs-dist": "^5.4.149",
     "pdfkit": "^0.17.2",
+    "react-pdf": "^10.1.0",
     "redis": "^5.8.2",
     "tsx": "^4.20.5"
   },
