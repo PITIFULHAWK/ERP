@@ -595,10 +595,11 @@ class ApiClient {
     }
 
     async verifyPayment(id: string, verificationData: VerifyPaymentRequest) {
+        const verifierId = JSON.parse(localStorage.getItem("auth_user") || " ");
         return this.request(`/payments/${id}/verify`, {
             method: "PATCH",
             headers: {
-                "x-verifier-id": "dae33f6b-6aab-428c-8454-353a8ef9e30e", // Admin user ID
+                "x-verifier-id": verifierId.id, // Admin user ID
             },
             body: JSON.stringify(verificationData),
         });
