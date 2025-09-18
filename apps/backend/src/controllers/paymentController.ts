@@ -172,27 +172,15 @@ export const getPaymentById = asyncHandler(
     }
 );
 
-// Create payment (User submits payment)
-export const createPayment = asyncHandler(
+// Create payment with optional receipt upload
+export const createPaymentWithReceipt = asyncHandler(
     async (req: Request, res: Response) => {
-        console.log("=== Payment Creation Debug ===");
-        console.log("Request method:", req.method);
-        console.log("Request URL:", req.url);
-        console.log("Request headers:", req.headers);
-        console.log("Request body type:", typeof req.body);
-        console.log("Request body:", req.body);
-        console.log("Request body stringified:", JSON.stringify(req.body));
-        console.log("================================");
-
-        const paymentData: CreatePaymentRequest = req.body;
+        const paymentData = req.body;
+        const file = req.file; // Optional receipt file
+        const uploadedById = req.headers["x-user-id"] as string; // Get from JWT in real app
 
         // Check if request body exists and has required fields
         if (!paymentData || typeof paymentData !== "object") {
-            console.log("❌ Request body validation failed:");
-            console.log("- paymentData exists:", !!paymentData);
-            console.log("- paymentData type:", typeof paymentData);
-            console.log("- paymentData value:", paymentData);
-
             const response: ApiResponse = {
                 success: false,
                 message:
@@ -202,17 +190,14 @@ export const createPayment = asyncHandler(
             return res.status(400).json(response);
         }
 
-        // Check if amount exists and is valid
-        if (
-            !paymentData.amount ||
-            typeof paymentData.amount !== "number" ||
-            paymentData.amount <= 0
-        ) {
-            console.log("❌ Amount validation failed:");
-            console.log("- amount exists:", !!paymentData.amount);
-            console.log("- amount type:", typeof paymentData.amount);
-            console.log("- amount value:", paymentData.amount);
+        // Parse amount if it's a string (from FormData)
+        let amount = paymentData.amount;
+        if (typeof amount === "string") {
+            amount = parseFloat(amount);
+        }
 
+        // Check if amount exists and is valid
+        if (!amount || typeof amount !== "number" || amount <= 0) {
             const response: ApiResponse = {
                 success: false,
                 message: "Amount must be a valid number greater than zero",
@@ -311,6 +296,7 @@ export const createPayment = asyncHandler(
                 }
             }
 
+            // Create payment first
             const payment = await prisma.payment.create({
                 data: {
                     userId: paymentData.userId,
@@ -323,7 +309,7 @@ export const createPayment = asyncHandler(
                         paymentData.type === "HOSTEL"
                             ? paymentData.hostelId
                             : null,
-                    amount: paymentData.amount,
+                    amount: amount,
                     currency: paymentData.currency || "INR",
                     method: paymentData.method || "MANUAL",
                     status: "PENDING",
@@ -342,28 +328,95 @@ export const createPayment = asyncHandler(
                 },
             });
 
-            // Send payment submitted email
-            try {
-                await emailQueueService.queuePaymentSubmittedEmail(
-                    payment.user.email,
-                    payment.user.name,
-                    payment.id,
-                    payment.amount,
-                    payment.currency,
-                    payment.type
-                );
-            } catch (emailError) {
-                console.error(
-                    "Failed to queue payment submitted email:",
-                    emailError
-                );
-                // Don't fail the request if email fails
+            let receipt = null;
+            let uploadResult = null;
+
+            // If file is provided, upload receipt
+            if (file && uploadedById) {
+                try {
+                    const originalFileName = file.originalname;
+                    const cleanFileName = originalFileName.replace(
+                        /[^a-zA-Z0-9.-]/g,
+                        "_"
+                    );
+                    uploadResult = await uploadToCloudinary(
+                        file.buffer,
+                        cleanFileName,
+                        `payment-receipts/${payment.id}`
+                    );
+
+                    // Create receipt record
+                    receipt = await prisma.receipt.create({
+                        data: {
+                            paymentId: payment.id,
+                            mediaUrl: uploadResult.secure_url,
+                            mediaType: file.mimetype,
+                            uploadedById,
+                            notes: paymentData.receiptNotes,
+                        },
+                        include: {
+                            uploadedBy: {
+                                select: {
+                                    name: true,
+                                    email: true,
+                                },
+                            },
+                        },
+                    });
+
+                    // Send receipt uploaded email
+                    try {
+                        await emailQueueService.queueReceiptUploadedEmail(
+                            payment.user.email,
+                            payment.user.name,
+                            payment.id,
+                            receipt.id
+                        );
+                    } catch (emailError) {
+                        console.error(
+                            "Failed to queue receipt uploaded email:",
+                            emailError
+                        );
+                    }
+                } catch (uploadError) {
+                    console.error("Failed to upload receipt:", uploadError);
+                    // Continue without failing the payment creation
+                }
+            } else {
+                // Send payment submitted email (without receipt)
+                try {
+                    await emailQueueService.queuePaymentSubmittedEmail(
+                        payment.user.email,
+                        payment.user.name,
+                        payment.id,
+                        payment.amount,
+                        payment.currency,
+                        payment.type
+                    );
+                } catch (emailError) {
+                    console.error(
+                        "Failed to queue payment submitted email:",
+                        emailError
+                    );
+                }
             }
+
+            const responseData = {
+                ...payment,
+                receipt: receipt
+                    ? {
+                          ...receipt,
+                          cloudinaryPublicId: uploadResult?.public_id || null,
+                      }
+                    : null,
+            };
 
             const response: ApiResponse = {
                 success: true,
-                message: "Payment submitted successfully",
-                data: payment,
+                message: file
+                    ? "Payment and receipt submitted successfully"
+                    : "Payment submitted successfully",
+                data: responseData,
             };
 
             res.status(201).json(response);
@@ -374,125 +427,6 @@ export const createPayment = asyncHandler(
                 message: "Failed to create payment",
                 error:
                     error instanceof Error ? error.message : "Creation failed",
-            };
-            res.status(500).json(response);
-        }
-    }
-);
-
-// Upload receipt for payment
-export const uploadReceipt = asyncHandler(
-    async (req: Request, res: Response) => {
-        const { paymentId, notes } = req.body;
-        const file = req.file;
-        const uploadedById = req.headers["x-user-id"] as string; // Get from JWT in real app
-
-        if (!file) {
-            const response: ApiResponse = {
-                success: false,
-                message: "No file uploaded",
-                error: "Bad Request",
-            };
-            return res.status(400).json(response);
-        }
-
-        if (!paymentId || !uploadedById) {
-            const response: ApiResponse = {
-                success: false,
-                message: "Payment ID and uploader ID are required",
-                error: "Bad Request",
-            };
-            return res.status(400).json(response);
-        }
-
-        try {
-            // Check if payment exists
-            const payment = await prisma.payment.findUnique({
-                where: { id: paymentId },
-                include: { user: true },
-            });
-
-            if (!payment) {
-                const response: ApiResponse = {
-                    success: false,
-                    message: "Payment not found",
-                    error: "Not Found",
-                };
-                return res.status(404).json(response);
-            }
-
-            // Upload receipt to Cloudinary
-            const originalFileName = file.originalname;
-            const cleanFileName = originalFileName.replace(
-                /[^a-zA-Z0-9.-]/g,
-                "_"
-            );
-            const uploadResult = await uploadToCloudinary(
-                file.buffer,
-                cleanFileName,
-                `payment-receipts/${paymentId}`
-            );
-
-            // Create receipt record
-            const receipt = await prisma.receipt.create({
-                data: {
-                    paymentId,
-                    mediaUrl: uploadResult.secure_url,
-                    mediaType: file.mimetype,
-                    uploadedById,
-                    notes,
-                },
-                include: {
-                    payment: {
-                        include: {
-                            user: {
-                                select: {
-                                    name: true,
-                                    email: true,
-                                },
-                            },
-                        },
-                    },
-                    uploadedBy: {
-                        select: {
-                            name: true,
-                            email: true,
-                        },
-                    },
-                },
-            });
-
-            // Send receipt uploaded email
-            try {
-                await emailQueueService.queueReceiptUploadedEmail(
-                    receipt.payment.user.email,
-                    receipt.payment.user.name,
-                    receipt.paymentId,
-                    receipt.id
-                );
-            } catch (emailError) {
-                console.error(
-                    "Failed to queue receipt uploaded email:",
-                    emailError
-                );
-            }
-
-            const response: ApiResponse = {
-                success: true,
-                message: "Receipt uploaded successfully",
-                data: {
-                    ...receipt,
-                    cloudinaryPublicId: uploadResult.public_id,
-                },
-            };
-
-            res.status(201).json(response);
-        } catch (error) {
-            console.error("Error uploading receipt:", error);
-            const response: ApiResponse = {
-                success: false,
-                message: "Failed to upload receipt",
-                error: error instanceof Error ? error.message : "Upload failed",
             };
             res.status(500).json(response);
         }

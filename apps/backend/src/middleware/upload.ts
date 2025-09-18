@@ -80,7 +80,8 @@ export const handleMulterError = (
         if (error.code === "LIMIT_UNEXPECTED_FILE") {
             return res.status(400).json({
                 success: false,
-                message: 'Unexpected field name. Use "document" as field name.',
+                message:
+                    'Unexpected field name. Use "document" for general uploads or "receipt" for payment receipts.',
                 error: "Unexpected Field",
             });
         }
