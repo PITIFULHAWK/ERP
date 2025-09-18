@@ -22,9 +22,7 @@ import {
   BarChart3,
   CreditCard,
   Briefcase,
-  ClipboardCheck,
   UserCheck,
-  Share2,
   MessageSquareMore,
   Calendar,
   type LucideIcon,
@@ -117,19 +115,9 @@ const navigationGroups: NavigationGroup[] = [
         icon: UserCheck,
       },
       {
-        name: "Attendance",
-        href: "/admin/attendance",
-        icon: ClipboardCheck,
-      },
-      {
         name: "Timetables",
         href: "/admin/timetables",
         icon: Calendar,
-      },
-      {
-        name: "Resources",
-        href: "/admin/resources",
-        icon: Share2,
       },
       {
         name: "Hostels",

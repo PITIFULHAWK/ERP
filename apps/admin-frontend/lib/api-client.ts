@@ -49,9 +49,6 @@ import {
     UpdateEnrollmentRequest,
     EnrollmentFilters,
     Resource,
-    CreateResourceRequest,
-    UpdateResourceRequest,
-    ResourceFilters,
     ResourceStats,
     Complaint,
     CreateComplaintRequest,
@@ -922,63 +919,127 @@ class ApiClient {
         });
     }
 
-    // ====== RESOURCE MANAGEMENT ======
-    async getResources(filters?: ResourceFilters) {
+    // ====== RESOURCE MANAGEMENT (Professor) ======
+
+    // Share a resource (Professor)
+    async shareResource(
+        resourceData: {
+            professorId: string;
+            sectionId: string;
+            subjectId?: string;
+            title: string;
+            description: string;
+            resourceType: string;
+            fileUrl?: string;
+            fileName?: string;
+            fileSize?: number;
+            mimeType?: string;
+            content?: string;
+            isPinned?: boolean;
+        },
+        file?: File
+    ) {
+        if (file) {
+            const formData = new FormData();
+            Object.entries(resourceData).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                    formData.append(key, value.toString());
+                }
+            });
+            formData.append("file", file);
+
+            return this.request("/resources/share", {
+                method: "POST",
+                body: formData,
+                isFormData: true,
+            });
+        } else {
+            return this.request("/resources/share", {
+                method: "POST",
+                body: JSON.stringify(resourceData),
+            });
+        }
+    }
+
+    // Get resources for professor
+    async getResourcesForProfessor(
+        professorId: string,
+        filters?: {
+            sectionId?: string;
+            subjectId?: string;
+            resourceType?: string;
+        }
+    ) {
         const params = filters
             ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
             : "";
-        return this.request(`/resources${params}`);
+        return this.request(`/resources/professor/${professorId}${params}`);
     }
 
-    async getResource(id: string): Promise<{
-        success: boolean;
-        data: Resource;
-        message?: string;
-    }> {
-        return this.request(`/resources/${id}`);
+    // Get resources for student
+    async getResourcesForStudent(
+        studentId: string,
+        filters?: {
+            sectionId?: string;
+            subjectId?: string;
+            resourceType?: string;
+        }
+    ) {
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(`/resources/student/${studentId}${params}`);
     }
 
-    async createResource(resourceData: CreateResourceRequest) {
-        return this.request("/resources", {
-            method: "POST",
-            body: JSON.stringify(resourceData),
-        });
-    }
-
-    async uploadResourceFile(id: string, file: File) {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        return this.request(`/resources/${id}/upload`, {
-            method: "POST",
-            body: formData,
-            isFormData: true,
-        });
-    }
-
-    async updateResource(id: string, resourceData: UpdateResourceRequest) {
-        return this.request(`/resources/${id}`, {
+    // Update resource (Professor)
+    async updateResource(
+        resourceId: string,
+        resourceData: {
+            title?: string;
+            description?: string;
+            isPinned?: boolean;
+            isVisible?: boolean;
+        }
+    ) {
+        return this.request(`/resources/${resourceId}`, {
             method: "PATCH",
             body: JSON.stringify(resourceData),
         });
     }
 
-    async deleteResource(id: string) {
-        return this.request(`/resources/${id}`, {
+    // Delete resource (Professor)
+    async deleteResource(resourceId: string, professorId: string) {
+        return this.request(`/resources/${resourceId}`, {
             method: "DELETE",
+            body: JSON.stringify({ professorId }),
         });
     }
 
-    async getResourceStats(): Promise<{
+    // Track resource download
+    async trackResourceDownload(resourceId: string) {
+        return this.request(`/resources/${resourceId}/download`, {
+            method: "POST",
+        });
+    }
+
+    // Get resource statistics for professor
+    async getResourceStats(
+        professorId: string,
+        filters?: {
+            sectionId?: string;
+            subjectId?: string;
+        }
+    ): Promise<{
         success: boolean;
         data: ResourceStats;
         message?: string;
     }> {
-        return this.request("/resources/stats");
-    }
-
-    async downloadResource(id: string) {
-        return this.request(`/resources/${id}/download`);
+        const params = filters
+            ? `?${new URLSearchParams(filters as Record<string, string>).toString()}`
+            : "";
+        return this.request(
+            `/resources/professor/${professorId}/stats${params}`
+        );
     }
 
     // ====== COMPLAINT MANAGEMENT ======

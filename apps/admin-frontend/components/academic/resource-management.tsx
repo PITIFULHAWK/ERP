@@ -58,11 +58,13 @@ export function ResourceManagement() {
   })
 
   const loadResources = useCallback(async () => {
+    if (!user?.id) return
+    
     try {
       const activeFilters = Object.fromEntries(
         Object.entries(filters).filter(([, value]) => value !== "" && value !== "all" && value !== "none")
       )
-      const response = await apiClient.getResources(activeFilters) as { success: boolean; data: Resource[] }
+      const response = await apiClient.getResourcesForProfessor(user.id, activeFilters) as { success: boolean; data: Resource[] }
       if (response.success) {
         setResources(response.data)
       }
@@ -73,7 +75,7 @@ export function ResourceManagement() {
         variant: "destructive",
       })
     }
-  }, [filters])
+  }, [filters, user?.id])
 
   const loadSubjects = useCallback(async () => {
     try {
@@ -180,30 +182,32 @@ export function ResourceManagement() {
     }
   }, [user?.role, user?.id])
 
-  useEffect(() => {
-    loadResources()
-    loadSubjects()
-    loadSections()
-    loadStats()
-  }, [loadResources, loadSubjects, loadSections])
-
-  useEffect(() => {
-    loadResources()
-  }, [loadResources])
-
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
+    if (!user?.id) return
+    
     try {
-      const response = await apiClient.getResourceStats() as { success: boolean; data: ResourceStats }
+      const response = await apiClient.getResourceStats(user.id) as { success: boolean; data: ResourceStats }
       if (response.success) {
         setStats(response.data)
       }
     } catch {
       console.error("Failed to load stats")
     }
-  }
+  }, [user?.id])
+
+  useEffect(() => {
+    loadResources()
+    loadSubjects()
+    loadSections()
+    loadStats()
+  }, [loadResources, loadSubjects, loadSections, loadStats])
+
+  useEffect(() => {
+    loadResources()
+  }, [loadResources])
 
   const handleCreateResource = async () => {
-    if (!newResource.title || !newResource.description) {
+    if (!newResource.title || !newResource.description || !newResource.sectionId || !user?.id) {
       toast({
         title: "Error",
         description: "Please fill all required fields",
@@ -214,15 +218,17 @@ export function ResourceManagement() {
 
     setLoading(true)
     try {
-      const response = await apiClient.createResource(newResource) as { success: boolean; data: { id: string } }
+      const resourceData = {
+        professorId: user.id,
+        sectionId: newResource.sectionId,
+        subjectId: newResource.subjectId,
+        title: newResource.title,
+        description: newResource.description,
+        resourceType: newResource.type
+      }
+      
+      const response = await apiClient.shareResource(resourceData, selectedFile || undefined) as { success: boolean; data: { id: string } }
       if (response.success) {
-        const resourceId = response.data.id
-        
-        // Upload file if selected
-        if (selectedFile) {
-          await apiClient.uploadResourceFile(resourceId, selectedFile)
-        }
-        
         toast({
           title: "Success",
           description: "Resource created successfully",
@@ -273,10 +279,11 @@ export function ResourceManagement() {
 
   const handleDeleteResource = async (resourceId: string) => {
     if (!confirm("Are you sure you want to delete this resource?")) return
+    if (!user?.id) return
 
     setLoading(true)
     try {
-      const response = await apiClient.deleteResource(resourceId) as { success: boolean }
+      const response = await apiClient.deleteResource(resourceId, user.id) as { success: boolean }
       if (response.success) {
         toast({
           title: "Success",
@@ -298,13 +305,22 @@ export function ResourceManagement() {
 
   const handleDownloadResource = async (resource: Resource) => {
     try {
-      const response = await apiClient.downloadResource(resource.id) as { success: boolean; data: { downloadUrl: string } }
-      if (response.success) {
-        // Create download link
+      // Track the download
+      await apiClient.trackResourceDownload(resource.id)
+      
+      // Direct download using the file URL
+      if (resource.fileUrl) {
         const link = document.createElement('a')
-        link.href = response.data.downloadUrl
+        link.href = resource.fileUrl
         link.download = resource.title
+        link.target = '_blank'
         link.click()
+      } else {
+        toast({
+          title: "Error",
+          description: "No file available for download",
+          variant: "destructive",
+        })
       }
     } catch {
       toast({
@@ -692,15 +708,15 @@ export function ResourceManagement() {
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold">{stats.totalResources}</div>
+                      <div className="text-2xl font-bold">{stats.totalResources || 0}</div>
                       <div className="text-sm text-muted-foreground">Total Resources</div>
                     </div>
                     <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold">{stats.totalDownloads}</div>
+                      <div className="text-2xl font-bold">{stats.totalDownloads || 0}</div>
                       <div className="text-sm text-muted-foreground">Total Downloads</div>
                     </div>
                     <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold">{stats.totalViews}</div>
+                      <div className="text-2xl font-bold">{stats.totalViews || 0}</div>
                       <div className="text-sm text-muted-foreground">Total Views</div>
                     </div>
                   </div>
@@ -708,15 +724,21 @@ export function ResourceManagement() {
                   <div>
                     <h3 className="text-lg font-semibold mb-4">Resources by Type</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {stats.resourcesByType.map((item) => (
-                        <div key={item.type} className="text-center p-4 border rounded-lg">
-                          <div className="flex items-center justify-center mb-2">
-                            {getResourceIcon(item.type)}
+                      {stats.resourcesByType && stats.resourcesByType.length > 0 ? (
+                        stats.resourcesByType.map((item) => (
+                          <div key={item.type} className="text-center p-4 border rounded-lg">
+                            <div className="flex items-center justify-center mb-2">
+                              {getResourceIcon(item.type)}
+                            </div>
+                            <div className="font-semibold">{item.count}</div>
+                            <div className="text-sm text-muted-foreground">{item.type}</div>
                           </div>
-                          <div className="font-semibold">{item.count}</div>
-                          <div className="text-sm text-muted-foreground">{item.type}</div>
+                        ))
+                      ) : (
+                        <div className="col-span-full text-center py-4 text-muted-foreground">
+                          No resource type data available
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
                 </div>

@@ -1,16 +1,5 @@
 import { Router } from "express";
 import {
-    // Admin resource management
-    getResources,
-    getResource,
-    createResource,
-    updateResourceAdmin,
-    deleteResourceAdmin,
-    getResourceStatsAdmin,
-    uploadResourceFile,
-    downloadResourceAdmin,
-    upload, // Add the multer middleware
-
     // Professor resource management
     shareResource,
     getResourcesForStudent,
@@ -19,24 +8,13 @@ import {
     deleteResource,
     trackResourceDownload,
     getResourceStats,
+    upload, // Add the multer middleware
 } from "../controllers/resourceController";
 
 const router: Router = Router();
 
 // ===============================
-// ADMIN RESOURCE MANAGEMENT (for testing)
-// ===============================
-router.get("/", getResources); // GET /resources
-router.get("/stats", getResourceStatsAdmin); // GET /resources/stats
-router.get("/:id", getResource); // GET /resources/:id
-router.post("/", createResource); // POST /resources
-router.post("/:id/upload", upload.single("file"), uploadResourceFile); // POST /resources/:id/upload
-router.patch("/:id", updateResourceAdmin); // PATCH /resources/:id
-router.delete("/:id", deleteResourceAdmin); // DELETE /resources/:id
-router.get("/:id/download", downloadResourceAdmin); // GET /resources/:id/download
-
-// ===============================
-// PROFESSOR RESOURCE MANAGEMENT (existing)
+// PROFESSOR RESOURCE MANAGEMENT
 // ===============================
 // Resource sharing (Professor) - supports both file upload and external URLs
 router.post("/share", upload.single("file"), shareResource);

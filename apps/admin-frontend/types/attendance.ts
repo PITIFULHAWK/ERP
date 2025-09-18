@@ -6,8 +6,7 @@ export interface AttendanceRecord {
         id: string;
         student: {
             id: string;
-            firstName: string;
-            lastName: string;
+            name : string;
             email: string;
         };
     };

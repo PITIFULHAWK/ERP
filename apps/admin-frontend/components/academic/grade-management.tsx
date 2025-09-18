@@ -245,7 +245,6 @@ export function GradeManagement() {
         <TabsList>
           <TabsTrigger value="manage-grades">Manage Grades</TabsTrigger>
           <TabsTrigger value="view-grades">View All Grades</TabsTrigger>
-          <TabsTrigger value="grade-stats">Statistics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="manage-grades" className="space-y-4">
@@ -464,69 +463,6 @@ export function GradeManagement() {
                   No grades found
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="grade-stats" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5" />
-                Grade Statistics
-              </CardTitle>
-              <CardDescription>
-                Overview of grading statistics across your sections
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">
-                          Total Grades
-                        </p>
-                        <p className="text-2xl font-bold">{grades.length}</p>
-                      </div>
-                      <Award className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">
-                          Sections Assigned
-                        </p>
-                        <p className="text-2xl font-bold">{getUniqueOptions('id').length}</p>
-                      </div>
-                      <Users className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">
-                          Subjects Teaching
-                        </p>
-                        <p className="text-2xl font-bold">
-                          {assignments.filter((assignment, index, self) => 
-                            index === self.findIndex(a => a.subjectId === assignment.subjectId)
-                          ).length}
-                        </p>
-                      </div>
-                      <BookOpen className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>

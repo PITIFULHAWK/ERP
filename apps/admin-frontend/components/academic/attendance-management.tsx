@@ -285,7 +285,6 @@ export function AttendanceManagement() {
         <TabsList>
           <TabsTrigger value="mark-attendance">Mark Attendance</TabsTrigger>
           <TabsTrigger value="view-records">View Records</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="mark-attendance" className="space-y-4">
@@ -442,7 +441,7 @@ export function AttendanceManagement() {
                       {attendanceRecords.map((record) => (
                         <TableRow key={record.id}>
                           <TableCell className="font-medium">
-                            {record.enrollment.student.firstName} {record.enrollment.student.lastName}
+                            {record.enrollment.student.name} 
                           </TableCell>
                           <TableCell>{record.subject.name}</TableCell>
                           <TableCell>{format(new Date(record.date), "PPP")}</TableCell>
@@ -463,25 +462,6 @@ export function AttendanceManagement() {
                   No attendance records found for the selected criteria
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="analytics" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Attendance Analytics
-              </CardTitle>
-              <CardDescription>
-                View attendance statistics and trends
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                Attendance analytics coming soon...
-              </div>
             </CardContent>
           </Card>
         </TabsContent>

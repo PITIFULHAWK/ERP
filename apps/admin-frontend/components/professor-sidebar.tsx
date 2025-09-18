@@ -13,9 +13,6 @@ import {
   Award,
   BookOpen,
   Calendar,
-  Users,
-  Bell,
-  Settings,
   ChevronLeft,
   ChevronRight,
   GraduationCap,
@@ -74,21 +71,6 @@ const navigationGroups: NavigationGroup[] = [
         icon: Calendar,
       },
     ]
-  },
-  {
-    label: "Class Management",
-    items: [
-      {
-        name: "My Courses",
-        href: "/professor/courses",
-        icon: Users,
-      },
-      {
-        name: "Settings",
-        href: "/professor/settings",
-        icon: Settings,
-      },
-    ]
   }
 ]
 
@@ -102,24 +84,25 @@ export function ProfessorSidebar({ className }: ProfessorSidebarProps) {
     <TooltipProvider delayDuration={0}>
       <div
         className={cn(
-          "relative flex flex-col border-r border-border/50 bg-card/30 backdrop-blur-md transition-all duration-300 ease-in-out",
+          "relative flex flex-col border-r border-border/50 bg-card/30 backdrop-blur-md transition-all duration-300 ease-in-out overflow-hidden",
           isCollapsed ? "w-16" : "w-72",
           className
         )}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border/50">
-          {!isCollapsed && (
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/70 rounded-xl flex items-center justify-center shadow-lg">
-                <GraduationCap className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold font-playfair text-foreground">Professor</h2>
-                <p className="text-xs text-muted-foreground">Academic Portal</p>
-              </div>
+          <div className={cn(
+            "flex items-center space-x-3 transition-all duration-300 ease-in-out",
+            isCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
+          )}>
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/70 rounded-xl flex items-center justify-center shadow-lg">
+              <GraduationCap className="w-6 h-6 text-primary-foreground" />
             </div>
-          )}
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg font-bold font-playfair text-foreground truncate whitespace-nowrap">Professor</h2>
+              <p className="text-xs text-muted-foreground truncate whitespace-nowrap">Academic Portal</p>
+            </div>
+          </div>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -145,11 +128,12 @@ export function ProfessorSidebar({ className }: ProfessorSidebarProps) {
         <nav className="flex-1 overflow-y-auto p-4 space-y-6">
           {navigationGroups.map((group) => (
             <div key={group.label} className="space-y-2">
-              {!isCollapsed && (
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-3">
-                  {group.label}
-                </h3>
-              )}
+              <h3 className={cn(
+                "text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-3 transition-all duration-300 ease-in-out whitespace-nowrap",
+                isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"
+              )}>
+                {group.label}
+              </h3>
               <div className="space-y-1">
                 {group.items.map((item) => {
                   const isActive = pathname === item.href
@@ -169,15 +153,21 @@ export function ProfessorSidebar({ className }: ProfessorSidebarProps) {
                             )}
                           >
                             <item.icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-primary" : "")} />
-                            {!isCollapsed && (
-                              <span className={cn("font-medium", isActive ? "text-primary" : "")}>{item.name}</span>
-                            )}
+                            <span className={cn(
+                              "font-medium transition-all duration-300 ease-in-out whitespace-nowrap",
+                              isCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100",
+                              isActive ? "text-primary" : ""
+                            )}>
+                              {item.name}
+                            </span>
                           </Button>
                         </Link>
                       </TooltipTrigger>
-                      <TooltipContent side="right" className="bg-popover text-popover-foreground border-border shadow-md">
-                        {item.name}
-                      </TooltipContent>
+                      {isCollapsed && (
+                        <TooltipContent side="right" className="bg-popover text-popover-foreground border-border shadow-md">
+                          {item.name}
+                        </TooltipContent>
+                      )}
                     </Tooltip>
                   )
                 })}
@@ -186,49 +176,6 @@ export function ProfessorSidebar({ className }: ProfessorSidebarProps) {
             </div>
           ))}
         </nav>
-
-        {/* Bottom Section */}
-        <div className="p-4 border-t border-border/50">
-          <div className="space-y-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    "w-full justify-start gap-3 h-11 px-3 hover:bg-muted/50",
-                    isCollapsed ? "px-0 justify-center" : ""
-                  )}
-                >
-                  <Bell className="h-5 w-5 flex-shrink-0" />
-                  {!isCollapsed && <span>Notifications</span>}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="bg-popover text-popover-foreground border-border shadow-md">
-                Notifications
-              </TooltipContent>
-            </Tooltip>
-            
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link href="/professor/settings">
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      "w-full justify-start gap-3 h-11 px-3 hover:bg-muted/50",
-                      isCollapsed ? "px-0 justify-center" : ""
-                    )}
-                  >
-                    <Settings className="h-5 w-5 flex-shrink-0" />
-                    {!isCollapsed && <span>Settings</span>}
-                  </Button>
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="bg-popover text-popover-foreground border-border shadow-md">
-                Settings
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
       </div>
     </TooltipProvider>
   )
