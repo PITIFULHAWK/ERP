@@ -11,6 +11,7 @@ import {
 import {
     uploadSingle,
     uploadReceiptFile,
+    uploadAttachmentFile,
     handleMulterError,
 } from "../middleware/upload";
 
@@ -20,7 +21,8 @@ const router: Router = Router();
 router.get("/", getPayments); // Get all payments (Admin view)
 router.get("/summary", getPaymentSummary); // Get payment statistics
 router.get("/:id", getPaymentById); // Get payment by ID
-router.post("/", createPaymentSimple); // Simple JSON payment creation (user)
+// Accept JSON or multipart/form-data with optional 'attachment'
+router.post("/", uploadAttachmentFile, handleMulterError, createPaymentSimple);
 router.post("/create-with-receipt", uploadReceiptFile, handleMulterError, createPaymentWithReceipt); // Create payment with optional receipt
 router.delete("/:id", deletePayment); // Delete payment
 // Verification routes (Admin only)

@@ -52,6 +52,9 @@ export const uploadSingle: RequestHandler = upload.single("document");
 // Middleware for receipt upload
 export const uploadReceiptFile: RequestHandler = upload.single("receipt");
 
+// Middleware for payment attachment upload (frontend uses field name 'attachment')
+export const uploadAttachmentFile: RequestHandler = upload.single("attachment");
+
 // Middleware for multiple files upload (if needed)
 export const uploadMultiple: RequestHandler = upload.array("documents", 10); // Max 10 files
 

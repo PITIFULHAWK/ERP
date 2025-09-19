@@ -12,8 +12,9 @@ import {
     FileText,
     Calendar,
     Clock,
+    ExternalLink,
 } from "lucide-react";
-import { EnhancedDocumentViewer } from "@/components/document-viewer/EnhancedDocumentViewer";
+
 import { documentService } from "@/lib/documentService";
 import { useAuth } from "@/contexts/AuthContext";
 import { CalendarDocument } from "@/lib/api";
@@ -39,6 +40,7 @@ export default function AcademicCalendar() {
         retryCount: 0,
         downloadProgress: null,
     });
+    const [contentLength, setContentLength] = useState<number | null>(null);
 
     // Exponential backoff retry delay
     const getRetryDelay = (retryCount: number): number => {
@@ -177,19 +179,26 @@ export default function AcademicCalendar() {
         }
     }, [state.document]);
 
-    // Handle document viewer errors
-    const handleDocumentError = useCallback((error: Error) => {
-        console.error("Document viewer error:", error);
-        setState((prev) => ({
-            ...prev,
-            error: `Failed to display document: ${error.message}`,
-        }));
-    }, []);
-
-    // Handle document load success
-    const handleDocumentLoad = useCallback(() => {
-        console.log("Document loaded successfully");
-    }, []);
+    // Fetch file size via HEAD when backend returns 0 size
+    useEffect(() => {
+        const fetchSize = async () => {
+            if (!state.document) return;
+            if (state.document.fileSize && state.document.fileSize > 0) {
+                setContentLength(state.document.fileSize);
+                return;
+            }
+            try {
+                const res = await fetch(state.document.url, { method: 'HEAD' });
+                const len = res.headers.get('content-length');
+                if (len) {
+                    setContentLength(parseInt(len, 10));
+                }
+            } catch (e) {
+                // ignore
+            }
+        };
+        fetchSize();
+    }, [state.document?.url]);
 
     // Initial load
     useEffect(() => {
@@ -339,32 +348,23 @@ export default function AcademicCalendar() {
                         <CardTitle className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <FileText className="w-5 h-5" />
-                                Academic Calendar -{" "}
-                                {state.document.academicYear.year}
+                                Academic Calendar - {state.document.academicYear.year}
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                                 <Badge variant="secondary">
-                                    {documentService.formatFileSize(
-                                        state.document.fileSize
-                                    )}
+                                    {documentService.formatFileSize((contentLength ?? state.document.fileSize) || 0)}
                                 </Badge>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={handleDownload}
-                                    disabled={state.downloadProgress !== null}
-                                >
+                                <a href={state.document.url} target="_blank" rel="noreferrer">
+                                    <Button variant="outline" size="sm" className="flex items-center gap-2">
+                                        <ExternalLink className="w-4 h-4" />
+                                        View
+                                    </Button>
+                                </a>
+                                <Button variant="outline" size="sm" onClick={handleDownload} disabled={state.downloadProgress !== null}>
                                     <Download className="w-4 h-4 mr-2" />
-                                    {state.downloadProgress !== null
-                                        ? `${state.downloadProgress}%`
-                                        : "Download"}
+                                    {state.downloadProgress !== null ? `${state.downloadProgress}%` : "Download"}
                                 </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => fetchCalendarDocument()}
-                                    disabled={state.loading}
-                                >
+                                <Button variant="outline" size="sm" onClick={() => fetchCalendarDocument()} disabled={state.loading}>
                                     <RefreshCw className="w-4 h-4 mr-2" />
                                     Refresh
                                 </Button>
@@ -375,128 +375,42 @@ export default function AcademicCalendar() {
                         <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                             <div className="flex items-center gap-1">
                                 <Clock className="w-4 h-4" />
-                                Last updated:{" "}
-                                {documentService.formatDate(
-                                    state.document.uploadedAt
-                                )}
+                                Last updated: {documentService.formatDate(state.document.uploadedAt)}
                             </div>
-                            <div className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
-                                Academic Year:{" "}
-                                {state.document.academicYear.startDate} to{" "}
-                                {state.document.academicYear.endDate}
-                            </div>
-                            {state.document.url.includes('.pdf.png') && (
-                                <div className="flex items-center gap-1">
-                                    <FileText className="w-4 h-4" />
-                                    <span className="text-xs">PDF converted to image for better viewing</span>
-                                </div>
-                            )}
                         </div>
-
-                        {/* Document Viewer */}
-                        <div className="border rounded-lg overflow-hidden">
-                            <EnhancedDocumentViewer
-                                documentUrl={state.document.url}
-                                documentType={
-                                    documentService.validateDocumentUrl(
-                                        state.document.url
-                                    ).documentType || "image"
-                                }
-                                fileName={state.document.fileName}
-                                onError={handleDocumentError}
-                                onLoad={handleDocumentLoad}
-                                className="min-h-[600px]"
-                            />
+                        <div className="p-4 border rounded-lg bg-muted/50">
+                            <div className="flex items-center gap-2 mb-2">
+                                <FileText className="w-5 h-5" />
+                                <span className="font-medium">{state.document.fileName}</span>
+                            </div>
+                            <div className="text-sm text-muted-foreground space-y-1">
+                                <p>File Size: {documentService.formatFileSize((contentLength ?? state.document.fileSize) || 0)}</p>
+                                <p>Type: {state.document.mimeType}</p>
+                                <p>Uploaded: {documentService.formatDate(state.document.uploadedAt)}</p>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
             )}
 
-            {/* Additional academic information */}
-            <div className="grid gap-6 md:grid-cols-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Calendar className="w-5 h-5" />
-                            Quick Information
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-3">
-                            {state.document && (
-                                <>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">
-                                            Academic Year:
-                                        </span>
-                                        <span className="font-medium">
-                                            {state.document.academicYear.year}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">
-                                            Start Date:
-                                        </span>
-                                        <span className="font-medium">
-                                            {new Date(
-                                                state.document.academicYear.startDate
-                                            ).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">
-                                            End Date:
-                                        </span>
-                                        <span className="font-medium">
-                                            {new Date(
-                                                state.document.academicYear.endDate
-                                            ).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">
-                                            Document Type:
-                                        </span>
-                                        <span className="font-medium capitalize">
-                                            {
-                                                state.document.mimeType.split(
-                                                    "/"
-                                                )[1]
-                                            }
-                                        </span>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Need Help?</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-3 text-sm">
-                            <p className="text-muted-foreground">
-                                If you're having trouble viewing the academic
-                                calendar or need additional information:
-                            </p>
-                            <ul className="space-y-2 text-muted-foreground">
-                                <li>
-                                    • Contact your academic office for printed
-                                    copies
-                                </li>
-                                <li>• Check the student portal for updates</li>
-                                <li>
-                                    • Reach out to student services for
-                                    assistance
-                                </li>
-                            </ul>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+        {/* Additional academic information */}
+        <div className="grid gap-6 md:grid-cols-1">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Need Help?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-3 text-sm">
+                        <p className="text-muted-foreground">If you're having trouble viewing the academic calendar or need additional information:</p>
+                        <ul className="space-y-2 text-muted-foreground">
+                            <li>• Contact your academic office for printed copies</li>
+                            <li>• Check the student portal for updates</li>
+                            <li>• Reach out to student services for assistance</li>
+                        </ul>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
         </div>
     );
 }

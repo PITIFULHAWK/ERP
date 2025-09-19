@@ -14,9 +14,10 @@ import {
   AlertCircle,
   Download,
   Eye,
-  EyeOff
+  EyeOff,
+  ExternalLink
 } from "lucide-react";
-import { EnhancedDocumentViewer } from "@/components/document-viewer/EnhancedDocumentViewer";
+
 import { documentService } from "@/lib/documentService";
 import { useAuth } from "@/contexts/AuthContext";
 import { TimetableDocument, StudentEnrollment } from "@/lib/api";
@@ -300,26 +301,7 @@ export default function Timetable() {
     }
   };
 
-  // Handle document viewer errors
-  const handleDocumentError = (error: Error) => {
-    console.error("Document viewer error:", error);
-    setState(prev => ({
-      ...prev,
-      error: error.message,
-      viewMode: 'schedule' // Fallback to schedule view
-    }));
-    
-    toast({
-      title: "Document viewing error",
-      description: "Switching to schedule view due to document error.",
-      variant: "destructive",
-    });
-  };
-
-  // Handle document load success
-  const handleDocumentLoad = () => {
-    console.log("Timetable document loaded successfully");
-  };
+  // Viewer handlers removed - using FileDetails component only
 
   // Load data on component mount
   useEffect(() => {
@@ -468,31 +450,34 @@ export default function Timetable() {
 
       {/* Document View */}
       {state.viewMode === 'document' && state.document && (
-        <Card className="shadow-card">
-          <CardHeader className="pb-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <CardTitle className="text-xl">Timetable Document</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Section: {state.document.section.name} | 
-                  Academic Year: {state.document.academicYear.year}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <FileText className="w-4 h-4" />
-                {state.document.fileName}
-              </div>
-            </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Timetable Document</CardTitle>
           </CardHeader>
           <CardContent>
-            <EnhancedDocumentViewer
-              documentUrl={state.document.url}
-              documentType={documentService.validateDocumentUrl(state.document.url).documentType || 'pdf'}
-              fileName={state.document.fileName}
-              onError={handleDocumentError}
-              onLoad={handleDocumentLoad}
-              className="min-h-[600px]"
-            />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                <span className="font-medium">{state.document.fileName}</span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <p>Section: {state.document.section?.name}</p>
+                <p>Academic Year: {state.document.academicYear.year}</p>
+                <p>Uploaded: {new Date(state.document.uploadedAt).toLocaleDateString()}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <a href={state.document.url} target="_blank" rel="noreferrer">
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <ExternalLink className="w-4 h-4" />
+                    View in new tab
+                  </Button>
+                </a>
+                <Button onClick={handleDownload} className="flex items-center gap-2">
+                  <Download className="w-4 h-4" />
+                  Download Document
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}

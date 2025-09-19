@@ -26,7 +26,6 @@ import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
 import DarkModeTestPage from "./pages/DarkModeTestPage";
 import ThemePersistenceTest from "./pages/ThemePersistenceTest";
-import PDFViewerDemo from "./pages/PDFViewerDemo";
 
 const queryClient = new QueryClient();
 
@@ -62,7 +61,6 @@ const router = createBrowserRouter([
     { path: "/signup", Component: Signup },
     { path: "/dark-mode-test", Component: DarkModeTestPage },
     { path: "/theme-persistence-test", Component: ThemePersistenceTest },
-    { path: "/pdf-viewer-demo", Component: PDFViewerDemo },
 
     // Default protected layout (all children use Layout + ProtectedRoute)
     {

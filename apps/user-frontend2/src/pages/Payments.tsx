@@ -46,6 +46,7 @@ export default function Payments() {
     method: "MANUAL" as const,
     reference: "",
     notes: "",
+    attachment: null as File | null,
   });
 
   const [otherPayment, setOtherPayment] = useState({
@@ -54,6 +55,7 @@ export default function Payments() {
     method: "MANUAL" as const,
     reference: "",
     notes: "",
+    attachment: null as File | null,
   });
   
   const [hostelPayment, setHostelPayment] = useState({
@@ -62,6 +64,7 @@ export default function Payments() {
     method: "MANUAL" as const,
     reference: "",
     notes: "",
+    attachment: null as File | null,
   });
 
   useEffect(() => {
@@ -97,16 +100,29 @@ export default function Payments() {
 
     try {
       setSubmitting(true);
-      const paymentData: CreatePaymentRequest = {
-        userId: user.id,
-        type: otherPayment.type,
-        amount: parseFloat(otherPayment.amount),
-        method: otherPayment.method,
-        reference: otherPayment.reference || undefined,
-        notes: otherPayment.notes || undefined,
-      } as any;
+      let body: CreatePaymentRequest | FormData;
+      if (otherPayment.attachment) {
+        const fd = new FormData();
+        fd.append("userId", user.id);
+        fd.append("type", otherPayment.type);
+        fd.append("amount", String(parseFloat(otherPayment.amount)));
+        fd.append("method", otherPayment.method);
+        if (otherPayment.reference) fd.append("reference", otherPayment.reference);
+        if (otherPayment.notes) fd.append("notes", otherPayment.notes);
+        fd.append("attachment", otherPayment.attachment);
+        body = fd;
+      } else {
+        body = {
+          userId: user.id,
+          type: otherPayment.type,
+          amount: parseFloat(otherPayment.amount),
+          method: otherPayment.method,
+          reference: otherPayment.reference || undefined,
+          notes: otherPayment.notes || undefined,
+        };
+      }
 
-      const response = await apiService.createPayment(paymentData);
+      const response = await apiService.createPayment(body);
 
       if (response.success) {
         toast({
@@ -120,6 +136,7 @@ export default function Payments() {
           method: "MANUAL",
           reference: "",
           notes: "",
+          attachment: null,
         });
 
         const paymentsRes = await apiService.getPayments({ userId: user.id });
@@ -143,17 +160,31 @@ export default function Payments() {
 
     try {
       setSubmitting(true);
-      const paymentData: CreatePaymentRequest = {
-        userId: user.id,
-        type: "COURSE",
-        courseId: coursePayment.courseId,
-        amount: parseFloat(coursePayment.amount),
-        method: coursePayment.method,
-        reference: coursePayment.reference || undefined,
-        notes: coursePayment.notes || undefined,
-      };
+      let body: any;
+      if (coursePayment.attachment) {
+        const fd = new FormData();
+        fd.append("userId", user.id);
+        fd.append("type", "COURSE");
+        fd.append("courseId", coursePayment.courseId);
+        fd.append("amount", String(parseFloat(coursePayment.amount)));
+        fd.append("method", coursePayment.method);
+        if (coursePayment.reference) fd.append("reference", coursePayment.reference);
+        if (coursePayment.notes) fd.append("notes", coursePayment.notes);
+        fd.append("attachment", coursePayment.attachment);
+        body = fd;
+      } else {
+        body = {
+          userId: user.id,
+          type: "COURSE",
+          courseId: coursePayment.courseId,
+          amount: parseFloat(coursePayment.amount),
+          method: coursePayment.method,
+          reference: coursePayment.reference || undefined,
+          notes: coursePayment.notes || undefined,
+        } as CreatePaymentRequest;
+      }
 
-      const response = await apiService.createPayment(paymentData);
+      const response = await apiService.createPayment(body as any);
       
       if (response.success) {
         toast({
@@ -168,6 +199,7 @@ export default function Payments() {
           method: "MANUAL",
           reference: "",
           notes: "",
+          attachment: null,
         });
         
         // Refresh payments
@@ -192,17 +224,31 @@ export default function Payments() {
 
     try {
       setSubmitting(true);
-      const paymentData: CreatePaymentRequest = {
-        userId: user.id,
-        type: "HOSTEL",
-        hostelId: hostelPayment.hostelId,
-        amount: parseFloat(hostelPayment.amount),
-        method: hostelPayment.method,
-        reference: hostelPayment.reference || undefined,
-        notes: hostelPayment.notes || undefined,
-      };
+      let body: any;
+      if (hostelPayment.attachment) {
+        const fd = new FormData();
+        fd.append("userId", user.id);
+        fd.append("type", "HOSTEL");
+        fd.append("hostelId", hostelPayment.hostelId);
+        fd.append("amount", String(parseFloat(hostelPayment.amount)));
+        fd.append("method", hostelPayment.method);
+        if (hostelPayment.reference) fd.append("reference", hostelPayment.reference);
+        if (hostelPayment.notes) fd.append("notes", hostelPayment.notes);
+        fd.append("attachment", hostelPayment.attachment);
+        body = fd;
+      } else {
+        body = {
+          userId: user.id,
+          type: "HOSTEL",
+          hostelId: hostelPayment.hostelId,
+          amount: parseFloat(hostelPayment.amount),
+          method: hostelPayment.method,
+          reference: hostelPayment.reference || undefined,
+          notes: hostelPayment.notes || undefined,
+        } as CreatePaymentRequest;
+      }
 
-      const response = await apiService.createPayment(paymentData);
+      const response = await apiService.createPayment(body as any);
       
       if (response.success) {
         toast({
@@ -217,6 +263,7 @@ export default function Payments() {
           method: "MANUAL",
           reference: "",
           notes: "",
+          attachment: null,
         });
         
         // Refresh payments
@@ -378,6 +425,18 @@ export default function Payments() {
                     />
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="course-attachment">Attachment (optional)</Label>
+                    <Input
+                      id="course-attachment"
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.webp"
+                      onChange={(e) =>
+                        setCoursePayment({ ...coursePayment, attachment: e.target.files?.[0] || null })
+                      }
+                    />
+                  </div>
+
                   <Button
                     type="submit"
                     className="w-full"
@@ -474,6 +533,18 @@ export default function Payments() {
                     />
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="hostel-attachment">Attachment (optional)</Label>
+                    <Input
+                      id="hostel-attachment"
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.webp"
+                      onChange={(e) =>
+                        setHostelPayment({ ...hostelPayment, attachment: e.target.files?.[0] || null })
+                      }
+                    />
+                  </div>
+
                   <Button
                     type="submit"
                     className="w-full"
@@ -555,6 +626,16 @@ export default function Payments() {
                       placeholder="Additional notes (optional)"
                       value={otherPayment.notes}
                       onChange={(e) => setOtherPayment({ ...otherPayment, notes: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="other-attachment">Attachment (optional)</Label>
+                    <Input
+                      id="other-attachment"
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.webp"
+                      onChange={(e) => setOtherPayment({ ...otherPayment, attachment: e.target.files?.[0] || null })}
                     />
                   </div>
 

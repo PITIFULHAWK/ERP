@@ -439,9 +439,10 @@ class ApiService {
     ): Promise<ApiResponse<T>> {
         const url = `${this.baseURL}${endpoint}`;
 
+        const isFormDataBody = options?.body && typeof FormData !== 'undefined' && options.body instanceof FormData;
         const config: RequestInit = {
             headers: {
-                "Content-Type": "application/json",
+                ...(isFormDataBody ? {} : { "Content-Type": "application/json" }),
                 ...options.headers,
             },
             ...options,
@@ -548,11 +549,13 @@ class ApiService {
     }
 
     async createPayment(
-        paymentData: CreatePaymentRequest
+        paymentData: CreatePaymentRequest | FormData
     ): Promise<ApiResponse<Payment>> {
+        const isForm = typeof FormData !== 'undefined' && paymentData instanceof FormData;
         return this.request<Payment>("/payments", {
             method: "POST",
-            body: JSON.stringify(paymentData),
+            body: isForm ? paymentData : JSON.stringify(paymentData),
+            headers: isForm ? undefined : undefined,
         });
     }
 
