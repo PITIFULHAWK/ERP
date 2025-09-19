@@ -667,6 +667,16 @@ class ApiService {
         return this.request<GradesSummaryResponse>(`/grades/student/${studentId}/summary`);
     }
 
+    // Section resources visible to a student
+    async getStudentResources(studentId: string, params?: { subjectId?: string; sectionId?: string; resourceType?: string }): Promise<ApiResponse<any[]>> {
+        const qs = new URLSearchParams();
+        if (params?.subjectId) qs.append("subjectId", params.subjectId);
+        if (params?.sectionId) qs.append("sectionId", params.sectionId);
+        if (params?.resourceType) qs.append("resourceType", params.resourceType);
+        const suffix = qs.toString() ? `?${qs.toString()}` : "";
+        return this.request<any[]>(`/resources/student/${studentId}${suffix}`);
+    }
+
     // Attendance endpoints
     async getStudentAttendance(
         studentId: string,

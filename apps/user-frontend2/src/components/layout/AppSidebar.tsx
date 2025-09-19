@@ -51,6 +51,7 @@ const studentNavigation = [
     { title: "Payments", url: "/payments", icon: CreditCard },
     { title: "Timetable", url: "/timetable", icon: Clock },
     { title: "My Attendance", url: "/attendance", icon: Calendar },
+    { title: "Resources", url: "/resources", icon: FileText },
     { title: "My Results", url: "/results", icon: Trophy },
     { title: "Complaints", url: "/complaints", icon: FileText },
     { title: "Placements", url: "/placements", icon: FileText },

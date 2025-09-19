@@ -21,6 +21,7 @@ import Results from "./pages/Results";
 import Complaints from "./pages/Complaints";
 import Placements from "./pages/Placements";
 import AcademicCalendar from "./pages/AcademicCalendar";
+import Resources from "./pages/Resources";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
@@ -88,6 +89,7 @@ const router = createBrowserRouter([
             { path: "/payments", Component: Payments },
             { path: "/timetable", Component: Timetable },
             { path: "/attendance", Component: Attendance },
+            { path: "/resources", Component: Resources },
             { path: "/results", Component: Results },
             { path: "/complaints", Component: Complaints },
             { path: "/placements", Component: Placements },
