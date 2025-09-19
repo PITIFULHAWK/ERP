@@ -56,7 +56,7 @@ export const getSubjectById = asyncHandler(
                         },
                     },
                 },
-                Grade: {
+                grades: {
                     include: {
                         examResult: {
                             include: {
@@ -225,7 +225,7 @@ export const deleteSubject = asyncHandler(
         const existingSubject = await prisma.subject.findUnique({
             where: { id },
             include: {
-                Grade: true,
+                grades: true,
             },
         });
 
@@ -238,7 +238,7 @@ export const deleteSubject = asyncHandler(
         }
 
         // Check if subject has grades
-        if (existingSubject.Grade) {
+        if (existingSubject.grades && existingSubject.grades.length > 0) {
             const response: ApiResponse = {
                 success: false,
                 message: "Cannot delete subject with existing grades",

@@ -207,11 +207,13 @@ export const deleteExam = asyncHandler(async (req: Request, res: Response) => {
         });
     }
 
-    // Check if exam has results (temporary fix until Prisma client is regenerated)
-    if (existingExam.results) {
-        return res.status(400).json({
+    // Guard: block deletion if exam has any results
+    const resultsCount = existingExam.results ? existingExam.results.length : 0;
+    if (resultsCount > 0) {
+        return res.status(409).json({
             success: false,
-            message: "Cannot delete exam with existing results",
+            message: "Cannot delete exam due to existing linked results",
+            error: `This exam has ${resultsCount} result(s). Remove those results before deleting the exam.`,
         });
     }
 

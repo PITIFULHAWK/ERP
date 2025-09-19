@@ -56,6 +56,10 @@ export function UsersTable({ users, selectedIds, onSelectionChange, onBulkAction
               <UserCheck className="w-4 h-4 mr-1" />
               Promote to Student
             </Button>
+            <Button size="sm" variant="outline" onClick={() => onBulkAction("promote_prof", selectedIds)}>
+              <UserCheck className="w-4 h-4 mr-1" />
+              Promote to Professor
+            </Button>
             <Button size="sm" variant="destructive" onClick={() => onBulkAction("delete", selectedIds)}>
               <Trash2 className="w-4 h-4 mr-1" />
               Delete
@@ -105,7 +109,7 @@ export function UsersTable({ users, selectedIds, onSelectionChange, onBulkAction
                   <UserStatusBadge status={user.userStatus} />
                 </TableCell>
                 <TableCell>
-                  <div className="text-sm">{user.university.name}</div>
+                  <div className="text-sm">{user.university?.name || "N/A"}</div>
                 </TableCell>
                 <TableCell>
                   <div className="text-sm">{formatDate(user.createdAt)}</div>
@@ -131,10 +135,16 @@ export function UsersTable({ users, selectedIds, onSelectionChange, onBulkAction
                         </DropdownMenuItem>
                       )}
                       {user.role === "USER" && (
-                        <DropdownMenuItem onClick={() => onBulkAction("promote", [user.id])}>
-                          <UserCheck className="w-4 h-4 mr-2" />
-                          Promote to Student
-                        </DropdownMenuItem>
+                        <>
+                          <DropdownMenuItem onClick={() => onBulkAction("promote", [user.id])}>
+                            <UserCheck className="w-4 h-4 mr-2" />
+                            Promote to Student
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onBulkAction("promote_prof", [user.id])}>
+                            <UserCheck className="w-4 h-4 mr-2" />
+                            Promote to Professor
+                          </DropdownMenuItem>
+                        </>
                       )}
                       <DropdownMenuItem className="text-destructive" onClick={() => onBulkAction("delete", [user.id])}>
                         <Trash2 className="w-4 h-4 mr-2" />

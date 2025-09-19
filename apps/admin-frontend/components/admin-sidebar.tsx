@@ -12,7 +12,6 @@ import {
   Users,
   GraduationCap,
   FileText,
-  Building2,
   Home,
   BookOpen,
   Bell,
@@ -83,11 +82,6 @@ const navigationGroups: NavigationGroup[] = [
   {
     label: "Academic",
     items: [
-      {
-        name: "Universities",
-        href: "/admin/universities",
-        icon: Building2,
-      },
       {
         name: "Courses",
         href: "/admin/courses",

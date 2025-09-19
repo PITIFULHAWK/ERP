@@ -114,6 +114,21 @@ export function EnhancedSemesterManagement({
 
     setLoading(true)
     try {
+      // Client-side validation: bound number between 1 and course totalSemester if we can infer it
+      if (typeof formData.number === "number") {
+        const course = courses.find(c => c.id === (editingSemester?.courseId || formData.courseId))
+        if (course) {
+          if (formData.number < 1 || formData.number > course.totalSemester) {
+            toast({
+              title: "Invalid number",
+              description: `Semester number must be between 1 and ${course.totalSemester}.`,
+              variant: "destructive",
+            })
+            setLoading(false)
+            return
+          }
+        }
+      }
       const updateData: UpdateSemesterRequest = {
         code: formData.code,
         number: formData.number,
@@ -148,11 +163,23 @@ export function EnhancedSemesterManagement({
       })
       onSemesterChange()
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete semester",
-        variant: "destructive",
-      })
+      const message = error instanceof Error ? error.message : "Failed to delete semester"
+      // Friendly guidance if blocked by FK constraints (HTTP 409)
+      if (message.toLowerCase().includes("cannot delete semester")) {
+        const subj = semester.subjects?.length || 0
+        const exms = semester.exams?.length || 0
+        toast({
+          title: "Cannot delete semester",
+          description: `This semester has ${subj} subject(s) and ${exms} exam(s). Remove or reassign them before deleting.`,
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: message,
+          variant: "destructive",
+        })
+      }
     } finally {
       setLoading(false)
     }
@@ -342,9 +369,10 @@ export function EnhancedSemesterManagement({
                           </DropdownMenuItem>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 className="text-destructive focus:text-destructive"
                                 onSelect={(e) => e.preventDefault()}
+                                disabled={(semester.subjects?.length || 0) > 0 || (semester.exams?.length || 0) > 0}
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Delete
@@ -354,17 +382,21 @@ export function EnhancedSemesterManagement({
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This will permanently delete the semester &ldquo;{semester.code}&rdquo; and all associated data. This action cannot be undone.
+                                  {((semester.subjects?.length || 0) > 0 || (semester.exams?.length || 0) > 0)
+                                    ? `This semester cannot be deleted because it has ${semester.subjects?.length || 0} subject(s) and ${semester.exams?.length || 0} exam(s). Remove or reassign them first.`
+                                    : `This will permanently delete the semester “${semester.code}”. This action cannot be undone.`}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(semester)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Delete
-                                </AlertDialogAction>
+                                {((semester.subjects?.length || 0) === 0 && (semester.exams?.length || 0) === 0) && (
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(semester)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                )}
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>

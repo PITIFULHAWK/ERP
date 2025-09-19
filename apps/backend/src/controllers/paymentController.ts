@@ -119,27 +119,36 @@ export const getPayments = asyncHandler(async (req: Request, res: Response) => {
 // Create payment (JSON body, no file upload) - user side simple route
 export const createPaymentSimple = asyncHandler(
     async (req: Request, res: Response) => {
-        const {
-            userId,
-            type,
-            courseId,
-            hostelId,
-            amount,
-            currency = "INR",
-            method = "MANUAL",
-            reference,
-            notes,
-        } = req.body as {
-            userId: string;
-            type: "COURSE" | "HOSTEL" | "LIBRARY" | "MISC" | "SUMMERQUARTER";
+        // Ensure body exists
+        if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid request body - body is missing or not an object",
+                error: "Bad Request",
+            } satisfies ApiResponse);
+        }
+
+        const body = req.body as {
+            userId?: string;
+            type?: "COURSE" | "HOSTEL" | "LIBRARY" | "MISC" | "SUMMERQUARTER" | string;
             courseId?: string;
             hostelId?: string;
-            amount: number;
+            amount?: number | string;
             currency?: string;
             method?: "MANUAL" | "RAZORPAY" | "CARD" | "UPI";
             reference?: string;
             notes?: string;
         };
+
+        const userId = body.userId as string;
+        const type = body.type as any;
+        const courseId = body.courseId;
+        const hostelId = body.hostelId;
+        const currency = body.currency ?? "INR";
+        const method = body.method ?? "MANUAL";
+        const reference = body.reference;
+        const notes = body.notes;
+        const amountRaw = body.amount;
 
         if (!userId || typeof userId !== "string") {
             return res.status(400).json({
@@ -164,7 +173,7 @@ export const createPaymentSimple = asyncHandler(
             } satisfies ApiResponse);
         }
 
-        const parsedAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+        const parsedAmount = typeof amountRaw === "string" ? parseFloat(amountRaw) : amountRaw;
         if (!parsedAmount || typeof parsedAmount !== "number" || parsedAmount <= 0) {
             return res.status(400).json({
                 success: false,

@@ -104,7 +104,6 @@ export default function Placements() {
                   {p.applicationDeadline && (
                     <span>Deadline: {new Date(p.applicationDeadline).toLocaleString()}</span>
                   )}
-                  {typeof p.emailsSent === "number" && <span>Emails Sent: {p.emailsSent}</span>}
                 </div>
               </CardContent>
             </Card>

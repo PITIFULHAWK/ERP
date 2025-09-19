@@ -532,6 +532,7 @@ const PlacementManagement = () => {
                                         <Button
                                             variant="outline"
                                             size="sm"
+                                            aria-label="View placement"
                                             onClick={() => {
                                                 setSelectedPlacement(placement);
                                                 setIsViewDialogOpen(true);
@@ -543,6 +544,7 @@ const PlacementManagement = () => {
                                         <Button
                                             variant="outline"
                                             size="sm"
+                                            aria-label="Edit placement"
                                             onClick={() => openEditDialog(placement)}
                                         >
                                             <Edit className="w-4 h-4" />
@@ -634,12 +636,14 @@ const PlacementManagement = () => {
                                     <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedPlacement.description}</p>
                                 </div>
 
-                                <div>
-                                    <h4 className="font-semibold mb-2">Created By</h4>
-                                    <p className="text-sm">
-                                        {selectedPlacement.createdBy.name} ({selectedPlacement.createdBy.email})
-                                    </p>
-                                </div>
+                                {selectedPlacement.createdBy && (
+                                    <div>
+                                        <h4 className="font-semibold mb-2">Created By</h4>
+                                        <p className="text-sm">
+                                            {selectedPlacement.createdBy?.name} ({selectedPlacement.createdBy?.email})
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </>
                     )}
