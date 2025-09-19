@@ -22,6 +22,7 @@ import Complaints from "./pages/Complaints";
 import Placements from "./pages/Placements";
 import AcademicCalendar from "./pages/AcademicCalendar";
 import Resources from "./pages/Resources";
+import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
@@ -68,6 +69,7 @@ const router = createBrowserRouter([
         element: <ProtectedLayout />,
         children: [
             { path: "/", Component: Dashboard },
+            { path: "/profile", Component: Profile },
             { path: "/notices", Component: Notices },
             { path: "/academic-calendar", Component: AcademicCalendar },
             { path: "/holidays", element: <Navigate to="/academic-calendar" replace /> },

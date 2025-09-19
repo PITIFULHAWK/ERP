@@ -1,15 +1,7 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { LogOut } from "lucide-react";
+import { useNavigate } from "react-router";
 import { AppSidebar } from "./AppSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -19,11 +11,10 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
-    const { user, logout } = useAuth();
+    const { user } = useAuth();
+    const navigate = useNavigate();
 
-    const handleLogout = () => {
-        logout();
-    };
+    const goToProfile = () => navigate("/profile");
 
     const getUserInitials = (name: string) => {
         return name
@@ -62,52 +53,21 @@ export function Layout({ children }: LayoutProps) {
                             {/* Theme Toggle */}
                             <ThemeToggle variant="simple" />
 
-                            {/* User Menu */}
+                            {/* User Avatar -> Profile */}
                             {user && (
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            className="relative h-8 w-8 rounded-full"
-                                        >
-                                            <Avatar className="h-8 w-8">
-                                                <AvatarImage
-                                                    src=""
-                                                    alt={user.name}
-                                                />
-                                                <AvatarFallback className="bg-primary text-primary-foreground">
-                                                    {getUserInitials(user.name)}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent
-                                        className="w-56"
-                                        align="end"
-                                        forceMount
-                                    >
-                                        <DropdownMenuLabel className="font-normal">
-                                            <div className="flex flex-col space-y-1">
-                                                <p className="text-sm font-medium leading-none">
-                                                    {user.name}
-                                                </p>
-                                                <p className="text-xs leading-none text-muted-foreground">
-                                                    {user.email}
-                                                </p>
-                                                <p className="text-xs leading-none text-muted-foreground">
-                                                    Role: {user.role}
-                                                </p>
-                                            </div>
-                                        </DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                            onClick={handleLogout}
-                                        >
-                                            <LogOut className="mr-2 h-4 w-4" />
-                                            <span>Log out</span>
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                <Button
+                                    variant="ghost"
+                                    className="relative h-8 w-8 rounded-full"
+                                    onClick={goToProfile}
+                                    title="Open Profile"
+                                >
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarImage src="" alt={user.name} />
+                                        <AvatarFallback className="bg-primary text-primary-foreground">
+                                            {getUserInitials(user.name)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                </Button>
                             )}
                         </div>
                     </header>
