@@ -143,6 +143,7 @@ export function PaymentsTable({ payments, onPaymentUpdate }: PaymentsTableProps)
             <TableHead>Status</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Reference</TableHead>
+            <TableHead>Attachments</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -180,6 +181,13 @@ export function PaymentsTable({ payments, onPaymentUpdate }: PaymentsTableProps)
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
                 {payment.reference || "-"}
+              </TableCell>
+              <TableCell>
+                {payment.receipts?.length ? (
+                  <Badge variant="secondary">{payment.receipts.length} file(s)</Badge>
+                ) : (
+                  <span className="text-xs text-muted-foreground">-</span>
+                )}
               </TableCell>
               <TableCell>
                 <Dialog>
@@ -237,34 +245,54 @@ export function PaymentsTable({ payments, onPaymentUpdate }: PaymentsTableProps)
                           </div>
                         )}
 
-                        {selectedPayment.receipts.length > 0 && (
+                        {selectedPayment.receipts.length > 0 ? (
                           <div>
                             <Label className="text-sm font-medium">Receipts</Label>
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                               {selectedPayment.receipts.map((receipt) => (
-                                <div key={receipt.id} className="p-3 border rounded-lg">
+                                <div key={receipt.id} className="p-3 border rounded-lg space-y-2">
                                   <div className="flex items-center justify-between">
                                     <div>
                                       <p className="text-sm font-medium">{receipt.mediaType}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Uploaded by {receipt.uploadedBy.name}
-                                      </p>
+                                      <p className="text-xs text-muted-foreground">Uploaded by {receipt.uploadedBy.name}</p>
                                     </div>
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline"
-                                      onClick={() => window.open(receipt.mediaUrl, '_blank')}
-                                    >
-                                      View Receipt
-                                    </Button>
+                                    <div className="flex gap-2">
+                                      <Button size="sm" variant="outline" onClick={() => window.open(receipt.mediaUrl, '_blank')}>
+                                        View
+                                      </Button>
+                                      <a href={receipt.mediaUrl} download target="_blank" rel="noreferrer">
+                                        <Button size="sm">
+                                          Download
+                                        </Button>
+                                      </a>
+                                    </div>
                                   </div>
+                                  {/* Preview */}
+                                  {receipt.mediaType?.startsWith("image/") ? (
+                                    <img
+                                      src={receipt.mediaUrl}
+                                      alt="Receipt preview"
+                                      className="max-h-64 rounded border object-contain w-full bg-muted"
+                                    />
+                                  ) : receipt.mediaType === "application/pdf" ? (
+                                    <iframe
+                                      src={receipt.mediaUrl}
+                                      className="w-full h-[320px] rounded border bg-muted"
+                                    />
+                                  ) : (
+                                    <div className="text-xs text-muted-foreground">Unsupported file type</div>
+                                  )}
                                   {receipt.notes && (
-                                    <p className="text-xs text-muted-foreground mt-2">{receipt.notes}</p>
+                                    <p className="text-xs text-muted-foreground">{receipt.notes}</p>
                                   )}
                                 </div>
                               ))}
                             </div>
                           </div>
+                        ) : (
+                          <Alert>
+                            <AlertDescription className="text-sm">No receipts uploaded for this payment.</AlertDescription>
+                          </Alert>
                         )}
 
                         {selectedPayment.status === "PENDING" && (

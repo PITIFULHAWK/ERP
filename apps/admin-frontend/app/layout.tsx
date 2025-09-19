@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/contexts/auth-context"
 import "./globals.css"
 import { Suspense } from "react"
+import RouteProgress from "@/components/ui/route-progress"
 
 const playfairDisplay = Playfair_Display({
   subsets: ["latin"],
@@ -27,8 +28,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} ${playfairDisplay.variable}`}>
+        <RouteProgress />
         <Suspense fallback={null}>
-          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
             <AuthProvider>
               {children}
             </AuthProvider>

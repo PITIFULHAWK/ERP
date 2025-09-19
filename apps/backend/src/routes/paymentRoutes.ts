@@ -22,7 +22,19 @@ router.get("/", getPayments); // Get all payments (Admin view)
 router.get("/summary", getPaymentSummary); // Get payment statistics
 router.get("/:id", getPaymentById); // Get payment by ID
 // Accept JSON or multipart/form-data with optional 'attachment'
-router.post("/", uploadAttachmentFile, handleMulterError, createPaymentSimple);
+router.post(
+    "/",
+    uploadAttachmentFile,
+    handleMulterError,
+    (req, res, next) => {
+        // If a file is attached, use the receipt-aware controller
+        if (req.file) {
+            return (createPaymentWithReceipt as any)(req, res, next);
+        }
+        // Otherwise, fall back to simple JSON controller
+        return (createPaymentSimple as any)(req, res, next);
+    }
+);
 router.post("/create-with-receipt", uploadReceiptFile, handleMulterError, createPaymentWithReceipt); // Create payment with optional receipt
 router.delete("/:id", deletePayment); // Delete payment
 // Verification routes (Admin only)

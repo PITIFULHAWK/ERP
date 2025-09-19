@@ -303,7 +303,8 @@ export const createPaymentWithReceipt = asyncHandler(
     async (req: Request, res: Response) => {
         const paymentData = req.body;
         const file = req.file; // Optional receipt file
-        const uploadedById = req.headers["x-user-id"] as string; // Get from JWT in real app
+        // Prefer verifier header, but if missing (user upload), fall back to the userId from the form body
+        const uploadedById = (req.headers["x-user-id"] as string) || paymentData.userId;
 
         // Check if request body exists and has required fields
         if (!paymentData || typeof paymentData !== "object") {
@@ -458,7 +459,7 @@ export const createPaymentWithReceipt = asyncHandler(
             let uploadResult = null;
 
             // If file is provided, upload receipt
-            if (file && uploadedById) {
+            if (file) {
                 try {
                     const originalFileName = file.originalname;
                     const cleanFileName = originalFileName.replace(
