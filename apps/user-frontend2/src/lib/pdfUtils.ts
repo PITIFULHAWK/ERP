@@ -185,3 +185,4 @@ export const generateFilename = (baseName: string, extension: string): string =>
   const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
   return `${baseName}-${timestamp}.${extension}`;
 };
+

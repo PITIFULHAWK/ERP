@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type Dispatch, type SetStateAction } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -33,6 +33,9 @@ interface NavigationGroup {
 
 interface ProfessorSidebarProps {
   className?: string
+  // Optional, accepted to satisfy parent component API
+  activeTab?: string
+  onTabChange?: Dispatch<SetStateAction<string>>
 }
 
 // Navigation for professor dashboard
