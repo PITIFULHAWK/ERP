@@ -30,7 +30,11 @@ import {
 const userNavigation = [
     { title: "Dashboard", url: "/", icon: Home },
     { title: "Notices", url: "/notices", icon: Bell },
-    { title: "Academic Calendar", url: "/academic-calendar", icon: CalendarDays },
+    {
+        title: "Academic Calendar",
+        url: "/academic-calendar",
+        icon: CalendarDays,
+    },
     { title: "Apply for Course", url: "/application", icon: FileText },
 ];
 
@@ -39,19 +43,17 @@ const studentNavigation = [
     { title: "Dashboard", url: "/", icon: Home },
     { title: "Browse Courses", url: "/courses", icon: BookOpen },
     { title: "Notices", url: "/notices", icon: Bell },
-    { title: "Academic Calendar", url: "/academic-calendar", icon: CalendarDays },
+    {
+        title: "Academic Calendar",
+        url: "/academic-calendar",
+        icon: CalendarDays,
+    },
     { title: "Payments", url: "/payments", icon: CreditCard },
     { title: "Timetable", url: "/timetable", icon: Clock },
     { title: "My Attendance", url: "/attendance", icon: Calendar },
     { title: "My Results", url: "/results", icon: Trophy },
     { title: "Complaints", url: "/complaints", icon: FileText },
     { title: "Placements", url: "/placements", icon: FileText },
-];
-
-const bottomNavigation = [
-    { title: "Profile", url: "/profile", icon: User },
-    { title: "Settings", url: "/settings", icon: Settings },
-    { title: "PDF Viewer Demo", url: "/pdf-viewer-demo", icon: FileText },
 ];
 
 export function AppSidebar() {
@@ -136,31 +138,6 @@ export function AppSidebar() {
                 </SidebarGroup>
 
                 {/* Bottom Navigation */}
-                <div className="mt-auto">
-                    <SidebarGroup>
-                        <SidebarGroupContent className="px-4 pb-4">
-                            <SidebarMenu>
-                                {bottomNavigation.map((item) => (
-                                    <SidebarMenuItem key={item.title}>
-                                        <SidebarMenuButton asChild>
-                                            <NavLink
-                                                to={item.url}
-                                                className={getNavClasses(
-                                                    item.url
-                                                )}
-                                            >
-                                                <item.icon className="w-5 h-5" />
-                                                {!collapsed && (
-                                                    <span>{item.title}</span>
-                                                )}
-                                            </NavLink>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                ))}
-                            </SidebarMenu>
-                        </SidebarGroupContent>
-                    </SidebarGroup>
-                </div>
             </SidebarContent>
         </Sidebar>
     );

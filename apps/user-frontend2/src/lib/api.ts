@@ -10,6 +10,28 @@ export interface ApiResponse<T = any> {
     error?: string;
 }
 
+// Grades Summary (student)
+export interface GradesSubjectMark {
+    subjectId: string;
+    subjectName: string;
+    subjectCode: string;
+    credits: number;
+    marksObtained: number;
+}
+
+export interface GradesSemesterSummary {
+    semesterId: string;
+    semesterNumber: number | null;
+    semesterCode: string | null;
+    subjects: GradesSubjectMark[];
+    sgpa: number | null;
+}
+
+export interface GradesSummaryResponse {
+    cgpa: number | null;
+    semesters: GradesSemesterSummary[];
+}
+
 // Placements
 export type PlacementStatus = "ACTIVE" | "CLOSED" | "DRAFT";
 
@@ -638,6 +660,11 @@ class ApiService {
     async getTimetableBySection(sectionId: string): Promise<ApiResponse<TimetableDocument>> {
         // Backend exposes GET /timetables/:sectionId
         return this.request<TimetableDocument>(`/timetables/${sectionId}`);
+    }
+
+    // Grades summary endpoint for a student
+    async getStudentGradesSummary(studentId: string): Promise<ApiResponse<GradesSummaryResponse>> {
+        return this.request<GradesSummaryResponse>(`/grades/student/${studentId}/summary`);
     }
 
     // Attendance endpoints

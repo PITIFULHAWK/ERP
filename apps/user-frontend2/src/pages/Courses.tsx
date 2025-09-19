@@ -7,18 +7,11 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, BookOpen, Users, Star, Loader2, AlertCircle } from "lucide-react";
+import { Clock, BookOpen, Users, Loader2, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { apiService, Course } from "@/lib/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-// Helper function to generate a rating based on course data
-const generateCourseRating = (course: Course): number => {
-    // Generate a rating between 4.0 and 5.0 based on enrollment count
-    const baseRating = 4.0;
-    const enrollmentFactor = Math.min(course.currentStudents / 1000, 1) * 1.0;
-    return Math.round((baseRating + enrollmentFactor) * 10) / 10;
-};
 
 // Helper function to generate key subjects based on course name
 const generateKeySubjects = (courseName: string): string[] => {
@@ -132,7 +125,6 @@ export default function Courses() {
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {courses.map((course) => {
-                        const rating = generateCourseRating(course);
                         const keySubjects = generateKeySubjects(course.name);
                         const duration = `${Math.ceil(course.totalSemester / 2)} Years | ${course.totalSemester} Semesters`;
                         
@@ -144,18 +136,12 @@ export default function Courses() {
                                 <CardHeader className="pb-4">
                                     <div className="flex items-start justify-between">
                                         <div className="space-y-1">
-                                            <div className="flex items-center gap-2">
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="text-primary bg-primary/10 font-medium"
-                                                >
-                                                    {course.code}
-                                                </Badge>
-                                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                                    <Star className="w-3 h-3 fill-warning text-warning" />
-                                                    <span>{rating}</span>
-                                                </div>
-                                            </div>
+                                            <Badge
+                                                variant="secondary"
+                                                className="text-primary bg-primary/10 font-medium"
+                                            >
+                                                {course.code}
+                                            </Badge>
                                             <CardTitle className="text-xl leading-tight">
                                                 {course.name}
                                             </CardTitle>

@@ -13,30 +13,33 @@ import {
     AccordionItem,
     AccordionTrigger,
 } from "@/components/ui/accordion";
-import { apiService } from "@/lib/api";
+import { apiService, GradesSemesterSummary } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, Trophy, TrendingUp, Award, Star } from "lucide-react";
 
 export default function Results() {
+    const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [cgpa, setCgpa] = useState<number>(0);
-    const [semesterPerformance, setSemesterPerformance] = useState<
-        { semester: { id: string; number: number; code: string }; gpa: number }[]
-    >([]);
+    const [semesters, setSemesters] = useState<GradesSemesterSummary[]>([]);
     const [expandedSemesters, setExpandedSemesters] = useState<string[]>([]);
 
     useEffect(() => {
-        const fetchProfile = async () => {
+        const fetchSummary = async () => {
             try {
                 setLoading(true);
                 setError(null);
-                const res = await apiService.getUserProfile();
+                if (!user?.id) throw new Error("Not authenticated");
+                const res = await apiService.getStudentGradesSummary(user.id);
                 if (res.success && res.data) {
-                    const gp = (res.data as any).cgpa ?? 0;
-                    const perf = (res.data as any).academicRecord?.semesterPerformance ?? [];
-                    setCgpa(gp);
-                    setSemesterPerformance(perf);
-                    setExpandedSemesters(perf.map((p: any) => `semester-${p.semester.number}`));
+                    const gp = res.data.cgpa ?? 0;
+                    setCgpa(Number(gp) || 0);
+                    const sems = res.data.semesters || [];
+                    setSemesters(sems);
+                    setExpandedSemesters(
+                        sems.map((s) => `semester-${s.semesterNumber ?? s.semesterId}`)
+                    );
                 } else {
                     setError(res.message || "Failed to load results");
                 }
@@ -46,8 +49,8 @@ export default function Results() {
                 setLoading(false);
             }
         };
-        fetchProfile();
-    }, []);
+        fetchSummary();
+    }, [user?.id]);
 
     const getGradeColor = (grade: string) => {
         if (grade === "A+" || grade === "A") return "text-success";
@@ -71,10 +74,18 @@ export default function Results() {
         return gradeMap[grade] || 0;
     };
 
-    const bestGpa = useMemo(() => {
-        if (!semesterPerformance.length) return 0;
-        return Math.max(...semesterPerformance.map((s) => s.gpa || 0));
-    }, [semesterPerformance]);
+    const best = useMemo(() => {
+        let bestVal = 0;
+        let bestSem: number | null = null;
+        for (const s of semesters) {
+            const sgpa = Number(s.sgpa || 0);
+            if (sgpa > bestVal) {
+                bestVal = sgpa;
+                bestSem = s.semesterNumber ?? null;
+            }
+        }
+        return { bestVal, bestSem };
+    }, [semesters]);
 
     if (loading) {
         return (
@@ -145,10 +156,10 @@ export default function Results() {
                     <CardContent>
                         <div className="space-y-1">
                             <div className="text-3xl font-bold text-success">
-                                {semesterPerformance.filter((s) => (s.gpa || 0) > 0).length}
+                                {semesters.filter((s) => (s.sgpa || 0) > 0).length}
                             </div>
                             <p className="text-sm text-muted-foreground">
-                                Out of 8 total
+                                Out of {Math.max(...(semesters.map(s => s.semesterNumber || 0).filter(n => n > 0)), semesters.length)} total
                             </p>
                         </div>
                     </CardContent>
@@ -166,10 +177,10 @@ export default function Results() {
                     <CardContent>
                         <div className="space-y-1">
                             <div className="text-3xl font-bold text-warning">
-                                {bestGpa.toFixed(1)}
+                                {best.bestVal.toFixed(1)}
                             </div>
                             <p className="text-sm text-muted-foreground">
-                                Semester 3
+                                {best.bestSem ? `Semester ${best.bestSem}` : "-"}
                             </p>
                         </div>
                     </CardContent>
@@ -187,10 +198,10 @@ export default function Results() {
                     <CardContent>
                         <div className="space-y-1">
                             <div className="text-lg font-bold text-primary">
-                                {bestGpa >= 9 ? "Excellent" : bestGpa >= 8 ? "Good" : bestGpa > 0 ? "Average" : "N/A"}
+                                {best.bestVal >= 9 ? "Excellent" : best.bestVal >= 8 ? "Good" : best.bestVal > 0 ? "Average" : "N/A"}
                             </div>
                             <p className="text-sm text-muted-foreground">
-                                {bestGpa > 0 ? `Best SGPA ${bestGpa.toFixed(1)}` : "No completed semesters yet"}
+                                {best.bestVal > 0 ? `Best SGPA ${best.bestVal.toFixed(1)}` : "No completed semesters yet"}
                             </p>
                         </div>
                     </CardContent>
@@ -214,46 +225,69 @@ export default function Results() {
                         value={expandedSemesters}
                         onValueChange={setExpandedSemesters}
                     >
-                        {semesterPerformance.map((sp) => (
+                        {semesters.map((sp) => (
                             <AccordionItem
-                                key={`semester-${sp.semester.number}`}
-                                value={`semester-${sp.semester.number}`}
+                                key={`semester-${sp.semesterNumber ?? sp.semesterId}`}
+                                value={`semester-${sp.semesterNumber ?? sp.semesterId}`}
                             >
                                 <AccordionTrigger className="hover:no-underline">
                                     <div className="flex items-center justify-between w-full pr-4">
                                         <div className="flex items-center gap-4">
                                             <Badge
                                                 variant={
-                                                    sp.gpa > 0 ? "default" : "secondary"
+                                                    (sp.sgpa || 0) > 0 ? "default" : "secondary"
                                                 }
                                             >
-                                                Semester {sp.semester.number}
+                                                Semester {sp.semesterNumber ?? "-"}
                                             </Badge>
                                             <span className="font-medium">
-                                                {sp.gpa > 0 ? `GPA: ${sp.gpa}` : "Ongoing"}
+                                                {(sp.sgpa || 0) > 0 ? `SGPA: ${(sp.sgpa || 0).toFixed(2)}` : "Ongoing"}
                                             </span>
                                         </div>
                                         <Badge
-                                            variant={sp.gpa > 0 ? "outline" : "secondary"}
+                                            variant={(sp.sgpa || 0) > 0 ? "outline" : "secondary"}
                                         >
-                                            {sp.gpa > 0 ? "Completed" : "In Progress"}
+                                            {(sp.sgpa || 0) > 0 ? "Completed" : "In Progress"}
                                         </Badge>
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent>
                                     <div className="pt-4">
-                                        {/* Detailed subject-wise grades not available from profile; show summary */}
-                                        {sp.gpa > 0 && (
+                                        {(sp.sgpa || 0) > 0 && (
                                             <div className="mt-4 p-4 bg-primary/5 border border-primary/20 rounded-lg">
                                                 <div className="flex justify-between items-center">
-                                                    <span className="font-medium text-primary">
-                                                        Semester GPA
-                                                    </span>
-                                                    <span className="text-2xl font-bold text-primary">
-                                                        {sp.gpa}
-                                                    </span>
+                                                    <span className="font-medium text-primary">Semester SGPA</span>
+                                                    <span className="text-2xl font-bold text-primary">{(sp.sgpa || 0).toFixed(2)}</span>
                                                 </div>
                                             </div>
+                                        )}
+
+                                        {/* Subject-wise marks */}
+                                        {sp.subjects?.length ? (
+                                            <div className="mt-4 overflow-x-auto">
+                                                <table className="w-full text-sm">
+                                                    <thead className="text-muted-foreground">
+                                                        <tr>
+                                                            <th className="text-left py-2">Code</th>
+                                                            <th className="text-left py-2">Subject</th>
+                                                            <th className="text-right py-2">Credits</th>
+                                                            <th className="text-right py-2">Marks</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {sp.subjects.map((sub) => (
+                                                            <tr key={sub.subjectId} className="border-t">
+                                                                <td className="py-2 pr-2">{sub.subjectCode}</td>
+                                                                <td className="py-2 pr-2">{sub.subjectName}</td>
+                                                                <td className="py-2 text-right">{sub.credits}</td>
+                                                                <td className="py-2 text-right">{sub.marksObtained}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        ) : (
+                                            <div className="text-sm text-muted-foreground">No subject-wise marks available.</div>
                                         )}
                                     </div>
                                 </AccordionContent>

@@ -44,13 +44,26 @@ export default function Dashboard() {
             try {
                 setLoading(true);
                 setError(null);
-                // Profile for CGPA and semesters
-                const profileRes = await apiService.getUserProfile();
-                if (profileRes.success && profileRes.data) {
-                    const c = (profileRes.data as any).cgpa ?? 0;
-                    const perf = (profileRes.data as any).academicRecord?.semesterPerformance ?? [];
-                    setCgpa(Number(c) || 0);
-                    setSemestersCompleted(perf.filter((p: any) => (p.gpa || 0) > 0).length);
+                // Use grades summary for CGPA and semesters (align with Results page)
+                if (user?.id) {
+                    try {
+                        const summaryRes = await apiService.getStudentGradesSummary(user.id);
+                        if (summaryRes.success && summaryRes.data) {
+                            const c = summaryRes.data.cgpa ?? 0;
+                            setCgpa(Number(c) || 0);
+                            const sems = summaryRes.data.semesters || [];
+                            setSemestersCompleted(sems.filter((s) => (s.sgpa || 0) > 0).length);
+                        }
+                    } catch (e) {
+                        // Fallback to profile if summary not available
+                        const profileRes = await apiService.getUserProfile();
+                        if (profileRes.success && profileRes.data) {
+                            const c = (profileRes.data as any).cgpa ?? 0;
+                            const perf = (profileRes.data as any).academicRecord?.semesterPerformance ?? [];
+                            setCgpa(Number(c) || 0);
+                            setSemestersCompleted(perf.filter((p: any) => (p.gpa || 0) > 0).length);
+                        }
+                    }
                 }
 
                 // Notices

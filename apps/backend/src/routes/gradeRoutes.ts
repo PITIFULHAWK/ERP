@@ -6,11 +6,23 @@ import {
     getProfessorStudentsForGrading,
     getProfessorExams,
     deleteGrade,
+    getStudentGradesSummary,
 } from "../controllers/gradeController";
 import { requireAuth, requireProfessor } from "../middleware/authMiddleware";
 import { validateRequest } from "../middleware/requestValidatorMiddlwware";
 
 const router: Router = Router();
+
+// Student grades summary
+router.get(
+    "/student/:studentId/summary",
+    requireAuth,
+    [
+        param("studentId").isUUID().withMessage("Valid student ID is required"),
+    ],
+    validateRequest,
+    getStudentGradesSummary
+);
 
 // Professor grade management routes
 router.get(

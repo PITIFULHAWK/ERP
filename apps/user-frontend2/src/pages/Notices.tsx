@@ -10,8 +10,10 @@ interface Notice {
     content: string;
     createdAt: string;
     updatedAt: string;
-    type?: string;
-    pinned?: boolean;
+    publishedAt?: string;
+    type?: "GENERAL" | "URGENT" | "ACADEMIC" | "HOSTEL" | "EXAM" | string;
+    priority?: "LOW" | "MEDIUM" | "HIGH" | string;
+    targetAudience?: "ALL" | "STUDENTS" | "FACULTY" | "STAFF" | string;
     author?: string;
 }
 export default function Notices() {
@@ -47,6 +49,32 @@ export default function Notices() {
             month: "long",
             day: "numeric",
         });
+    };
+
+    const priorityVariant = (p?: string) => {
+        switch (p) {
+            case "HIGH":
+                return "destructive" as const;
+            case "MEDIUM":
+                return "warning" as const;
+            default:
+                return "secondary" as const;
+        }
+    };
+
+    const typeLabelColor = (t?: string) => {
+        switch (t) {
+            case "URGENT":
+                return "bg-destructive/10 text-destructive border-destructive/20";
+            case "EXAM":
+                return "bg-primary/10 text-primary border-primary/20";
+            case "ACADEMIC":
+                return "bg-success/10 text-success border-success/20";
+            case "HOSTEL":
+                return "bg-warning/10 text-warning border-warning/20";
+            default:
+                return "bg-muted text-foreground/70 border-border";
+        }
     };
 
     if (loading) {
@@ -114,9 +142,34 @@ export default function Notices() {
                                         <CardTitle className="text-lg leading-tight">
                                             {notice.title}
                                         </CardTitle>
-                                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                            <span>
-                                                {formatDate(notice.createdAt)}
+                                        <div className="flex flex-wrap items-center gap-2 text-sm">
+                                            {/* Type badge */}
+                                            {notice.type && (
+                                                <span className={`px-2 py-0.5 rounded border ${typeLabelColor(notice.type)}`}>
+                                                    {notice.type}
+                                                </span>
+                                            )}
+                                            {/* Priority badge */}
+                                            {notice.priority && (
+                                                <span className={`px-2 py-0.5 rounded border ${
+                                                    notice.priority === "HIGH"
+                                                        ? "bg-destructive/10 text-destructive border-destructive/20"
+                                                        : notice.priority === "MEDIUM"
+                                                        ? "bg-warning/10 text-warning border-warning/20"
+                                                        : "bg-muted text-foreground/70 border-border"
+                                                }`}>
+                                                    Priority: {notice.priority}
+                                                </span>
+                                            )}
+                                            {/* Audience badge */}
+                                            {notice.targetAudience && (
+                                                <span className="px-2 py-0.5 rounded border bg-muted text-foreground/70 border-border">
+                                                    Audience: {notice.targetAudience}
+                                                </span>
+                                            )}
+                                            {/* Date */}
+                                            <span className="text-muted-foreground ml-auto">
+                                                {formatDate(notice.publishedAt || notice.createdAt)}
                                             </span>
                                         </div>
                                     </div>

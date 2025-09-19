@@ -3,6 +3,193 @@ import prisma from "@repo/db";
 import { asyncHandler } from "../middleware/index";
 import { ApiResponse } from "../types";
 
+// Helper: recompute student's CGPA from SGPA per semester and persist to active enrollments
+// SGPA is computed as average of examResult.grade (percentage/10) per semester
+// CGPA is computed as weighted average of SGPA by total credits offered in that semester
+async function recomputeAndPersistStudentCgpa(studentId: string) {
+    // 1) Fetch all exam results with their semesters
+    const results = await prisma.examResult.findMany({
+        where: {
+            studentId,
+            grade: { not: null },
+        },
+        select: {
+            grade: true, // percentage
+            exam: { select: { semesterId: true } },
+        },
+    });
+
+    if (results.length === 0) {
+        await prisma.studentEnrollment.updateMany({
+            where: { studentId, status: "ACTIVE" as any },
+            data: { cgpa: null as any },
+        });
+        return null;
+    }
+
+    // 2) Group grades by semesterId and compute SGPA (avg of percentage/10)
+    const bySemester = new Map<string, number[]>();
+    for (const r of results) {
+        const semId = r.exam.semesterId;
+        if (!semId) continue;
+        const gp = (r.grade as number) / 10; // 10-point scale
+        if (!bySemester.has(semId)) bySemester.set(semId, []);
+        if (!Number.isNaN(gp)) bySemester.get(semId)!.push(gp);
+    }
+
+    if (bySemester.size === 0) {
+        await prisma.studentEnrollment.updateMany({
+            where: { studentId, status: "ACTIVE" as any },
+            data: { cgpa: null as any },
+        });
+        return null;
+    }
+
+    // 3) For each semester, get total credits from subjects in that semester
+    const semesterIds = Array.from(bySemester.keys());
+    const subjects = await prisma.subject.findMany({
+        where: { semesterId: { in: semesterIds } },
+        select: { semesterId: true, credits: true },
+    });
+    const creditsBySem = new Map<string, number>();
+    for (const s of subjects) {
+        creditsBySem.set(s.semesterId, (creditsBySem.get(s.semesterId) || 0) + s.credits);
+    }
+
+    // 4) Compute weighted CGPA across semesters
+    let weightedSum = 0;
+    let totalCreditsAllSems = 0;
+    for (const [semId, gpas] of bySemester.entries()) {
+        if (gpas.length === 0) continue;
+        const sgpa = gpas.reduce((a, b) => a + b, 0) / gpas.length;
+        const semCredits = creditsBySem.get(semId) || 0;
+        // Fallback: if no credits found for a semester, treat as 1 to avoid zero weights
+        const weight = semCredits > 0 ? semCredits : 1;
+        weightedSum += sgpa * weight;
+        totalCreditsAllSems += weight;
+    }
+
+    const cgpa = totalCreditsAllSems > 0
+        ? parseFloat((weightedSum / totalCreditsAllSems).toFixed(2))
+        : null;
+
+    await prisma.studentEnrollment.updateMany({
+        where: { studentId, status: "ACTIVE" as any },
+        data: { cgpa: (cgpa as any) },
+    });
+
+    return cgpa;
+}
+
+// Get a student's grades summary: subject-wise marks per semester, SGPA per semester, CGPA overall
+export const getStudentGradesSummary = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { studentId } = req.params as { studentId: string };
+
+        // Fetch all exam results with grades and related info, including semester details
+        const results = await prisma.examResult.findMany({
+            where: { studentId },
+            include: {
+                exam: {
+                    select: {
+                        id: true,
+                        semesterId: true,
+                        maxMarks: true,
+                        examDate: true,
+                        semester: { select: { id: true, number: true, code: true } },
+                    },
+                },
+                grades: {
+                    include: {
+                        subject: {
+                            select: {
+                                id: true,
+                                name: true,
+                                code: true,
+                                credits: true,
+                                semesterId: true,
+                            },
+                        },
+                    },
+                },
+            },
+            orderBy: { exam: { examDate: "asc" } },
+        });
+
+        type SubjectMark = {
+            subjectId: string;
+            subjectName: string;
+            subjectCode: string;
+            credits: number;
+            marksObtained: number;
+        };
+
+        type SemesterSummary = {
+            semesterId: string;
+            semesterNumber: number | null;
+            semesterCode: string | null;
+            subjects: SubjectMark[];
+            sgpa: number | null;
+        };
+
+        const bySemester = new Map<string, SemesterSummary>();
+
+        for (const r of results) {
+            const semId = r.exam.semesterId;
+            if (!semId) continue;
+            if (!bySemester.has(semId)) {
+                bySemester.set(semId, {
+                    semesterId: semId,
+                    semesterNumber: r.exam.semester?.number ?? null,
+                    semesterCode: r.exam.semester?.code ?? null,
+                    subjects: [],
+                    sgpa: null,
+                });
+            }
+            const sem = bySemester.get(semId)!;
+            for (const g of r.grades) {
+                sem.subjects.push({
+                    subjectId: g.subject.id,
+                    subjectName: g.subject.name,
+                    subjectCode: g.subject.code,
+                    credits: g.subject.credits,
+                    marksObtained: g.marksObtained,
+                });
+            }
+        }
+
+        // Compute SGPA per semester (average of examResult.grade/10 for that semester)
+        const sMap = new Map<string, number[]>();
+        for (const r of results) {
+            const semId = r.exam.semesterId;
+            if (!semId || r.grade == null) continue;
+            const gp = (r.grade as number) / 10;
+            if (!Number.isNaN(gp)) {
+                if (!sMap.has(semId)) sMap.set(semId, []);
+                sMap.get(semId)!.push(gp);
+            }
+        }
+        for (const [semId, list] of sMap.entries()) {
+            const sem = bySemester.get(semId);
+            if (sem) sem.sgpa = list.length > 0 ? parseFloat((list.reduce((a, b) => a + b, 0) / list.length).toFixed(2)) : null;
+        }
+
+        // Overall CGPA (also persists to StudentEnrollment)
+        const cgpa = await recomputeAndPersistStudentCgpa(studentId);
+
+        const semesters: SemesterSummary[] = Array.from(bySemester.values()).sort((a, b) => {
+            const an = a.semesterNumber ?? 0;
+            const bn = b.semesterNumber ?? 0;
+            return an - bn;
+        });
+
+        res.json({
+            success: true,
+            message: "Grades summary retrieved successfully",
+            data: { cgpa, semesters },
+        });
+    }
+);
 // Get grades for a professor's assigned sections
 export const getProfessorGrades = asyncHandler(
     async (req: Request, res: Response) => {
@@ -249,6 +436,9 @@ export const createOrUpdateGrade = asyncHandler(
                 grade: percentage,
             },
         });
+
+        // Recompute student's CGPA and persist on ACTIVE enrollments for placement eligibility
+        await recomputeAndPersistStudentCgpa(examResult.student.id);
 
         res.status(existingGrade ? 200 : 201).json({
             success: true,
@@ -554,6 +744,9 @@ export const deleteGrade = asyncHandler(async (req: Request, res: Response) => {
             },
         });
     }
+
+    // Recompute student's CGPA after deletion as well
+    await recomputeAndPersistStudentCgpa(grade.examResult.studentId);
 
     res.json({
         success: true,
