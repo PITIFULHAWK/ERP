@@ -17,6 +17,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [filters, setFilters] = useState<UserFilters>({})
+  const [reloadKey, setReloadKey] = useState(0)
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -38,7 +39,9 @@ export default function UsersPage() {
     }
 
     fetchUsers()
-  }, [filters])
+  }, [filters, reloadKey])
+
+  const handleRefresh = () => setReloadKey(k => k + 1)
 
   const handleBulkAction = async (action: string, ids: string[]) => {
     try {
@@ -62,6 +65,16 @@ export default function UsersPage() {
           toast({
             title: "Success",
             description: `${ids.length} user(s) promoted to student successfully`,
+          })
+          break
+        
+        case "promote_prof":
+          await Promise.all(
+            ids.map(id => apiClient.updateUserRole(id, "PROFESSOR"))
+          )
+          toast({
+            title: "Success",
+            description: `${ids.length} user(s) promoted to professor successfully`,
           })
           break
           
@@ -186,11 +199,9 @@ export default function UsersPage() {
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-          <Button asChild>
-            <Link href="/admin/users/create">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Add User
-            </Link>
+          <Button onClick={handleRefresh}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
           </Button>
         </div>
       </div>

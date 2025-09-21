@@ -339,13 +339,11 @@ class EmailQueueService {
                         additionalData.universityName || "University",
                 };
 
-                const pdfBuffer =
-                    await simplePdfService.generateReceipt(receiptData);
+                const pdfBuffer = await simplePdfService.generateReceipt(receiptData);
                 pdfAttachment = {
                     filename: `Payment_Receipt_${paymentId}.pdf`,
-                    content: pdfBuffer.toString("base64"),
+                    content: pdfBuffer,
                     contentType: "application/pdf",
-                    encoding: "base64",
                 };
             } catch (error) {
                 console.error("Failed to generate PDF receipt:", error);

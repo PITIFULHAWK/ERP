@@ -161,11 +161,21 @@ export function EnhancedExamManagement({
       })
       onExamChange()
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete exam",
-        variant: "destructive",
-      })
+      const message = error instanceof Error ? error.message : "Failed to delete exam"
+      if (message.toLowerCase().includes("cannot delete exam")) {
+        const resultsCount = exam.results?.length || 0
+        toast({
+          title: "Cannot delete exam",
+          description: `This exam has ${resultsCount} result(s). Remove those results before deleting the exam.`,
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: message,
+          variant: "destructive",
+        })
+      }
     } finally {
       setLoading(false)
     }
@@ -425,6 +435,7 @@ export function EnhancedExamManagement({
                               <DropdownMenuItem 
                                 className="text-destructive focus:text-destructive"
                                 onSelect={(e) => e.preventDefault()}
+                                disabled={(exam.results?.length || 0) > 0}
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Delete
@@ -434,17 +445,21 @@ export function EnhancedExamManagement({
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This will permanently delete the exam &ldquo;{exam.name}&rdquo; and all associated data. This action cannot be undone.
+                                  {(exam.results?.length || 0) > 0
+                                    ? `This exam cannot be deleted because it has ${exam.results?.length || 0} result(s). Remove those results first.`
+                                    : `This will permanently delete the exam “${exam.name}”. This action cannot be undone.`}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(exam)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Delete
-                                </AlertDialogAction>
+                                {(exam.results?.length || 0) === 0 && (
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(exam)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                )}
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>

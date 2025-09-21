@@ -163,7 +163,7 @@ export const getSemestersByCourse = asyncHandler(
 export const updateSemester = asyncHandler(
     async (req: Request, res: Response) => {
         const { semesterId } = req.params;
-        const { number } = req.body;
+        const { number, code } = req.body as { number?: number; code?: string };
 
         // 1. Find the semester to ensure it exists
         const semester = await prisma.semester.findUnique({
@@ -180,20 +180,38 @@ export const updateSemester = asyncHandler(
             return res.status(404).json(response);
         }
 
-        // 2. Validate the new semester number
-        if (number > semester.course.totalSemester) {
-            const response: ApiResponse = {
-                success: false,
-                message: "Invalid semester number",
-                error: `Semester number ${number} exceeds the total of ${semester.course.totalSemester} for this course.`,
-            };
-            return res.status(400).json(response);
+        // 2. Validate the new semester number (if provided)
+        if (typeof number === "number") {
+            if (number < 1 || number > semester.course.totalSemester) {
+                const response: ApiResponse = {
+                    success: false,
+                    message: "Invalid semester number",
+                    error: `Semester number ${number} must be between 1 and ${semester.course.totalSemester}.`,
+                };
+                return res.status(400).json(response);
+            }
         }
 
-        // 3. Perform the update
+        // 3. If code is provided, ensure uniqueness
+        if (code && code !== semester.code) {
+            const existingCode = await prisma.semester.findUnique({ where: { code } });
+            if (existingCode) {
+                const response: ApiResponse = {
+                    success: false,
+                    message: "Semester code already exists",
+                    error: `A semester with code '${code}' already exists. Please choose a different code.`,
+                };
+                return res.status(409).json(response);
+            }
+        }
+
+        // 4. Perform the update
         const updatedSemester = await prisma.semester.update({
             where: { id: semesterId },
-            data: { number },
+            data: {
+                ...(typeof number === "number" ? { number } : {}),
+                ...(code ? { code } : {}),
+            },
         });
 
         const response: ApiResponse = {
@@ -224,12 +242,23 @@ export const deleteSemester = asyncHandler(
             return res.status(404).json(response);
         }
 
-        // 2. Perform the deletion
-        // Note: This will fail if there are any subjects or exams linked to this semester.
-        // This is the default restrictive behavior to protect data integrity.
-        await prisma.semester.delete({
-            where: { id: semesterId },
-        });
+        // 2. Guard: ensure no dependent records exist to avoid FK constraint errors
+        const [subjectCount, examCount] = await Promise.all([
+            prisma.subject.count({ where: { semesterId } }),
+            prisma.exam.count({ where: { semesterId } }),
+        ]);
+
+        if (subjectCount > 0 || examCount > 0) {
+            const response: ApiResponse = {
+                success: false,
+                message: "Cannot delete semester due to existing linked records",
+                error: `This semester has ${subjectCount} subject(s) and ${examCount} exam(s) linked. Please remove or reassign them before deleting the semester.`,
+            };
+            return res.status(409).json(response);
+        }
+
+        // 3. Perform the deletion (safe now)
+        await prisma.semester.delete({ where: { id: semesterId } });
 
         const response: ApiResponse = {
             success: true,

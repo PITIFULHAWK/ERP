@@ -536,7 +536,11 @@ export default function UserDetailPage() {
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Fee per Month</label>
-                    <p className="text-sm">₹{user.hostelOpted.feePerMonth.toLocaleString()}</p>
+                    <p className="text-sm">
+                      {typeof user.hostelOpted?.feePerMonth === "number" 
+                        ? `₹${user.hostelOpted.feePerMonth.toLocaleString()}` 
+                        : "N/A"}
+                    </p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Capacity</label>

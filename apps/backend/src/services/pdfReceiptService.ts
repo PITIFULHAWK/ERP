@@ -20,7 +20,7 @@ export interface PaymentReceiptData {
 }
 
 export class PDFReceiptService {
-    private generateReceiptPDF(data: PaymentReceiptData): Buffer {
+    private generateReceiptPDF(data: PaymentReceiptData): Promise<Buffer> {
         const doc = new PDFDocument({
             size: 'A4',
             margin: 50,
@@ -34,8 +34,8 @@ export class PDFReceiptService {
 
         const buffers: Buffer[] = [];
         doc.on('data', buffers.push.bind(buffers));
-        
-        return new Promise((resolve, reject) => {
+
+        return new Promise<Buffer>((resolve, reject) => {
             doc.on('end', () => {
                 const pdfData = Buffer.concat(buffers);
                 resolve(pdfData);
@@ -43,12 +43,12 @@ export class PDFReceiptService {
             
             doc.on('error', reject);
             
-            this.renderReceipt(doc, data);
+            this.renderReceipt(doc as any, data);
             doc.end();
-        }) as any;
+        });
     }
 
-    private renderReceipt(doc: PDFDocument, data: PaymentReceiptData) {
+    private renderReceipt(doc: any, data: PaymentReceiptData) {
         // Header
         doc.fontSize(24)
            .fillColor('#1e40af')
